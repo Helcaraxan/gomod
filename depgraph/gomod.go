@@ -38,19 +38,19 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 		logger.Debugf("Parsing dependency: %s", dep)
 
 		depContent := depRE.FindStringSubmatch(dep)
-		if len(depContent) < 4 {
+		if len(depContent) == 0 {
 			logger.Warnf("Ill-formed line in 'go mod graph' output: %s", dep)
 			continue
 		}
 
 		var beginNodeName, beginVersion string
 		var endNodeName, endVersion string
-		if len(depContent) == 5 {
-			beginNodeName, beginVersion = depContent[1], depContent[2]
-			endNodeName, endVersion = depContent[3], depContent[4]
-		} else {
+		if len(depContent[2]) == 0 {
 			beginNodeName = depContent[1]
 			endNodeName, endVersion = depContent[2], depContent[3]
+		} else {
+			beginNodeName, beginVersion = depContent[1], depContent[2]
+			endNodeName, endVersion = depContent[3], depContent[4]
 		}
 
 		beginNode := graph.Nodes[beginNodeName]

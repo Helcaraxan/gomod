@@ -17,18 +17,18 @@ type DepGraph struct {
 	Nodes  map[string]*Node
 }
 
-// Dependency represents a dependency in a Go module's dependency graph.
-type Dependency struct {
-	Begin   string
-	End     string
-	Version ModuleVersion
-}
-
 // Node represents a module in a Go module's dependency graph.
 type Node struct {
 	Predecessors    []*Dependency
 	Successors      []*Dependency
 	SelectedVersion ModuleVersion
+}
+
+// Dependency represents a dependency in a Go module's dependency graph.
+type Dependency struct {
+	Begin   string
+	End     string
+	Version ModuleVersion
 }
 
 // DeepCopy returns a separate copy of the current dependency graph that can be
