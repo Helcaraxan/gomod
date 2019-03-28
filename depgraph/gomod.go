@@ -25,13 +25,13 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 	}
 
 	graph := &DepGraph{
-		Logger: logger,
-		Module: string(rawModule),
-		Nodes:  map[string]*Node{},
+		logger: logger,
+		module: string(rawModule),
+		nodes:  map[string]*Node{},
 	}
-	if graph.Logger == nil {
-		graph.Logger = logrus.New()
-		graph.Logger.SetOutput(ioutil.Discard)
+	if graph.logger == nil {
+		graph.logger = logrus.New()
+		graph.logger.SetOutput(ioutil.Discard)
 	}
 
 	for _, dep := range strings.Split(strings.TrimSpace(string(rawDeps)), "\n") {
@@ -53,27 +53,27 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 			endNodeName, endVersion = depContent[3], depContent[4]
 		}
 
-		beginNode := graph.Nodes[beginNodeName]
+		beginNode := graph.nodes[beginNodeName]
 		if beginNode == nil {
-			beginNode = &Node{SelectedVersion: ModuleVersion(beginVersion)}
-			graph.Nodes[beginNodeName] = beginNode
+			beginNode = &Node{selectedVersion: ModuleVersion(beginVersion)}
+			graph.nodes[beginNodeName] = beginNode
 		}
-		endNode := graph.Nodes[endNodeName]
+		endNode := graph.nodes[endNodeName]
 		if endNode == nil {
 			endNode = &Node{}
-			graph.Nodes[endNodeName] = endNode
+			graph.nodes[endNodeName] = endNode
 		}
 
-		if len(beginNode.SelectedVersion) != 0 && beginNode.SelectedVersion != ModuleVersion(beginVersion) {
+		if len(beginNode.selectedVersion) != 0 && beginNode.selectedVersion != ModuleVersion(beginVersion) {
 			logger.Warnf("Encountered unexpected version %q for edge starting at node %q.", beginVersion, beginNodeName)
 		}
 		newDependency := &Dependency{
-			Begin:   beginNodeName,
-			End:     endNodeName,
-			Version: ModuleVersion(endVersion),
+			begin:   beginNodeName,
+			end:     endNodeName,
+			version: ModuleVersion(endVersion),
 		}
-		beginNode.Successors = append(beginNode.Successors, newDependency)
-		endNode.Predecessors = append(endNode.Predecessors, newDependency)
+		beginNode.successors = append(beginNode.successors, newDependency)
+		endNode.predecessors = append(endNode.predecessors, newDependency)
 	}
 	return graph, nil
 }

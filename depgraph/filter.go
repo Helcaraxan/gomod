@@ -4,9 +4,9 @@ package depgraph
 // that are not part of a chain leading to a node with more than two predecessors.
 func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
 	return g.prune(func(node *Node) bool {
-		prune := len(node.Successors) == 0 && len(node.Predecessors) < 2
+		prune := len(node.successors) == 0 && len(node.predecessors) < 2
 		if prune {
-			g.Logger.Debugf("Prune %+v.", node)
+			g.logger.Debugf("Prune %+v.", node)
 		}
 		return prune
 	})
@@ -16,20 +16,20 @@ func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
 // not part of a chain leading to the specified dependency. Returns an empty graph
 // if the specified depedendency does not exist in the graph.
 func (g *DepGraph) SubGraph(dependency string) *DepGraph {
-	if _, ok := g.Nodes[dependency]; !ok {
-		g.Logger.Debugf("No node with name %q.", dependency)
+	if _, ok := g.nodes[dependency]; !ok {
+		g.logger.Debugf("No node with name %q.", dependency)
 		return &DepGraph{
-			Module: g.Module,
-			Nodes:  map[string]*Node{},
+			module: g.module,
+			nodes:  map[string]*Node{},
 		}
 	}
 	return g.prune(func(node *Node) bool {
-		if len(node.Successors) > 0 {
+		if len(node.successors) > 0 {
 			return false
 		}
-		prune := len(node.Predecessors) == 0 || node.Predecessors[0].End != dependency
+		prune := len(node.predecessors) == 0 || node.predecessors[0].end != dependency
 		if prune {
-			g.Logger.Debugf("Prune %+v.", node)
+			g.logger.Debugf("Prune %+v.", node)
 		}
 		return prune
 	})
@@ -39,18 +39,18 @@ func (g *DepGraph) SubGraph(dependency string) *DepGraph {
 // are part of dependency chains that need to be modified for the specified dependency
 // to be set to a given target version.
 func (g *DepGraph) OffendingGraph(dependency string, targetVersion string) *DepGraph {
-	if _, ok := g.Nodes[dependency]; !ok {
-		g.Logger.Debugf("No node with name %q.", dependency)
+	if _, ok := g.nodes[dependency]; !ok {
+		g.logger.Debugf("No node with name %q.", dependency)
 		return &DepGraph{
-			Module: g.Module,
-			Nodes:  map[string]*Node{},
+			module: g.module,
+			nodes:  map[string]*Node{},
 		}
 	}
 	offendingGraph := g.DeepCopy()
-	for _, dep := range offendingGraph.Nodes[dependency].Predecessors {
-		g.Logger.Debugf("Dependency %q is required by %q in version %q.", dep.End, dep.Begin, dep.Version)
-		if !dep.Version.MoreRecentThan(ModuleVersion(targetVersion)) {
-			offendingGraph.removeEdge(dep.Begin, dep.End)
+	for _, dep := range offendingGraph.nodes[dependency].predecessors {
+		g.logger.Debugf("Dependency %q is required by %q in version %q.", dep.end, dep.begin, dep.version)
+		if !dep.version.MoreRecentThan(ModuleVersion(targetVersion)) {
+			offendingGraph.removeEdge(dep.begin, dep.end)
 		}
 	}
 	return offendingGraph.SubGraph(dependency)
@@ -61,7 +61,7 @@ func (g *DepGraph) prune(pruneFunc func(*Node) bool) *DepGraph {
 	var done bool
 	for !done {
 		done = true
-		for name, node := range prunedGraph.Nodes {
+		for name, node := range prunedGraph.nodes {
 			if pruneFunc(node) {
 				done = false
 				prunedGraph.removeNode(name)
@@ -72,42 +72,42 @@ func (g *DepGraph) prune(pruneFunc func(*Node) bool) *DepGraph {
 }
 
 func (g *DepGraph) removeNode(name string) {
-	g.Logger.Debugf("Removing node with name %q.", name)
-	node := g.Nodes[name]
+	g.logger.Debugf("Removing node with name %q.", name)
+	node := g.nodes[name]
 	if node == nil {
 		return
 	}
 
-	for _, dep := range node.Successors {
-		g.removeEdge(dep.Begin, dep.End)
+	for _, dep := range node.successors {
+		g.removeEdge(dep.begin, dep.end)
 	}
-	for _, dep := range node.Predecessors {
-		g.removeEdge(dep.Begin, dep.End)
+	for _, dep := range node.predecessors {
+		g.removeEdge(dep.begin, dep.end)
 	}
-	delete(g.Nodes, name)
+	delete(g.nodes, name)
 }
 
 func (g *DepGraph) removeEdge(start string, end string) {
-	g.Logger.Debugf("Removing any edge between %q and %q.", start, end)
-	startNode := g.Nodes[start]
-	endNode := g.Nodes[end]
+	g.logger.Debugf("Removing any edge between %q and %q.", start, end)
+	startNode := g.nodes[start]
+	endNode := g.nodes[end]
 	if startNode == nil || endNode == nil {
 		return
 	}
 
 	var newSuccessors []*Dependency
-	for _, candidate := range startNode.Successors {
-		if candidate.End != end {
+	for _, candidate := range startNode.successors {
+		if candidate.end != end {
 			newSuccessors = append(newSuccessors, candidate)
 		}
 	}
-	startNode.Successors = newSuccessors
+	startNode.successors = newSuccessors
 
 	var newPredecessors []*Dependency
-	for _, candidate := range endNode.Predecessors {
-		if candidate.Begin != start {
+	for _, candidate := range endNode.predecessors {
+		if candidate.begin != start {
 			newPredecessors = append(newPredecessors, candidate)
 		}
 	}
-	endNode.Predecessors = newPredecessors
+	endNode.predecessors = newPredecessors
 }
