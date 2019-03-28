@@ -10,7 +10,7 @@ import (
 
 var (
 	depRE  = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
-	listRE = regexp.MustCompile(`^([^\s]+) ([^\s]+)$`)
+	listRE = regexp.MustCompile(`^([^\s]+) ([^\s]+)(?: => [^\s]+ ([^\s]+))?$`)
 )
 
 // GetDepGraph should be called from within a Go module. It will return the dependency
@@ -98,8 +98,12 @@ func getSelectedModules(logger *logrus.Logger) (string, map[string]string, error
 		if len(dependencyInfo) == 0 {
 			logger.Warnf("Unexpected output from 'go list -m all': %s", line)
 		}
-		versionInfo[dependencyInfo[1]] = dependencyInfo[2]
-		logger.Debugf("Found dependency %q selected at %q.", dependencyInfo[1], dependencyInfo[2])
+		selectedVersion := dependencyInfo[2]
+		if len(dependencyInfo[3]) != 0 {
+			selectedVersion = dependencyInfo[3]
+		}
+		versionInfo[dependencyInfo[1]] = selectedVersion
+		logger.Debugf("Found dependency %q selected at %q.", dependencyInfo[1], selectedVersion)
 	}
 	return module, versionInfo, nil
 }
