@@ -28,71 +28,73 @@ type PrintConfig struct {
 // Print takes in a PrintConfig struct and dumps the content of this DepGraph
 // instance according to parameters.
 func (g *DepGraph) Print(config *PrintConfig) error {
-	var printer func(*logrus.Logger, string, bool) error
+	var printer func(*PrintConfig) error
 	if config.Visual {
 		printer = g.PrintToPDF
 	} else {
 		printer = g.PrintToDOT
 	}
-	return printer(config.Logger, config.OutputPath, config.Force)
+	return printer(config)
 }
 
 // Visualize creates a PDF file at the specified target path that represents the dependency graph.
-func (g *DepGraph) PrintToPDF(logger *logrus.Logger, outputPath string, force bool) error {
+func (g *DepGraph) PrintToPDF(config *PrintConfig) error {
 	tempDir, err := ioutil.TempDir("", "depgraph")
 	if err != nil {
-		logger.WithError(err).Error("Could not create temporary directory.")
+		config.Logger.WithError(err).Error("Could not create temporary directory.")
 	}
-	logger.Debugf("Using temporary output folder %q.", tempDir)
+	config.Logger.Debugf("Using temporary output folder %q.", tempDir)
 
+	outputPath := config.OutputPath
 	if len(outputPath) == 0 {
 		outputPath = filepath.Join(tempDir, "out.pdf")
 	} else {
 		defer func() {
-			logger.Debugf("Cleaning up temporary output folder %q.", tempDir)
+			config.Logger.Debugf("Cleaning up temporary output folder %q.", tempDir)
 			_ = os.RemoveAll(tempDir)
 		}()
 	}
 
 	if filepath.Ext(outputPath) != ".pdf" {
-		logger.Warnf("Specified output path %q is not a PDF file.", outputPath)
+		config.Logger.Warnf("Specified output path %q is not a PDF file.", outputPath)
 		outputPath = strings.TrimSuffix(outputPath, filepath.Ext(outputPath)) + ".pdf"
-		logger.Warnf("Will be writing to %q instead.", outputPath)
+		config.Logger.Warnf("Will be writing to %q instead.", outputPath)
 	}
 
-	if err := prepareOutputPath(logger, outputPath, force); err != nil {
+	if err := prepareOutputPath(config.Logger, outputPath, config.Force); err != nil {
 		return err
 	}
 
-	dotFile := filepath.Join(tempDir, "out.dot")
-	if err = g.PrintToDOT(logger, dotFile, false); err != nil {
+	dotPrintConfig := *config
+	dotPrintConfig.OutputPath = filepath.Join(tempDir, "out.dot")
+	if err = g.PrintToDOT(&dotPrintConfig); err != nil {
 		return err
 	}
 
-	logger.Debugf("Generating PDF file %q.", outputPath)
-	_, err = runCommand(logger, "dot", "-Tpdf", "-o", outputPath, dotFile)
+	config.Logger.Debugf("Generating PDF file %q.", config.OutputPath)
+	_, err = runCommand(config.Logger, "dot", "-Tpdf", "-o", config.OutputPath, dotPrintConfig.OutputPath)
 	return err
 }
 
-func (g *DepGraph) PrintToDOT(logger *logrus.Logger, outputPath string, force bool) error {
+func (g *DepGraph) PrintToDOT(config *PrintConfig) error {
 	var err error
 	out := os.Stdout
-	if len(outputPath) > 0 {
-		if err = prepareOutputPath(logger, outputPath, force); err != nil {
+	if len(config.OutputPath) > 0 {
+		if err = prepareOutputPath(config.Logger, config.OutputPath, config.Force); err != nil {
 			return err
 		}
 
-		out, err = os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY, 0644)
+		out, err = os.OpenFile(config.OutputPath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			logger.WithError(err).Errorf("Could not create output file %q.", outputPath)
+			config.Logger.WithError(err).Errorf("Could not create output file %q.", config.OutputPath)
 			return err
 		}
 		defer func() {
 			_ = out.Close()
 		}()
-		logger.Debugf("Writing DOT graph to %q.", outputPath)
+		config.Logger.Debugf("Writing DOT graph to %q.", config.OutputPath)
 	} else {
-		logger.Debug("Writing DOT graph to terminal.")
+		config.Logger.Debug("Writing DOT graph to terminal.")
 	}
 
 	var fileContent []string
@@ -105,7 +107,7 @@ func (g *DepGraph) PrintToDOT(logger *logrus.Logger, outputPath string, force bo
 	fileContent = append(fileContent, "}")
 
 	if _, err = out.WriteString(strings.Join(fileContent, "\n") + "\n"); err != nil {
-		logger.WithError(err).Error("Failed to write temporary DOT file.")
+		config.Logger.WithError(err).Error("Failed to write temporary DOT file.")
 		return fmt.Errorf("could not write to %q", out.Name())
 	}
 	return nil

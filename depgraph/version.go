@@ -8,29 +8,27 @@ import (
 
 var versionRE = regexp.MustCompile(`^v?([^-]+)(-.*)?$`)
 
-type ModuleVersion string
-
-func (v *ModuleVersion) MoreRecentThan(t ModuleVersion) bool {
-	vParsed := versionRE.FindStringSubmatch(string(*v))
-	if len(vParsed) == 0 {
+func moduleMoreRecentThan(lhs string, rhs string) bool {
+	lhsParsed := versionRE.FindStringSubmatch(lhs)
+	if len(lhsParsed) == 0 {
 		return false
 	}
-	tParsed := versionRE.FindStringSubmatch(string(t))
-	if len(tParsed) == 0 {
-		return false
+	rhsParsed := versionRE.FindStringSubmatch(rhs)
+	if len(rhsParsed) == 0 {
+		return true
 	}
 
-	vSemVer := semver.MustParse(vParsed[1])
-	tSemVer := semver.MustParse(tParsed[1])
-	if vSemVer.GT(tSemVer) {
+	lhsSemVer := semver.MustParse(lhsParsed[1])
+	rhsSemVer := semver.MustParse(rhsParsed[1])
+	if lhsSemVer.GT(rhsSemVer) {
 		return true
-	} else if vSemVer.LT(tSemVer) {
+	} else if lhsSemVer.LT(rhsSemVer) {
 		return false
 	}
-	if len(vParsed) == 2 && len(tParsed) == 3 {
+	if len(lhsParsed) == 2 && len(rhsParsed) == 3 {
 		return true
-	} else if len(vParsed) == 3 && len(tParsed) == 3 {
-		return vParsed[2] > tParsed[2]
+	} else if len(lhsParsed) == 3 && len(rhsParsed) == 3 {
+		return lhsParsed[2] > rhsParsed[2]
 	}
 	return false
 }

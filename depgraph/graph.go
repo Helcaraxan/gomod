@@ -49,7 +49,7 @@ type Node struct {
 	name            string
 	predecessors    []*Dependency
 	successors      []*Dependency
-	selectedVersion ModuleVersion
+	selectedVersion string
 }
 
 // Name of the module represented by this Node in the DepGraph instance.
@@ -60,7 +60,7 @@ func (n *Node) Name() string {
 // SelectedVersion corresponds to the version of the dependency represented by
 // this Node which was selected for use.
 func (n *Node) SelectedVersion() string {
-	return string(n.selectedVersion)
+	return n.selectedVersion
 }
 
 // Predecessors returns a slice with copies of all the incoming Dependencies for
@@ -93,7 +93,7 @@ func (n *Node) Successors() []Dependency {
 type Dependency struct {
 	begin   string
 	end     string
-	version ModuleVersion
+	version string
 }
 
 // Begin returns the name of the Go module at which this Dependency originates.
@@ -109,7 +109,7 @@ func (d *Dependency) End() string {
 // RequiredVersion is the minimal required version of the Go module which this
 // Dependency requires.
 func (d *Dependency) RequiredVersion() string {
-	return string(d.version)
+	return d.version
 }
 
 // DeepCopy returns a separate copy of the current dependency graph that can be

@@ -8,13 +8,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
+var (
+	depRE  = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
+	listRE = regexp.MustCompile(`^([^\s]+) ([^\s]+)$`)
+)
 
 // GetDepGraph should be called from within a Go module. It will return the dependency
 // graph for this module.
 func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 	logger.Debug("Creating dependency graph.")
-	rawModule, err := runCommand(logger, "go", "list", "-m")
+	module, selectedVersions, err := getSelectedModules(logger)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +29,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 
 	graph := &DepGraph{
 		logger: logger,
-		module: string(rawModule),
+		module: module,
 		nodes:  map[string]*Node{},
 	}
 	if graph.logger == nil {
@@ -43,37 +46,57 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 			continue
 		}
 
-		var beginNodeName, beginVersion string
-		var endNodeName, endVersion string
-		if len(depContent[2]) == 0 {
-			beginNodeName = depContent[1]
-			endNodeName, endVersion = depContent[2], depContent[3]
-		} else {
-			beginNodeName, beginVersion = depContent[1], depContent[2]
-			endNodeName, endVersion = depContent[3], depContent[4]
-		}
+		beginNodeName, beginVersion := depContent[1], depContent[2]
+		endNodeName, endVersion := depContent[3], depContent[4]
 
 		beginNode := graph.nodes[beginNodeName]
 		if beginNode == nil {
-			beginNode = &Node{selectedVersion: ModuleVersion(beginVersion)}
+			beginNode = &Node{
+				name:            beginNodeName,
+				selectedVersion: selectedVersions[beginVersion],
+			}
 			graph.nodes[beginNodeName] = beginNode
+			logger.Debugf("Created new node: %+v", beginNode)
 		}
 		endNode := graph.nodes[endNodeName]
 		if endNode == nil {
-			endNode = &Node{}
+			endNode = &Node{
+				name: endNodeName,
+			}
 			graph.nodes[endNodeName] = endNode
+			logger.Debugf("Created new node: %+v", beginNode)
 		}
 
-		if len(beginNode.selectedVersion) != 0 && beginNode.selectedVersion != ModuleVersion(beginVersion) {
+		if len(beginNode.selectedVersion) != 0 && beginNode.selectedVersion != beginVersion {
 			logger.Warnf("Encountered unexpected version %q for edge starting at node %q.", beginVersion, beginNodeName)
 		}
 		newDependency := &Dependency{
 			begin:   beginNodeName,
 			end:     endNodeName,
-			version: ModuleVersion(endVersion),
+			version: endVersion,
 		}
 		beginNode.successors = append(beginNode.successors, newDependency)
 		endNode.predecessors = append(endNode.predecessors, newDependency)
+		logger.Debugf("Created new dependency: %+v", newDependency)
 	}
 	return graph, nil
+}
+
+func getSelectedModules(logger *logrus.Logger) (string, map[string]string, error) {
+	raw, err := runCommand(logger, "go", "list", "-m", "all")
+	if err != nil {
+		return "", nil, err
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
+	module := lines[0]
+	versionInfo := map[string]string{}
+	for _, line := range lines[1:] {
+		dependencyInfo := listRE.FindStringSubmatch(line)
+		if len(dependencyInfo) == 0 {
+			logger.Warnf("Unexpected output from 'go list -m all': %s", line)
+		}
+		versionInfo[dependencyInfo[0]] = dependencyInfo[1]
+	}
+	return module, versionInfo, nil
 }

@@ -49,7 +49,7 @@ func (g *DepGraph) OffendingGraph(dependency string, targetVersion string) *DepG
 	offendingGraph := g.DeepCopy()
 	for _, dep := range offendingGraph.nodes[dependency].predecessors {
 		g.logger.Debugf("Dependency %q is required by %q in version %q.", dep.end, dep.begin, dep.version)
-		if !dep.version.MoreRecentThan(ModuleVersion(targetVersion)) {
+		if moduleMoreRecentThan(dep.version, targetVersion) {
 			offendingGraph.removeEdge(dep.begin, dep.end)
 		}
 	}
