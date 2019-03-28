@@ -8,6 +8,8 @@ func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
 		prune := len(node.successors) == 0 && len(node.predecessors) < 2
 		if prune {
 			g.logger.Debugf("Prune %+v.", node)
+		} else {
+			g.logger.Debugf("Not pruning: %+v.", node)
 		}
 		return prune
 	})

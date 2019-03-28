@@ -10,14 +10,14 @@ import (
 
 var (
 	depRE  = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
-	listRE = regexp.MustCompile(`^([^\s]+) ([^\s]+)(?: => [^\s]+ ([^\s]+))?$`)
+	listRE = regexp.MustCompile(`^([^\s]+) ([^\s]+)(?: => ([^\s]+) ([^\s]+))?$`)
 )
 
 // GetDepGraph should be called from within a Go module. It will return the dependency
 // graph for this module.
 func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 	logger.Debug("Creating dependency graph.")
-	module, selectedVersions, err := getSelectedModules(logger)
+	module, selectedVersions, replacements, err := getSelectedModules(logger)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +53,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 		if beginNode == nil {
 			beginNode = &Node{
 				name:            beginNodeName,
+				replacement:     replacements[beginNodeName],
 				selectedVersion: selectedVersions[beginNodeName],
 			}
 			graph.nodes[beginNodeName] = beginNode
@@ -62,13 +63,14 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 		if endNode == nil {
 			endNode = &Node{
 				name:            endNodeName,
+				replacement:     replacements[endNodeName],
 				selectedVersion: selectedVersions[endNodeName],
 			}
 			graph.nodes[endNodeName] = endNode
 			logger.Debugf("Created new node: %+v", endNode)
 		}
 
-		if len(beginNode.selectedVersion) != 0 && beginNode.selectedVersion != beginVersion {
+		if len(beginNode.selectedVersion) != 0 && len(beginNode.replacement) == 0 && beginNode.selectedVersion != beginVersion {
 			logger.Warnf("Encountered unexpected version %q for edge starting at node %q.", beginVersion, beginNodeName)
 		}
 		newDependency := &Dependency{
@@ -83,27 +85,29 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 	return graph, nil
 }
 
-func getSelectedModules(logger *logrus.Logger) (string, map[string]string, error) {
+func getSelectedModules(logger *logrus.Logger) (string, map[string]string, map[string]string, error) {
 	raw, err := runCommand(logger, "go", "list", "-m", "all")
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
 	module := lines[0]
 	logger.Debugf("Found module %q.", module)
-	versionInfo := map[string]string{}
+	versionInfo, replacements := map[string]string{}, map[string]string{}
 	for _, line := range lines[1:] {
 		dependencyInfo := listRE.FindStringSubmatch(line)
 		if len(dependencyInfo) == 0 {
 			logger.Warnf("Unexpected output from 'go list -m all': %s", line)
 		}
-		selectedVersion := dependencyInfo[2]
-		if len(dependencyInfo[3]) != 0 {
-			selectedVersion = dependencyInfo[3]
+		if len(dependencyInfo[3]) == 0 {
+			versionInfo[dependencyInfo[1]] = dependencyInfo[2]
+			logger.Debugf("Found dependency %q selected at %q.", dependencyInfo[1], dependencyInfo[2])
+		} else {
+			replacements[dependencyInfo[1]] = dependencyInfo[3]
+			versionInfo[dependencyInfo[1]] = dependencyInfo[4]
+			logger.Debugf("Found dependency %q (replaced by %q) selected at %q.", dependencyInfo[1], dependencyInfo[3], dependencyInfo[4])
 		}
-		versionInfo[dependencyInfo[1]] = selectedVersion
-		logger.Debugf("Found dependency %q selected at %q.", dependencyInfo[1], selectedVersion)
 	}
-	return module, versionInfo, nil
+	return module, versionInfo, replacements, nil
 }

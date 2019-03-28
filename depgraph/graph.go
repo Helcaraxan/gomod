@@ -47,6 +47,7 @@ func (g *DepGraph) Nodes() []Node {
 // Node represents a module in a Go module's dependency graph.
 type Node struct {
 	name            string
+	replacement     string
 	predecessors    []*Dependency
 	successors      []*Dependency
 	selectedVersion string
@@ -125,6 +126,8 @@ func (g *DepGraph) DeepCopy() *DepGraph {
 	}
 	for name, node := range g.nodes {
 		nodeCopy := *node
+		nodeCopy.successors = nil
+		nodeCopy.predecessors = nil
 		newGraph.nodes[name] = &nodeCopy
 	}
 

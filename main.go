@@ -110,6 +110,7 @@ func runSharedCmd(args *sharedArgs) error {
 	if err != nil {
 		return err
 	}
+	graph = graph.PruneUnsharedDeps()
 	return printResult(graph, args.commonArgs)
 }
 
