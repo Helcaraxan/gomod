@@ -17,6 +17,7 @@ type commonArgs struct {
 	outputPath string
 	force      bool
 	visual     bool
+	annotate   bool
 }
 
 func main() {
@@ -45,6 +46,7 @@ func main() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 	rootCmd.PersistentFlags().BoolVarP(&commonArgs.force, "force", "f", false, "Overwrite any existing files")
 	rootCmd.PersistentFlags().StringVarP(&commonArgs.outputPath, "output", "o", "", "If set dump the output to this location")
+	rootCmd.PersistentFlags().BoolVarP(&commonArgs.annotate, "annotate", "a", false, "Annotate the resulting graph's nodes and edges with version information")
 
 	rootCmd.AddCommand(
 		initFullCmd(commonArgs),
@@ -81,12 +83,7 @@ func runFullCmd(args *fullArgs) error {
 	if err != nil {
 		return err
 	}
-	return graph.Print(&depgraph.PrintConfig{
-		Logger:     args.logger,
-		Visual:     args.visual,
-		Force:      args.force,
-		OutputPath: args.outputPath,
-	})
+	return printResult(graph, args.commonArgs)
 }
 
 type sharedArgs struct {
@@ -113,18 +110,14 @@ func runSharedCmd(args *sharedArgs) error {
 	if err != nil {
 		return err
 	}
-	return graph.PruneUnsharedDeps().Print(&depgraph.PrintConfig{
-		Logger:     args.logger,
-		Visual:     args.visual,
-		Force:      args.force,
-		OutputPath: args.outputPath,
-	})
+	return printResult(graph, args.commonArgs)
 }
 
 type subArgs struct {
 	*commonArgs
 	dependency    string
 	targetVersion string
+	prune         bool
 }
 
 func initSubCmd(cArgs *commonArgs) *cobra.Command {
@@ -140,7 +133,8 @@ func initSubCmd(cArgs *commonArgs) *cobra.Command {
 		},
 	}
 	subCmd.Flags().StringVarP(&cmdArgs.dependency, "dep", "d", "", "Dependency for which to show the dependency graph.")
-	subCmd.Flags().StringVarP(&cmdArgs.targetVersion, "target", "t", "", "Prune all nodes that do not restrict the move to this particular version of the dependency.")
+	subCmd.Flags().StringVarP(&cmdArgs.targetVersion, "target", "t", "", "Identify all nodes that restrict the move to this particular version of the dependency.")
+	subCmd.Flags().BoolVarP(&cmdArgs.prune, "prune", "p", false, "Remove all nodes that restrict the move to the version specified via --target|-t instead of coloring them.")
 	return subCmd
 }
 
@@ -151,14 +145,9 @@ func runSubCmd(args *subArgs) error {
 	}
 	graph = graph.SubGraph(args.dependency)
 	if len(args.targetVersion) > 0 {
-		graph = graph.OffendingGraph(args.dependency, args.targetVersion)
+		graph = graph.OffendingGraph(args.dependency, args.targetVersion, args.prune)
 	}
-	return graph.Print(&depgraph.PrintConfig{
-		Logger:     args.logger,
-		Visual:     args.visual,
-		Force:      args.force,
-		OutputPath: args.outputPath,
-	})
+	return printResult(graph, args.commonArgs)
 }
 
 func checkToolDependencies(logger *logrus.Logger) error {
@@ -197,4 +186,14 @@ func checkGoModulePresence(logger *logrus.Logger) error {
 	}
 	logrus.Error("This tool should be run from within a Go module.")
 	return errors.New("missing go module")
+}
+
+func printResult(graph *depgraph.DepGraph, args *commonArgs) error {
+	return graph.Print(&depgraph.PrintConfig{
+		Logger:     args.logger,
+		OutputPath: args.outputPath,
+		Force:      args.force,
+		Visual:     args.visual,
+		Annotate:   args.annotate,
+	})
 }

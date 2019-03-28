@@ -53,7 +53,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 		if beginNode == nil {
 			beginNode = &Node{
 				name:            beginNodeName,
-				selectedVersion: selectedVersions[beginVersion],
+				selectedVersion: selectedVersions[beginNodeName],
 			}
 			graph.nodes[beginNodeName] = beginNode
 			logger.Debugf("Created new node: %+v", beginNode)
@@ -61,10 +61,11 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 		endNode := graph.nodes[endNodeName]
 		if endNode == nil {
 			endNode = &Node{
-				name: endNodeName,
+				name:            endNodeName,
+				selectedVersion: selectedVersions[endNodeName],
 			}
 			graph.nodes[endNodeName] = endNode
-			logger.Debugf("Created new node: %+v", beginNode)
+			logger.Debugf("Created new node: %+v", endNode)
 		}
 
 		if len(beginNode.selectedVersion) != 0 && beginNode.selectedVersion != beginVersion {
@@ -90,13 +91,15 @@ func getSelectedModules(logger *logrus.Logger) (string, map[string]string, error
 
 	lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
 	module := lines[0]
+	logger.Debugf("Found module %q.", module)
 	versionInfo := map[string]string{}
 	for _, line := range lines[1:] {
 		dependencyInfo := listRE.FindStringSubmatch(line)
 		if len(dependencyInfo) == 0 {
 			logger.Warnf("Unexpected output from 'go list -m all': %s", line)
 		}
-		versionInfo[dependencyInfo[0]] = dependencyInfo[1]
+		versionInfo[dependencyInfo[1]] = dependencyInfo[2]
+		logger.Debugf("Found dependency %q selected at %q.", dependencyInfo[1], dependencyInfo[2])
 	}
 	return module, versionInfo, nil
 }

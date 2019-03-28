@@ -3,6 +3,7 @@ package depgraph
 // PruneUnsharedDeps returns a copy of the dependency graph with all nodes removed
 // that are not part of a chain leading to a node with more than two predecessors.
 func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
+	g.logger.Debug("Pruning dependencies that are not shared between multiple modules.")
 	return g.prune(func(node *Node) bool {
 		prune := len(node.successors) == 0 && len(node.predecessors) < 2
 		if prune {
@@ -16,6 +17,7 @@ func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
 // not part of a chain leading to the specified dependency. Returns an empty graph
 // if the specified depedendency does not exist in the graph.
 func (g *DepGraph) SubGraph(dependency string) *DepGraph {
+	g.logger.Debugf("Reducing to sub-graph for %q.", dependency)
 	if _, ok := g.nodes[dependency]; !ok {
 		g.logger.Debugf("No node with name %q.", dependency)
 		return &DepGraph{
@@ -35,10 +37,12 @@ func (g *DepGraph) SubGraph(dependency string) *DepGraph {
 	})
 }
 
-// OffendingGraph returns a copy of the dependency graph with only nodes left that
-// are part of dependency chains that need to be modified for the specified dependency
-// to be set to a given target version.
-func (g *DepGraph) OffendingGraph(dependency string, targetVersion string) *DepGraph {
+// OffendingGraph returns a copy of the dependency graph with all nodes that are part
+// of dependency chains that need to be modified for the specified dependency to be
+// set to a given target version annotated as such. The prune options allows to remove
+// such nodes instead of annotating them.
+func (g *DepGraph) OffendingGraph(dependency string, targetVersion string, prune bool) *DepGraph {
+	g.logger.Debugf("Marking offending graph for moving %q to %q. Pruning set to %t.", dependency, targetVersion, prune)
 	if _, ok := g.nodes[dependency]; !ok {
 		g.logger.Debugf("No node with name %q.", dependency)
 		return &DepGraph{
@@ -49,7 +53,11 @@ func (g *DepGraph) OffendingGraph(dependency string, targetVersion string) *DepG
 	offendingGraph := g.DeepCopy()
 	for _, dep := range offendingGraph.nodes[dependency].predecessors {
 		g.logger.Debugf("Dependency %q is required by %q in version %q.", dep.end, dep.begin, dep.version)
-		if moduleMoreRecentThan(dep.version, targetVersion) {
+		isOffending := moduleMoreRecentThan(dep.version, targetVersion)
+		switch {
+		case isOffending && !prune:
+			offendingGraph.markAsOffending(dep)
+		case !isOffending && prune:
 			offendingGraph.removeEdge(dep.begin, dep.end)
 		}
 	}
@@ -110,4 +118,17 @@ func (g *DepGraph) removeEdge(start string, end string) {
 		}
 	}
 	endNode.predecessors = newPredecessors
+}
+
+func (g *DepGraph) markAsOffending(dep *Dependency) {
+	g.logger.Debugf("Marking edge from %q to %q as offending due to version %s", dep.begin, dep.end, dep.version)
+	dep.offending = true
+	beginNode := g.nodes[dep.begin]
+	if beginNode.offending {
+		return
+	}
+	beginNode.offending = true
+	for _, pred := range beginNode.predecessors {
+		g.markAsOffending(pred)
+	}
 }

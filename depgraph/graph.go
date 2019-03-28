@@ -50,6 +50,7 @@ type Node struct {
 	predecessors    []*Dependency
 	successors      []*Dependency
 	selectedVersion string
+	offending       bool
 }
 
 // Name of the module represented by this Node in the DepGraph instance.
@@ -91,9 +92,10 @@ func (n *Node) Successors() []Dependency {
 
 // Dependency represents a dependency in a DepGraph instance.
 type Dependency struct {
-	begin   string
-	end     string
-	version string
+	begin     string
+	end       string
+	version   string
+	offending bool
 }
 
 // Begin returns the name of the Go module at which this Dependency originates.
@@ -122,18 +124,15 @@ func (g *DepGraph) DeepCopy() *DepGraph {
 		nodes:  map[string]*Node{},
 	}
 	for name, node := range g.nodes {
-		newGraph.nodes[name] = &Node{selectedVersion: node.selectedVersion}
+		nodeCopy := *node
+		newGraph.nodes[name] = &nodeCopy
 	}
 
 	for name, node := range g.nodes {
 		for _, successor := range node.successors {
-			newDependency := &Dependency{
-				begin:   successor.begin,
-				end:     successor.end,
-				version: successor.version,
-			}
-			newGraph.nodes[name].successors = append(newGraph.nodes[name].successors, newDependency)
-			newGraph.nodes[successor.end].predecessors = append(newGraph.nodes[successor.end].predecessors, newDependency)
+			dependencyCopy := *successor
+			newGraph.nodes[name].successors = append(newGraph.nodes[name].successors, &dependencyCopy)
+			newGraph.nodes[successor.end].predecessors = append(newGraph.nodes[successor.end].predecessors, &dependencyCopy)
 		}
 	}
 	g.logger.Debug("Created a deep copy of graph.")

@@ -23,6 +23,8 @@ type PrintConfig struct {
 	// Visual representation of the DepGraph. If true print out a PDF using
 	// GraphViz, if false print out the graph in DOT format.
 	Visual bool
+	// Annotate edges and nodes with their respective versions.
+	Annotate bool
 }
 
 // Print takes in a PrintConfig struct and dumps the content of this DepGraph
@@ -100,8 +102,28 @@ func (g *DepGraph) PrintToDOT(config *PrintConfig) error {
 	var fileContent []string
 	fileContent = append(fileContent, "strict digraph {", "  ranksep=3")
 	for name, node := range g.nodes {
+		if config.Annotate && len(node.selectedVersion) != 0 {
+			nodeOptions := []string{
+				fmt.Sprintf("label=<%s<br /><font point-size=\"10\">%s</font>>", name, node.selectedVersion),
+			}
+			if node.offending {
+				nodeOptions = append(nodeOptions, "color=red", "fontcolor=red")
+			}
+			newLine := fmt.Sprintf("  \"%s\" [%s]", name, strings.Join(nodeOptions, ","))
+			fileContent = append(fileContent, newLine)
+		}
 		for _, dep := range node.successors {
-			fileContent = append(fileContent, fmt.Sprintf("  \"%s\" -> \"%s\"", name, dep.end))
+			var options string
+			if config.Annotate {
+				edgeOptions := []string{
+					fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.version),
+				}
+				if dep.offending {
+					edgeOptions = append(edgeOptions, "color=red", "fontcolor=red")
+				}
+				options = fmt.Sprintf(" [%s]", strings.Join(edgeOptions, ","))
+			}
+			fileContent = append(fileContent, fmt.Sprintf("  \"%s\" -> \"%s\"%s", name, dep.end, options))
 		}
 	}
 	fileContent = append(fileContent, "}")
