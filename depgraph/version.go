@@ -6,7 +6,11 @@ import (
 	"github.com/blang/semver"
 )
 
-var versionRE = regexp.MustCompile(`^v?([^-]+)(-.*)?$`)
+var (
+	// Regular expressions according to https://golang.org/cmd/go/#hdr-Pseudo_versions.
+	versionRE       = regexp.MustCompile(`^v?(\d+\.\d+\.\d+)(?:-(.*))?$`)
+	pseudoVersionRE = regexp.MustCompile(`^(?:(?:.*.)?0.)?(\d{14})-[0-9a-f]{12}$`)
+)
 
 func moduleMoreRecentThan(lhs string, rhs string) bool {
 	lhsParsed := versionRE.FindStringSubmatch(lhs)
@@ -25,10 +29,14 @@ func moduleMoreRecentThan(lhs string, rhs string) bool {
 	} else if lhsSemVer.LT(rhsSemVer) {
 		return false
 	}
-	if len(lhsParsed) == 2 && len(rhsParsed) == 3 {
-		return true
-	} else if len(lhsParsed) == 3 && len(rhsParsed) == 3 {
-		return lhsParsed[2] > rhsParsed[2]
+
+	if len(lhsParsed[2]) == 0 || len(rhsParsed[2]) == 0 {
+		// At least one of the version is a release so this comes down to whether it is the LHS.
+		return len(lhsParsed[2]) == 0
 	}
-	return false
+
+	// We are comparing two pre-release versions.
+	pseudoLHS := pseudoVersionRE.FindStringSubmatch(lhsParsed[2])
+	pseudoRHS := pseudoVersionRE.FindStringSubmatch(rhsParsed[2])
+	return pseudoLHS[1] > pseudoRHS[1]
 }
