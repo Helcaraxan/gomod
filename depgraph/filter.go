@@ -54,6 +54,13 @@ func (g *DepGraph) OffendingGraph(dependency string, targetVersion string, prune
 	}
 	offendingGraph := g.DeepCopy()
 	for _, dep := range offendingGraph.nodes[dependency].predecessors {
+		// Special case of this graph's main module. If we are to downgrade
+		// a direct dependency then it should not be marked as offending (from
+		// the main module).
+		if dep.begin == g.module {
+			dep.version = targetVersion
+		}
+
 		g.logger.Debugf("Dependency %q is required by %q in version %q.", dep.end, dep.begin, dep.version)
 		isOffending := moduleMoreRecentThan(dep.version, targetVersion)
 		switch {

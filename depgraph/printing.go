@@ -102,32 +102,39 @@ func (g *DepGraph) PrintToDOT(config *PrintConfig) error {
 	var fileContent []string
 	fileContent = append(fileContent, "strict digraph {", "  ranksep=3")
 	for name, node := range g.nodes {
+		nodeOptions := []string{}
 		if config.Annotate && len(node.selectedVersion) != 0 {
 			var replacement string
 			if len(node.replacement) != 0 {
 				replacement = node.replacement + "<br />"
 			}
-			nodeOptions := []string{
-				fmt.Sprintf("label=<%s<br /><font point-size=\"10\">%s%s</font>>", name, replacement, node.selectedVersion),
-			}
-			if node.offending {
-				nodeOptions = append(nodeOptions, "color=red", "fontcolor=red")
-			}
-			newLine := fmt.Sprintf("  \"%s\" [%s]", name, strings.Join(nodeOptions, ","))
-			fileContent = append(fileContent, newLine)
+			nodeOptions = append(nodeOptions, fmt.Sprintf(
+				"label=<%s<br /><font point-size=\"10\">%s%s</font>>",
+				name,
+				replacement,
+				node.selectedVersion,
+			))
+		}
+		if node.offending {
+			nodeOptions = append(nodeOptions, "color=red", "fontcolor=red")
+		}
+		if len(nodeOptions) > 0 {
+			fileContent = append(fileContent, fmt.Sprintf("  \"%s\" [%s]", name, strings.Join(nodeOptions, ",")))
 		}
 		for _, dep := range node.successors {
-			var options string
+			var edgeOptions []string
 			if config.Annotate {
-				edgeOptions := []string{
-					fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.version),
-				}
-				if dep.offending {
-					edgeOptions = append(edgeOptions, "color=red", "fontcolor=red")
-				}
-				options = fmt.Sprintf(" [%s]", strings.Join(edgeOptions, ","))
+				edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.version))
 			}
-			fileContent = append(fileContent, fmt.Sprintf("  \"%s\" -> \"%s\"%s", name, dep.end, options))
+			if dep.offending {
+				edgeOptions = append(edgeOptions, "color=red", "fontcolor=red")
+			}
+			fileContent = append(fileContent, fmt.Sprintf(
+				"  \"%s\" -> \"%s\"%s",
+				dep.begin,
+				dep.end,
+				fmt.Sprintf(" [%s]", strings.Join(edgeOptions, ",")),
+			))
 		}
 	}
 	fileContent = append(fileContent, "}")
