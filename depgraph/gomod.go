@@ -13,9 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
-)
+var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
 
 type Module struct {
 	Path    string       // module path
@@ -35,7 +33,7 @@ type ModuleError struct {
 // graph for this module.
 func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 	logger.Debug("Creating dependency graph.")
-	module, selectedVersions, replacements, err := getSelectedModules(logger)
+	main, modules, err := getSelectedModules(logger)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +45,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 
 	graph := &DepGraph{
 		logger: logger,
-		module: module,
+		module: main.Path,
 		nodes:  map[string]*Node{},
 	}
 	if graph.logger == nil {
@@ -69,20 +67,18 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 
 		beginNode := graph.nodes[beginNodeName]
 		if beginNode == nil {
-			beginNode = &Node{
-				name:            beginNodeName,
-				replacement:     replacements[beginNodeName],
-				selectedVersion: selectedVersions[beginNodeName],
+			beginNode, err = createNewNode(beginNodeName, modules)
+			if err != nil {
+				return nil, err
 			}
 			graph.nodes[beginNodeName] = beginNode
 			logger.Debugf("Created new node: %+v", beginNode)
 		}
 		endNode := graph.nodes[endNodeName]
 		if endNode == nil {
-			endNode = &Node{
-				name:            endNodeName,
-				replacement:     replacements[endNodeName],
-				selectedVersion: selectedVersions[endNodeName],
+			endNode, err = createNewNode(endNodeName, modules)
+			if err != nil {
+				return nil, err
 			}
 			graph.nodes[endNodeName] = endNode
 			logger.Debugf("Created new node: %+v", endNode)
@@ -103,43 +99,52 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 	return graph, nil
 }
 
-func getSelectedModules(logger *logrus.Logger) (string, map[string]string, map[string]string, error) {
+func createNewNode(name string, modules map[string]*Module) (*Node, error) {
+	module := modules[name]
+	if module == nil {
+		return nil, fmt.Errorf("No module information for %q.", name)
+	}
+	if module.Replace == nil {
+		return &Node{
+			name:            name,
+			selectedVersion: module.Version,
+		}, nil
+	}
+	return &Node{
+		name:            name,
+		selectedVersion: module.Replace.Version,
+		replacement:     module.Replace.Path,
+	}, nil
+}
+
+func getSelectedModules(logger *logrus.Logger) (*Module, map[string]*Module, error) {
 	raw, err := runCommand(logger, "go", "list", "-json", "-m", "all")
 	if err != nil {
-		return "", nil, nil, err
+		return nil, nil, err
 	}
 	raw = bytes.ReplaceAll(bytes.TrimSpace(raw), []byte("\n}\n"), []byte("\n},\n"))
 	raw = append([]byte("[\n"), raw...)
 	raw = append(raw, []byte("\n]")...)
 
-	var modules []Module
-	if err = json.Unmarshal(raw, &modules); err != nil {
-		return "", nil, nil, fmt.Errorf("Unable to retrieve information from 'go list': %v", err)
+	var moduleList []Module
+	if err = json.Unmarshal(raw, &moduleList); err != nil {
+		return nil, nil, fmt.Errorf("Unable to retrieve information from 'go list': %v", err)
 	}
 
-	var mainModule string
-	versionInfo, replacements := map[string]string{}, map[string]string{}
-	for _, module := range modules {
+	var main Module
+	modules := map[string]*Module{}
+	for idx, module := range moduleList {
 		if module.Error != nil {
 			logger.Warnf("Unable to retrieve information for module %q: %s", module.Path, module.Error.Err)
 		}
 
 		if module.Main {
-			mainModule = module.Path
-			continue
+			main = module
 		}
-
-		if module.Replace == nil {
-			versionInfo[module.Path] = module.Version
-			logger.Debugf("Found dependency %q selected at %q.", module.Path, module.Version)
-		} else {
-			replacements[module.Path] = module.Replace.Path
-			versionInfo[module.Path] = module.Replace.Version
-			logger.Debugf("Found dependency %q (replaced by %q) selected at %q.", module.Path, module.Replace.Path, module.Replace.Version)
-		}
+		modules[module.Path] = &moduleList[idx]
 	}
-	if len(mainModule) == 0 {
-		return "", nil, nil, errors.New("Could not determine main module.")
+	if len(main.Path) == 0 {
+		return nil, nil, errors.New("Could not determine main module.")
 	}
-	return mainModule, versionInfo, replacements, nil
+	return &main, modules, nil
 }
