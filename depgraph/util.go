@@ -10,16 +10,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func runCommand(logger *logrus.Logger, path string, args ...string) (string, error) {
+func runCommand(logger *logrus.Logger, path string, args ...string) ([]byte, error) {
 	cmd := exec.Command(path, args...)
 	logger.Debugf("Running command '%s %s'.", cmd.Path, strings.Join(cmd.Args, " "))
 	raw, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.WithError(err).Errorf("'%s %s' exited with an error", cmd.Path, strings.Join(cmd.Args, " "))
 		logger.Errorf("Command output was: %s", raw)
-		return "", fmt.Errorf("'%s %s' error", cmd.Path, strings.Join(cmd.Args, " "))
+		return nil, fmt.Errorf("'%s %s' error", cmd.Path, strings.Join(cmd.Args, " "))
 	}
-	return string(raw), nil
+	return raw, nil
 }
 
 func prepareOutputPath(logger *logrus.Logger, outputPath string, force bool) error {

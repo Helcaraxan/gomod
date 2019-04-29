@@ -50,6 +50,7 @@ func (g *DepGraph) PrintToPDF(config *PrintConfig) error {
 	outputPath := config.OutputPath
 	if len(outputPath) == 0 {
 		outputPath = filepath.Join(tempDir, "out.pdf")
+		config.Logger.Warnf("Printing to temporary file %q.", outputPath)
 	} else {
 		defer func() {
 			config.Logger.Debugf("Cleaning up temporary output folder %q.", tempDir)
@@ -73,8 +74,8 @@ func (g *DepGraph) PrintToPDF(config *PrintConfig) error {
 		return err
 	}
 
-	config.Logger.Debugf("Generating PDF file %q.", config.OutputPath)
-	_, err = runCommand(config.Logger, "dot", "-Tpdf", "-o", config.OutputPath, dotPrintConfig.OutputPath)
+	config.Logger.Debugf("Generating PDF file %q.", outputPath)
+	_, err = runCommand(config.Logger, "dot", "-Tpdf", "-o"+outputPath, dotPrintConfig.OutputPath)
 	return err
 }
 

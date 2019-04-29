@@ -1,17 +1,35 @@
 package depgraph
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	depRE  = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
-	listRE = regexp.MustCompile(`^([^\s]+) ([^\s]+)(?: => ([^\s]+) ([^\s]+))?$`)
+	depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
 )
+
+type Module struct {
+	Path    string       // module path
+	Version string       // module version
+	Replace *Module      // replaced by this module
+	Time    *time.Time   // time version was created
+	Update  *Module      // available update, if any (with -u)
+	Main    bool         // is this the main module?
+	Error   *ModuleError // error loading module
+}
+
+type ModuleError struct {
+	Err string // the error itself
+}
 
 // GetDepGraph should be called from within a Go module. It will return the dependency
 // graph for this module.
@@ -86,28 +104,42 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 }
 
 func getSelectedModules(logger *logrus.Logger) (string, map[string]string, map[string]string, error) {
-	raw, err := runCommand(logger, "go", "list", "-m", "all")
+	raw, err := runCommand(logger, "go", "list", "-json", "-m", "all")
 	if err != nil {
 		return "", nil, nil, err
 	}
+	raw = bytes.ReplaceAll(bytes.TrimSpace(raw), []byte("\n}\n"), []byte("\n},\n"))
+	raw = append([]byte("[\n"), raw...)
+	raw = append(raw, []byte("\n]")...)
 
-	lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
-	module := lines[0]
-	logger.Debugf("Found module %q.", module)
+	var modules []Module
+	if err = json.Unmarshal(raw, &modules); err != nil {
+		return "", nil, nil, fmt.Errorf("Unable to retrieve information from 'go list': %v", err)
+	}
+
+	var mainModule string
 	versionInfo, replacements := map[string]string{}, map[string]string{}
-	for _, line := range lines[1:] {
-		dependencyInfo := listRE.FindStringSubmatch(line)
-		if len(dependencyInfo) == 0 {
-			logger.Warnf("Unexpected output from 'go list -m all': %s", line)
+	for _, module := range modules {
+		if module.Error != nil {
+			logger.Warnf("Unable to retrieve information for module %q: %s", module.Path, module.Error.Err)
 		}
-		if len(dependencyInfo[3]) == 0 {
-			versionInfo[dependencyInfo[1]] = dependencyInfo[2]
-			logger.Debugf("Found dependency %q selected at %q.", dependencyInfo[1], dependencyInfo[2])
+
+		if module.Main {
+			mainModule = module.Path
+			continue
+		}
+
+		if module.Replace == nil {
+			versionInfo[module.Path] = module.Version
+			logger.Debugf("Found dependency %q selected at %q.", module.Path, module.Version)
 		} else {
-			replacements[dependencyInfo[1]] = dependencyInfo[3]
-			versionInfo[dependencyInfo[1]] = dependencyInfo[4]
-			logger.Debugf("Found dependency %q (replaced by %q) selected at %q.", dependencyInfo[1], dependencyInfo[3], dependencyInfo[4])
+			replacements[module.Path] = module.Replace.Path
+			versionInfo[module.Path] = module.Replace.Version
+			logger.Debugf("Found dependency %q (replaced by %q) selected at %q.", module.Path, module.Replace.Path, module.Replace.Version)
 		}
 	}
-	return module, versionInfo, replacements, nil
+	if len(mainModule) == 0 {
+		return "", nil, nil, errors.New("Could not determine main module.")
+	}
+	return mainModule, versionInfo, replacements, nil
 }
