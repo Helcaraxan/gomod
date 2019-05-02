@@ -104,16 +104,16 @@ func (g *DepGraph) PrintToDOT(config *PrintConfig) error {
 	fileContent = append(fileContent, "strict digraph {", "  ranksep=3")
 	for name, node := range g.nodes {
 		nodeOptions := []string{}
-		if config.Annotate && len(node.selectedVersion) != 0 {
+		if config.Annotate && len(node.SelectedVersion()) != 0 {
 			var replacement string
-			if len(node.replacement) != 0 {
-				replacement = node.replacement + "<br />"
+			if node.module.Replace != nil {
+				replacement = node.module.Replace.Path + "<br />"
 			}
 			nodeOptions = append(nodeOptions, fmt.Sprintf(
 				"label=<%s<br /><font point-size=\"10\">%s%s</font>>",
 				name,
 				replacement,
-				node.selectedVersion,
+				node.SelectedVersion(),
 			))
 		}
 		if node.offending {

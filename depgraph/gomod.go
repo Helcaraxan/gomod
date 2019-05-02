@@ -84,7 +84,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 			logger.Debugf("Created new node: %+v", endNode)
 		}
 
-		if len(beginNode.selectedVersion) != 0 && len(beginNode.replacement) == 0 && beginNode.selectedVersion != beginVersion {
+		if len(beginNode.SelectedVersion()) != 0 && beginNode.module.Replace == nil && beginNode.SelectedVersion() != beginVersion {
 			logger.Warnf("Encountered unexpected version %q for edge starting at node %q.", beginVersion, beginNodeName)
 		}
 		newDependency := &Dependency{
@@ -104,17 +104,7 @@ func createNewNode(name string, modules map[string]*Module) (*Node, error) {
 	if module == nil {
 		return nil, fmt.Errorf("No module information for %q.", name)
 	}
-	if module.Replace == nil {
-		return &Node{
-			name:            name,
-			selectedVersion: module.Version,
-		}, nil
-	}
-	return &Node{
-		name:            name,
-		selectedVersion: module.Replace.Version,
-		replacement:     module.Replace.Path,
-	}, nil
+	return &Node{module: module}, nil
 }
 
 func getSelectedModules(logger *logrus.Logger) (*Module, map[string]*Module, error) {

@@ -46,23 +46,24 @@ func (g *DepGraph) Nodes() []Node {
 
 // Node represents a module in a Go module's dependency graph.
 type Node struct {
-	name            string
-	replacement     string
-	predecessors    []*Dependency
-	successors      []*Dependency
-	selectedVersion string
-	offending       bool
+	module       *Module
+	predecessors []*Dependency
+	successors   []*Dependency
+	offending    bool
 }
 
 // Name of the module represented by this Node in the DepGraph instance.
 func (n *Node) Name() string {
-	return n.name
+	return n.module.Path
 }
 
 // SelectedVersion corresponds to the version of the dependency represented by
 // this Node which was selected for use.
 func (n *Node) SelectedVersion() string {
-	return n.selectedVersion
+	if n.module.Replace != nil {
+		return n.module.Replace.Version
+	}
+	return n.module.Version
 }
 
 // Predecessors returns a slice with copies of all the incoming Dependencies for
