@@ -133,9 +133,9 @@ func initSubCmd(cArgs *commonArgs) *cobra.Command {
 			return runSubCmd(cmdArgs)
 		},
 	}
-	subCmd.Flags().StringVarP(&cmdArgs.dependency, "dep", "d", "", "Dependency for which to show the dependency graph.")
-	subCmd.Flags().StringVarP(&cmdArgs.targetVersion, "target", "t", "", "Identify all nodes that restrict the move to this particular version of the dependency.")
-	subCmd.Flags().BoolVarP(&cmdArgs.prune, "prune", "p", false, "Remove all nodes that restrict the move to the version specified via --target|-t instead of coloring them.")
+	subCmd.Flags().StringVarP(&cmdArgs.dependency, "dependency", "d", "", "Dependency for which to show the dependency graph.")
+	subCmd.Flags().StringVarP(&cmdArgs.targetVersion, "target_version", "t", "", "Identify all nodes that restrict the move to this particular version of the dependency.")
+	subCmd.Flags().BoolVarP(&cmdArgs.prune, "prune", "p", false, "Remove all nodes that do not restrict the move to the version specified via --target|-t instead of coloring the offending ones.")
 	return subCmd
 }
 
