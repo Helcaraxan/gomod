@@ -2,15 +2,24 @@ package depgraph
 
 import (
 	"io/ioutil"
+	"regexp"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 )
 
+var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
+
 // GetDepGraph should be called from within a Go module. It will return the dependency
-// graph for this module.
+// graph for this module. The 'logger' parameter can be 'nil' which will result in no
+// output or logging information to be provided.
 func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
+	if logger == nil {
+		logger = logrus.New()
+		logger.SetOutput(ioutil.Discard)
+	}
 	logger.Debug("Creating dependency graph.")
+
 	main, modules, err := getSelectedModules(logger)
 	if err != nil {
 		return nil, err
@@ -25,10 +34,6 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 		logger: logger,
 		module: main.Path,
 		nodes:  map[string]*Node{},
-	}
-	if graph.logger == nil {
-		graph.logger = logrus.New()
-		graph.logger.SetOutput(ioutil.Discard)
 	}
 
 	for _, dep := range strings.Split(strings.TrimSpace(string(rawDeps)), "\n") {

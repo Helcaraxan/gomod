@@ -6,13 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"regexp"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
-
-var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
 
 type Module struct {
 	Path    string       // module path
