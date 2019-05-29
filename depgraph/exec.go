@@ -2,6 +2,7 @@ package depgraph
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,8 +13,19 @@ import (
 
 func runCommand(logger *logrus.Logger, path string, args ...string) ([]byte, error) {
 	cmd := exec.Command(path, args...)
+	errStream, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve the stderr pipe for '%s %s", cmd.Path, strings.Join(cmd.Args, " "))
+	}
+	go func() {
+		_, copyErr := io.Copy(os.Stdout, errStream)
+		if copyErr != nil {
+			fmt.Fprintf(os.Stderr, "Subprocess output pipe broke down: %v\n", copyErr)
+		}
+	}()
+
 	logger.Debugf("Running command '%s %s'.", cmd.Path, strings.Join(cmd.Args, " "))
-	raw, err := cmd.CombinedOutput()
+	raw, err := cmd.Output()
 	if err != nil {
 		logger.WithError(err).Errorf("'%s %s' exited with an error", cmd.Path, strings.Join(cmd.Args, " "))
 		logger.Errorf("Command output was: %s", raw)
