@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/Helcaraxan/gomod-graph/depgraph"
+	"github.com/Helcaraxan/gomod/depgraph"
 )
 
 type commonArgs struct {
