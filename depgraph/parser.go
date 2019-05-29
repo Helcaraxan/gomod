@@ -25,6 +25,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 		return nil, err
 	}
 
+	logger.Info("Retrieving dependency information via 'go mod graph'")
 	rawDeps, err := runCommand(logger, "go", "mod", "graph")
 	if err != nil {
 		return nil, err
