@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/Helcaraxan/gomod/analysis"
 	"github.com/Helcaraxan/gomod/depgraph"
 )
 
@@ -54,6 +55,7 @@ func main() {
 		initFullCmd(commonArgs),
 		initSharedCmd(commonArgs),
 		initSubCmd(commonArgs),
+		initAnalyseCmd(commonArgs),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
@@ -151,6 +153,34 @@ func runSubCmd(args *subArgs) error {
 		graph = graph.OffendingGraph(args.dependency, args.targetVersion, args.prune)
 	}
 	return printResult(graph, args.commonArgs)
+}
+
+type analyseArgs struct {
+	*commonArgs
+}
+
+func initAnalyseCmd(cArgs *commonArgs) *cobra.Command {
+	cmdArgs := &analyseArgs{
+		commonArgs: cArgs,
+	}
+
+	analyseCmd := &cobra.Command{
+		Use:   "analyse",
+		Short: "Analyse the graph of dependencies for this Go module and output interesting statistics.",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return runAnalyseCmd(cmdArgs)
+		},
+	}
+	return analyseCmd
+}
+
+func runAnalyseCmd(args *analyseArgs) error {
+	graph, err := depgraph.GetDepGraph(args.logger)
+	if err != nil {
+		return err
+	}
+	analysisResult := analysis.Analyse(graph)
+	return analysisResult.Print(os.Stdout)
 }
 
 func checkToolDependencies(logger *logrus.Logger) error {
