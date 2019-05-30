@@ -1,6 +1,7 @@
 package depgraph
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -8,6 +9,34 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+)
+
+type Format int
+
+const (
+	FormatUnknown Format = iota
+	FormatPDF
+	FormatPNG
+	FormatPS
+	FormatJPG
+	FormatGIF
+)
+
+var (
+	FormatToString = map[Format]string{
+		FormatPDF: "pdf",
+		FormatPNG: "png",
+		FormatPS:  "ps",
+		FormatJPG: "jpg",
+		FormatGIF: "gif",
+	}
+	StringToFormat = map[string]Format{
+		"pdf": FormatPDF,
+		"png": FormatPNG,
+		"ps":  FormatPS,
+		"jpg": FormatJPG,
+		"gif": FormatGIF,
+	}
 )
 
 // PrintConfig allows for the specification of parameters that should be passed
@@ -25,6 +54,8 @@ type PrintConfig struct {
 	Visual bool
 	// Annotate edges and nodes with their respective versions.
 	Annotate bool
+	// OutputFormat to use when writing files with the 'dot' tool.
+	OutputFormat Format
 }
 
 // Print takes in a PrintConfig struct and dumps the content of this DepGraph
@@ -32,15 +63,19 @@ type PrintConfig struct {
 func (g *DepGraph) Print(config *PrintConfig) error {
 	var printer func(*PrintConfig) error
 	if config.Visual {
-		printer = g.PrintToPDF
+		printer = g.PrintToVisual
 	} else {
 		printer = g.PrintToDOT
 	}
 	return printer(config)
 }
 
-// Visualize creates a PDF file at the specified target path that represents the dependency graph.
-func (g *DepGraph) PrintToPDF(config *PrintConfig) error {
+// PrintToVisual creates an image file at the specified target path that represents the dependency graph.
+func (g *DepGraph) PrintToVisual(config *PrintConfig) error {
+	if config.OutputFormat == FormatUnknown {
+		return errors.New("Unknown format for output file.")
+	}
+
 	tempDir, err := ioutil.TempDir("", "depgraph")
 	if err != nil {
 		config.Logger.WithError(err).Error("Could not create temporary directory.")
@@ -49,7 +84,7 @@ func (g *DepGraph) PrintToPDF(config *PrintConfig) error {
 
 	outputPath := config.OutputPath
 	if len(outputPath) == 0 {
-		outputPath = filepath.Join(tempDir, "out.pdf")
+		outputPath = filepath.Join(tempDir, "out."+FormatToString[config.OutputFormat])
 		config.Logger.Warnf("Printing to temporary file %q.", outputPath)
 	} else {
 		defer func() {
@@ -58,9 +93,9 @@ func (g *DepGraph) PrintToPDF(config *PrintConfig) error {
 		}()
 	}
 
-	if filepath.Ext(outputPath) != ".pdf" {
-		config.Logger.Warnf("Specified output path %q is not a PDF file.", outputPath)
-		outputPath = strings.TrimSuffix(outputPath, filepath.Ext(outputPath)) + ".pdf"
+	if filepath.Ext(outputPath) != "."+FormatToString[config.OutputFormat] {
+		config.Logger.Warnf("Specified output path %q does not have a valid extension.", outputPath)
+		outputPath = strings.TrimSuffix(outputPath, filepath.Ext(outputPath)) + "." + FormatToString[config.OutputFormat]
 		config.Logger.Warnf("Will be writing to %q instead.", outputPath)
 	}
 
@@ -75,7 +110,7 @@ func (g *DepGraph) PrintToPDF(config *PrintConfig) error {
 	}
 
 	config.Logger.Debugf("Generating PDF file %q.", outputPath)
-	_, err = runCommand(config.Logger, "dot", "-Tpdf", "-o"+outputPath, dotPrintConfig.OutputPath)
+	_, err = runCommand(config.Logger, "dot", "-T"+FormatToString[config.OutputFormat], "-o"+outputPath, dotPrintConfig.OutputPath)
 	return err
 }
 

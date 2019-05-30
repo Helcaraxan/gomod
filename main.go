@@ -13,11 +13,12 @@ import (
 )
 
 type commonArgs struct {
-	logger     *logrus.Logger
-	outputPath string
-	force      bool
-	visual     bool
-	annotate   bool
+	logger       *logrus.Logger
+	outputPath   string
+	force        bool
+	visual       bool
+	annotate     bool
+	outputFormat string
 }
 
 func main() {
@@ -47,6 +48,7 @@ func main() {
 	rootCmd.PersistentFlags().BoolVarP(&commonArgs.force, "force", "f", false, "Overwrite any existing files")
 	rootCmd.PersistentFlags().StringVarP(&commonArgs.outputPath, "output", "o", "", "If set dump the output to this location")
 	rootCmd.PersistentFlags().BoolVarP(&commonArgs.annotate, "annotate", "a", false, "Annotate the resulting graph's nodes and edges with version information")
+	rootCmd.PersistentFlags().StringVarP(&commonArgs.outputFormat, "format", "F", "pdf", "Output format for any image file (pdf, png, gif, ...)")
 
 	rootCmd.AddCommand(
 		initFullCmd(commonArgs),
@@ -191,10 +193,11 @@ func checkGoModulePresence(logger *logrus.Logger) error {
 
 func printResult(graph *depgraph.DepGraph, args *commonArgs) error {
 	return graph.Print(&depgraph.PrintConfig{
-		Logger:     args.logger,
-		OutputPath: args.outputPath,
-		Force:      args.force,
-		Visual:     args.visual,
-		Annotate:   args.annotate,
+		Logger:       args.logger,
+		OutputPath:   args.outputPath,
+		Force:        args.force,
+		Visual:       args.visual,
+		Annotate:     args.annotate,
+		OutputFormat: depgraph.StringToFormat[args.outputFormat],
 	})
 }
