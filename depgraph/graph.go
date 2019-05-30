@@ -126,6 +126,13 @@ func (n *Node) SelectedVersion() string {
 	return n.module.Version
 }
 
+func (n *Node) Timestamp() *time.Time {
+	if n.module.Replace != nil {
+		return n.module.Replace.Time
+	}
+	return n.module.Time
+}
+
 // Predecessors returns a slice with copies of all the incoming Dependencies for
 // this  Node. These Dependency copies can be interacted with without modifying
 // the underlying DepGraph.
