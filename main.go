@@ -83,7 +83,7 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the resulting graph's nodes and edges with version information")
 	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.force, "force", "f", false, "Overwrite any existing files")
 	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "If set dump the output to this location")
-	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputFormat, "format", "F", "pdf", "Output format for any image file (pdf, png, gif, ...)")
+	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputFormat, "format", "F", "", "Output format for any image file (pdf, png, gif, ...)")
 
 	// Flags controlling graph filtering.
 	graphCmd.Flags().BoolVarP(&cmdArgs.shared, "shared", "s", false, "Filter out unshared dependencies (i.e. only required by one Go module).")

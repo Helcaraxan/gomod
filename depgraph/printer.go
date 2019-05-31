@@ -44,16 +44,16 @@ var (
 type PrintConfig struct {
 	// Logger that should be used to show progress while printing the DepGraph.
 	Logger *logrus.Logger
-	// Path at which the printed version of the DepGraph should be stored. If
-	// set to a nil-string a temporary file will be created.
-	OutputPath string
-	// Force overwriting of pre-existing files at the specified OutputPath.
-	Force bool
 	// Visual representation of the DepGraph. If true print out a PDF using
 	// GraphViz, if false print out the graph in DOT format.
 	Visual bool
 	// Annotate edges and nodes with their respective versions.
 	Annotate bool
+	// Force overwriting of pre-existing files at the specified OutputPath.
+	Force bool
+	// Path at which the printed version of the DepGraph should be stored. If
+	// set to a nil-string a temporary file will be created.
+	OutputPath string
 	// OutputFormat to use when writing files with the 'dot' tool.
 	OutputFormat Format
 }
@@ -72,6 +72,9 @@ func (g *DepGraph) Print(config *PrintConfig) error {
 
 // PrintToVisual creates an image file at the specified target path that represents the dependency graph.
 func (g *DepGraph) PrintToVisual(config *PrintConfig) error {
+	if config.OutputFormat == FormatUnknown {
+		config.OutputFormat = StringToFormat[filepath.Ext(config.OutputPath)[1:]]
+	}
 	if config.OutputFormat == FormatUnknown {
 		return errors.New("Unknown format for output file.")
 	}
