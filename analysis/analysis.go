@@ -11,6 +11,8 @@ import (
 )
 
 type DepAnalysis struct {
+	Module string
+
 	DirectDependencyCount   int
 	IndirectDependencyCount int
 
@@ -18,9 +20,9 @@ type DepAnalysis struct {
 	MaxDepAge               time.Duration
 	DepAgeMonthDistribution []int
 
-	MeanInboundArity         float64
-	MaxInboundArity          int
-	InboundArityDistribution []int
+	MeanReverseDependencyCount    float64
+	MaxReverseDependencyCount     int
+	ReverseDependencyDistribution []int
 }
 
 func Analyse(g *depgraph.DepGraph) *DepAnalysis {
@@ -34,10 +36,10 @@ func Analyse(g *depgraph.DepGraph) *DepAnalysis {
 		countDepAge        float64
 		distributionDepAge []int
 
-		maxDepArity          int
-		totalDepArity        float64
-		countDepArity        float64
-		distributionDepArity []int
+		maxReverseDependencies             int
+		totalReverseDependencies           float64
+		countReverseDependencies           float64
+		distributionReverseDependencyCount []int
 	)
 
 	nodes := g.Nodes()
@@ -57,31 +59,32 @@ func Analyse(g *depgraph.DepGraph) *DepAnalysis {
 		}
 		depArity := len(node.Predecessors())
 		if depArity > 0 {
-			totalDepArity += float64(depArity)
-			countDepArity += 1
-			if depArity > maxDepArity {
-				maxDepArity = depArity
+			totalReverseDependencies += float64(depArity)
+			countReverseDependencies += 1
+			if depArity > maxReverseDependencies {
+				maxReverseDependencies = depArity
 			}
-			distributionDepArity = insertIntoAgeDistribution(depArity, distributionDepArity)
+			distributionReverseDependencyCount = insertIntoAgeDistribution(depArity, distributionReverseDependencyCount)
 		}
 	}
 
 	return &DepAnalysis{
-		DirectDependencyCount:    directDependencyCount,
-		IndirectDependencyCount:  len(nodes) - directDependencyCount - 1,
-		MeanDepAge:               time.Duration(int64(totalDepAge / countDepAge)),
-		MaxDepAge:                maxDepAge,
-		DepAgeMonthDistribution:  distributionDepAge,
-		MeanInboundArity:         totalDepArity / countDepArity,
-		MaxInboundArity:          maxDepArity,
-		InboundArityDistribution: distributionDepArity,
+		Module:                        g.Module(),
+		DirectDependencyCount:         directDependencyCount,
+		IndirectDependencyCount:       len(nodes) - directDependencyCount - 1,
+		MeanDepAge:                    time.Duration(int64(totalDepAge / countDepAge)),
+		MaxDepAge:                     maxDepAge,
+		DepAgeMonthDistribution:       distributionDepAge,
+		MeanReverseDependencyCount:    totalReverseDependencies / countReverseDependencies,
+		MaxReverseDependencyCount:     maxReverseDependencies,
+		ReverseDependencyDistribution: distributionReverseDependencyCount,
 	}
 }
 
 func (a *DepAnalysis) Print(f io.Writer) error {
 	_, err := fmt.Fprintf(
 		f,
-		`
+		`-- Analysis for '%s' --
 Dependency counts:
 - Direct dependencies:   %d
 - Indirect dependencies: %d
@@ -93,22 +96,23 @@ Age statistics:
 
 %s
 
-Inbound arity statistics:
-- Mean inbound arity of dependencies: %.2f
-- Maximum dependency inbound arity:   %d
-- Arity distribution:
+Reverse dependency statistics:
+- Mean number of reverse dependencies:    %.2f
+- Maximum number of reverse dependencies: %d
+- Reverse dependency count distribution:
 
 %s
 
 `,
+		a.Module,
 		a.DirectDependencyCount,
 		a.IndirectDependencyCount,
 		humanDuration(a.MeanDepAge),
 		humanDuration(a.MaxDepAge),
 		printedDistribution(a.DepAgeMonthDistribution, 20),
-		a.MeanInboundArity,
-		a.MaxInboundArity,
-		printedDistribution(a.InboundArityDistribution, 10),
+		a.MeanReverseDependencyCount,
+		a.MaxReverseDependencyCount,
+		printedDistribution(a.ReverseDependencyDistribution, 10),
 	)
 	return err
 }

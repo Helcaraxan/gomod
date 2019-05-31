@@ -52,6 +52,7 @@ version annotations.
 Statistical analysis of the [Matterbridge](https://github.com/42wim/matterbridge) dependency graph.
 
 ```text
+-- Analysis for 'github.com/42wim/matterbridge' --
 Dependency counts:
 - Direct dependencies:   69
 - Indirect dependencies: 51
@@ -79,10 +80,26 @@ Age statistics:
           |# # # # # # #   #
           |# # # # # # # # #     #
           |# # # # # # # # #     #   # #
-          |# # # # # # # # #     # # # #     #   #   #
-          |# # # # # # # # #   # # # # #   # # # # # # #     # # #             #             #
+          |# # # # # # # # #     # # # #     #     # #
+          |# # # # # # # # #   # # # # #   # # # # # # #     # #   #           #             #
    0.00 % |___________________________________________________________________________________
            0                                                                                84
 
-[...]
+Reverse dependency statistics:
+- Mean number of reverse dependencies:    1.40
+- Maximum number of reverse dependencies: 9
+- Reverse dependency count distribution:
+
+  83.33 % |  #
+          |  #
+          |  #
+          |  #
+          |  #
+          |  #
+          |  #
+          |  #
+          |  #
+          |  # _
+   0.00 % |___________________
+           0                10
 ```
