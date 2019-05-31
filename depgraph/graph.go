@@ -33,9 +33,9 @@ func createNewNode(name string, modules map[string]*Module) (*Node, error) {
 	return &Node{module: module}, nil
 }
 
-func getSelectedModules(logger *logrus.Logger) (*Module, map[string]*Module, error) {
+func getSelectedModules(logger *logrus.Logger, quiet bool) (*Module, map[string]*Module, error) {
 	logger.Info("Retrieving module information via 'go list'")
-	raw, err := runCommand(logger, "go", "list", "-json", "-m", "all")
+	raw, err := runCommand(logger, quiet, "go", "list", "-json", "-m", "all")
 	if err != nil {
 		return nil, nil, err
 	}

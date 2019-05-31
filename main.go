@@ -16,6 +16,7 @@ import (
 
 type commonArgs struct {
 	logger *logrus.Logger
+	quiet  bool
 }
 
 func main() {
@@ -41,6 +42,7 @@ func main() {
 		},
 	}
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+	rootCmd.PersistentFlags().BoolVarP(&commonArgs.quiet, "quiet", "q", false, "Silence output from go tool invocations")
 
 	rootCmd.AddCommand(
 		initGraphCmd(commonArgs),
@@ -86,8 +88,8 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputFormat, "format", "F", "", "Output format for any image file (pdf, png, gif, ...)")
 
 	// Flags controlling graph filtering.
-	graphCmd.Flags().BoolVarP(&cmdArgs.shared, "shared", "s", false, "Filter out unshared dependencies (i.e. only required by one Go module).")
-	graphCmd.Flags().StringSliceVarP(&cmdArgs.dependencies, "dependencies", "d", nil, "Dependency for which to show the dependency graph.")
+	graphCmd.Flags().BoolVarP(&cmdArgs.shared, "shared", "s", false, "Filter out unshared dependencies (i.e. only required by one Go module)")
+	graphCmd.Flags().StringSliceVarP(&cmdArgs.dependencies, "dependencies", "d", nil, "Dependency for which to show the dependency graph")
 
 	return graphCmd
 }
@@ -97,7 +99,7 @@ func runGraphCmd(args *graphArgs) error {
 		return errors.New("'shared' and 'dependencies' filters cannot be used simultaneously")
 	}
 
-	graph, err := depgraph.GetDepGraph(args.logger)
+	graph, err := depgraph.GetDepGraph(args.logger, args.quiet)
 	if err != nil {
 		return err
 	}
@@ -138,7 +140,7 @@ func initAnalyseCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runAnalyseCmd(args *analyseArgs) error {
-	graph, err := depgraph.GetDepGraph(args.logger)
+	graph, err := depgraph.GetDepGraph(args.logger, args.quiet)
 	if err != nil {
 		return err
 	}

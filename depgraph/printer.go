@@ -44,6 +44,8 @@ var (
 type PrintConfig struct {
 	// Logger that should be used to show progress while printing the DepGraph.
 	Logger *logrus.Logger
+	// Silence the output from underlying tool invocations.
+	Quiet bool
 	// Visual representation of the DepGraph. If true print out a PDF using
 	// GraphViz, if false print out the graph in DOT format.
 	Visual bool
@@ -113,7 +115,7 @@ func (g *DepGraph) PrintToVisual(config *PrintConfig) error {
 	}
 
 	config.Logger.Debugf("Generating %q.", outputPath)
-	_, err = runCommand(config.Logger, "dot", "-T"+FormatToString[config.OutputFormat], "-o"+outputPath, dotPrintConfig.OutputPath)
+	_, err = runCommand(config.Logger, config.Quiet, "dot", "-T"+FormatToString[config.OutputFormat], "-o"+outputPath, dotPrintConfig.OutputPath)
 	return err
 }
 
