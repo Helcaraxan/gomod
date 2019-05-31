@@ -151,9 +151,6 @@ func (g *DepGraph) PrintToDOT(config *PrintConfig) error {
 				node.SelectedVersion(),
 			))
 		}
-		if node.offending {
-			nodeOptions = append(nodeOptions, "color=red", "fontcolor=red")
-		}
 		if len(nodeOptions) > 0 {
 			fileContent = append(fileContent, fmt.Sprintf("  \"%s\" [%s]", name, strings.Join(nodeOptions, ",")))
 		}
@@ -161,9 +158,6 @@ func (g *DepGraph) PrintToDOT(config *PrintConfig) error {
 			var edgeOptions []string
 			if config.Annotate {
 				edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.version))
-			}
-			if dep.offending {
-				edgeOptions = append(edgeOptions, "color=red", "fontcolor=red")
 			}
 			fileContent = append(fileContent, fmt.Sprintf(
 				"  \"%s\" -> \"%s\"%s",

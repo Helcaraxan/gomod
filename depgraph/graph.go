@@ -109,7 +109,6 @@ type Node struct {
 	module       *Module
 	predecessors []*Dependency
 	successors   []*Dependency
-	offending    bool
 }
 
 // Name of the module represented by this Node in the DepGraph instance.

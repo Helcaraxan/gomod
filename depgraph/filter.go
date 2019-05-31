@@ -15,69 +15,62 @@ func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
 	})
 }
 
-// SubGraph returns a copy of the dependency graph with all nodes removed that are
-// not part of a chain leading to the specified dependency. Returns an empty graph
-// if the specified depedendency does not exist in the graph.
-func (g *DepGraph) SubGraph(dependency string) *DepGraph {
-	if _, ok := g.nodes[dependency]; !ok {
-		g.logger.Debugf("Not reducing to sub-graph of non-existent node %q.", dependency)
+// DependencyFilter allows to specify a dependency graph filter that removes any edges that
+// are not part of a chain leading to this dependency. If a version is given then we only keep
+// edges that prevent the use of the dependency at that given version due to the Go module's
+// minimal version selection.
+type DependencyFilter struct {
+	Dependency string
+	Version    string
+}
+
+// SubGraph returns a copy of the dependency graph with all nodes that are part of dependency chains
+// that need to be modified for the specified dependency to be set to a given target version
+// annotated as such.
+func (g *DepGraph) SubGraph(filters []*DependencyFilter) *DepGraph {
+	if len(filters) == 0 {
 		return g
 	}
 
-	g.logger.Debugf("Reducing to sub-graph for %q.", dependency)
-	keep := map[string]struct{}{dependency: {}}
-	todo := []string{dependency}
-	for len(todo) > 0 {
-		for _, pred := range g.nodes[todo[0]].predecessors {
-			if _, ok := keep[pred.begin]; !ok {
-				keep[pred.begin] = struct{}{}
-				todo = append(todo, pred.begin)
+	keep := map[string]struct{}{}
+	for _, filter := range filters {
+		keep[filter.Dependency] = struct{}{}
+
+		var todo []string
+		if filter.Version != "" {
+			g.logger.Debugf("Marking relevant subgraph for dependency %q at version %q.", filter.Dependency, filter.Version)
+			for _, pred := range g.nodes[filter.Dependency].predecessors {
+				_, visited := keep[pred.begin]
+				if moduleMoreRecentThan(pred.RequiredVersion(), filter.Version) && pred.begin != g.module && !visited {
+					todo = append(todo, pred.begin)
+					keep[pred.begin] = struct{}{}
+				}
 			}
+		} else {
+			g.logger.Debugf("Marking relevant subgraph for dependency %q.", filter.Dependency)
+			todo = []string{filter.Dependency}
 		}
-		todo = todo[1:]
+
+		for len(todo) > 0 {
+			for _, pred := range g.nodes[todo[0]].predecessors {
+				if _, ok := keep[pred.begin]; !ok {
+					keep[pred.begin] = struct{}{}
+					todo = append(todo, pred.begin)
+				}
+			}
+			todo = todo[1:]
+		}
 	}
 
+	g.logger.Debug("Pruning the dependency graph of irrelevant nodes.")
 	subGraph := g.DeepCopy()
 	for node := range g.nodes {
 		if _, ok := keep[node]; !ok {
+			g.logger.Debugf("Pruning %q.", node)
 			subGraph.removeNode(node)
 		}
 	}
 	return subGraph
-}
-
-// OffendingGraph returns a copy of the dependency graph with all nodes that are part
-// of dependency chains that need to be modified for the specified dependency to be
-// set to a given target version annotated as such. The prune options allows to remove
-// such nodes instead of annotating them.
-func (g *DepGraph) OffendingGraph(dependency string, targetVersion string, prune bool) *DepGraph {
-	g.logger.Debugf("Marking offending graph for moving %q to %q. Pruning set to %t.", dependency, targetVersion, prune)
-	if _, ok := g.nodes[dependency]; !ok {
-		g.logger.Debugf("No node with name %q.", dependency)
-		return &DepGraph{
-			module: g.module,
-			nodes:  map[string]*Node{},
-		}
-	}
-	offendingGraph := g.DeepCopy()
-	for _, dep := range offendingGraph.nodes[dependency].predecessors {
-		// Special case of this graph's main module. If we are to downgrade
-		// a direct dependency then it should not be marked as offending (from
-		// the main module).
-		if dep.begin == g.module {
-			dep.version = targetVersion
-		}
-
-		g.logger.Debugf("Dependency %q is required by %q in version %q.", dep.end, dep.begin, dep.version)
-		isOffending := moduleMoreRecentThan(dep.version, targetVersion)
-		switch {
-		case isOffending && !prune:
-			offendingGraph.markAsOffending(dep)
-		case !isOffending && prune:
-			offendingGraph.removeEdge(dep.begin, dep.end)
-		}
-	}
-	return offendingGraph.SubGraph(dependency)
 }
 
 func (g *DepGraph) prune(pruneFunc func(*Node) bool) *DepGraph {
@@ -134,17 +127,4 @@ func (g *DepGraph) removeEdge(start string, end string) {
 		}
 	}
 	endNode.predecessors = newPredecessors
-}
-
-func (g *DepGraph) markAsOffending(dep *Dependency) {
-	g.logger.Debugf("Marking edge from %q to %q as offending due to version %s", dep.begin, dep.end, dep.version)
-	dep.offending = true
-	beginNode := g.nodes[dep.begin]
-	if beginNode.offending {
-		return
-	}
-	beginNode.offending = true
-	for _, pred := range beginNode.predecessors {
-		g.markAsOffending(pred)
-	}
 }

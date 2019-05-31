@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -14,12 +15,7 @@ import (
 )
 
 type commonArgs struct {
-	logger       *logrus.Logger
-	outputPath   string
-	force        bool
-	visual       bool
-	annotate     bool
-	outputFormat string
+	logger *logrus.Logger
 }
 
 func main() {
@@ -44,17 +40,10 @@ func main() {
 			return nil
 		},
 	}
-	rootCmd.PersistentFlags().BoolVarP(&commonArgs.visual, "visual", "V", false, "Format the output as a PDF image")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.PersistentFlags().BoolVarP(&commonArgs.force, "force", "f", false, "Overwrite any existing files")
-	rootCmd.PersistentFlags().StringVarP(&commonArgs.outputPath, "output", "o", "", "If set dump the output to this location")
-	rootCmd.PersistentFlags().BoolVarP(&commonArgs.annotate, "annotate", "a", false, "Annotate the resulting graph's nodes and edges with version information")
-	rootCmd.PersistentFlags().StringVarP(&commonArgs.outputFormat, "format", "F", "pdf", "Output format for any image file (pdf, png, gif, ...)")
 
 	rootCmd.AddCommand(
-		initFullCmd(commonArgs),
-		initSharedCmd(commonArgs),
-		initSubCmd(commonArgs),
+		initGraphCmd(commonArgs),
 		initAnalyseCmd(commonArgs),
 	)
 
@@ -63,96 +52,70 @@ func main() {
 	}
 }
 
-type fullArgs struct {
+type graphArgs struct {
 	*commonArgs
+
+	visual       bool
+	annotate     bool
+	force        bool
+	outputPath   string
+	outputFormat string
+
+	shared       bool
+	dependencies []string
 }
 
-func initFullCmd(cArgs *commonArgs) *cobra.Command {
-	cmdArgs := &fullArgs{
+func initGraphCmd(cArgs *commonArgs) *cobra.Command {
+	cmdArgs := &graphArgs{
 		commonArgs: cArgs,
 	}
 
-	fullCmd := &cobra.Command{
-		Use:   "full",
-		Short: "Show the entire dependency graph of this Go module.",
+	graphCmd := &cobra.Command{
+		Use:   "graph",
+		Short: "Visualise the dependency graph of a Go module.",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runFullCmd(cmdArgs)
+			return runGraphCmd(cmdArgs)
 		},
 	}
-	return fullCmd
+
+	// Flags controlling output.
+	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.visual, "visual", "V", false, "Format the output as a PDF image")
+	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the resulting graph's nodes and edges with version information")
+	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.force, "force", "f", false, "Overwrite any existing files")
+	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "If set dump the output to this location")
+	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputFormat, "format", "F", "pdf", "Output format for any image file (pdf, png, gif, ...)")
+
+	// Flags controlling graph filtering.
+	graphCmd.Flags().BoolVarP(&cmdArgs.shared, "shared", "s", false, "Filter out unshared dependencies (i.e. only required by one Go module).")
+	graphCmd.Flags().StringSliceVarP(&cmdArgs.dependencies, "dependencies", "d", nil, "Dependency for which to show the dependency graph.")
+
+	return graphCmd
 }
 
-func runFullCmd(args *fullArgs) error {
+func runGraphCmd(args *graphArgs) error {
+	if args.shared && len(args.dependencies) > 0 {
+		return errors.New("'shared' and 'dependencies' filters cannot be used simultaneously")
+	}
+
 	graph, err := depgraph.GetDepGraph(args.logger)
 	if err != nil {
 		return err
 	}
-	return printResult(graph, args.commonArgs)
-}
 
-type sharedArgs struct {
-	*commonArgs
-}
-
-func initSharedCmd(cArgs *commonArgs) *cobra.Command {
-	cmdArgs := &sharedArgs{
-		commonArgs: cArgs,
+	if args.shared {
+		graph = graph.PruneUnsharedDeps()
+	} else {
+		var versionFilter []*depgraph.DependencyFilter
+		for _, dependency := range args.dependencies {
+			filter := strings.Split(dependency+"@", "@")
+			versionFilter = append(versionFilter, &depgraph.DependencyFilter{
+				Dependency: filter[0],
+				Version:    filter[1],
+			})
+		}
+		graph = graph.SubGraph(versionFilter)
 	}
-
-	sharedCmd := &cobra.Command{
-		Use:   "shared",
-		Short: "Show the graph of dependencies for this Go module that are required by multiple modules.",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runSharedCmd(cmdArgs)
-		},
-	}
-	return sharedCmd
-}
-
-func runSharedCmd(args *sharedArgs) error {
-	graph, err := depgraph.GetDepGraph(args.logger)
-	if err != nil {
-		return err
-	}
-	graph = graph.PruneUnsharedDeps()
-	return printResult(graph, args.commonArgs)
-}
-
-type subArgs struct {
-	*commonArgs
-	dependency    string
-	targetVersion string
-	prune         bool
-}
-
-func initSubCmd(cArgs *commonArgs) *cobra.Command {
-	cmdArgs := &subArgs{
-		commonArgs: cArgs,
-	}
-
-	subCmd := &cobra.Command{
-		Use:   "sub",
-		Short: "Show the graph of dependencies for this Go module that needs to be downgraded to move a depencency to a specific version.",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runSubCmd(cmdArgs)
-		},
-	}
-	subCmd.Flags().StringVarP(&cmdArgs.dependency, "dependency", "d", "", "Dependency for which to show the dependency graph.")
-	subCmd.Flags().StringVarP(&cmdArgs.targetVersion, "target_version", "t", "", "Identify all nodes that restrict the move to this particular version of the dependency.")
-	subCmd.Flags().BoolVarP(&cmdArgs.prune, "prune", "p", false, "Remove all nodes that do not restrict the move to the version specified via --target|-t instead of coloring the offending ones.")
-	return subCmd
-}
-
-func runSubCmd(args *subArgs) error {
-	graph, err := depgraph.GetDepGraph(args.logger)
-	if err != nil {
-		return err
-	}
-	graph = graph.SubGraph(args.dependency)
-	if len(args.targetVersion) > 0 {
-		graph = graph.OffendingGraph(args.dependency, args.targetVersion, args.prune)
-	}
-	return printResult(graph, args.commonArgs)
+	return printResult(graph, args)
 }
 
 type analyseArgs struct {
@@ -221,7 +184,7 @@ func checkGoModulePresence(logger *logrus.Logger) error {
 	return errors.New("missing go module")
 }
 
-func printResult(graph *depgraph.DepGraph, args *commonArgs) error {
+func printResult(graph *depgraph.DepGraph, args *graphArgs) error {
 	return graph.Print(&depgraph.PrintConfig{
 		Logger:       args.logger,
 		OutputPath:   args.outputPath,
