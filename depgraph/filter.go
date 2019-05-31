@@ -19,24 +19,31 @@ func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
 // not part of a chain leading to the specified dependency. Returns an empty graph
 // if the specified depedendency does not exist in the graph.
 func (g *DepGraph) SubGraph(dependency string) *DepGraph {
-	g.logger.Debugf("Reducing to sub-graph for %q.", dependency)
 	if _, ok := g.nodes[dependency]; !ok {
-		g.logger.Debugf("No node with name %q.", dependency)
-		return &DepGraph{
-			module: g.module,
-			nodes:  map[string]*Node{},
+		g.logger.Debugf("Not reducing to sub-graph of non-existent node %q.", dependency)
+		return g
+	}
+
+	g.logger.Debugf("Reducing to sub-graph for %q.", dependency)
+	keep := map[string]struct{}{dependency: {}}
+	todo := []string{dependency}
+	for len(todo) > 0 {
+		for _, pred := range g.nodes[todo[0]].predecessors {
+			if _, ok := keep[pred.begin]; !ok {
+				keep[pred.begin] = struct{}{}
+				todo = append(todo, pred.begin)
+			}
+		}
+		todo = todo[1:]
+	}
+
+	subGraph := g.DeepCopy()
+	for node := range g.nodes {
+		if _, ok := keep[node]; !ok {
+			subGraph.removeNode(node)
 		}
 	}
-	return g.prune(func(node *Node) bool {
-		if len(node.successors) > 0 {
-			return false
-		}
-		prune := len(node.predecessors) == 0 || node.predecessors[0].end != dependency
-		if prune {
-			g.logger.Debugf("Prune %+v.", node)
-		}
-		return prune
-	})
+	return subGraph
 }
 
 // OffendingGraph returns a copy of the dependency graph with all nodes that are part

@@ -109,7 +109,7 @@ func (g *DepGraph) PrintToVisual(config *PrintConfig) error {
 		return err
 	}
 
-	config.Logger.Debugf("Generating PDF file %q.", outputPath)
+	config.Logger.Debugf("Generating %q.", outputPath)
 	_, err = runCommand(config.Logger, "dot", "-T"+FormatToString[config.OutputFormat], "-o"+outputPath, dotPrintConfig.OutputPath)
 	return err
 }
