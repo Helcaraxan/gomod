@@ -49,6 +49,17 @@ func GetDepGraph(logger *logrus.Logger, quiet bool) (*DepGraph, error) {
 		beginNodeName, beginVersion := depContent[1], depContent[2]
 		endNodeName, endVersion := depContent[3], depContent[4]
 
+		if beginModule := modules[beginNodeName]; beginModule == nil {
+			logger.Warnf("Encountered a dependency edge starting at an unknown module %q.", beginNodeName)
+			continue
+		} else if beginVersion != beginModule.Version {
+			logger.Debugf("Skipping edge from %q at %q to %q as we are not using that version.", beginNodeName, beginVersion, endNodeName)
+			continue
+		} else if endModule := modules[endNodeName]; endModule == nil {
+			logger.Warnf("Encountered a dependency edge ending at an unknown module %q.", endNodeName)
+			continue
+		}
+
 		beginNode := graph.nodes[beginNodeName]
 		if beginNode == nil {
 			beginNode, err = createNewNode(beginNodeName, modules)
@@ -69,7 +80,7 @@ func GetDepGraph(logger *logrus.Logger, quiet bool) (*DepGraph, error) {
 		}
 
 		if len(beginNode.SelectedVersion()) != 0 && beginNode.module.Replace == nil && beginNode.SelectedVersion() != beginVersion {
-			logger.Warnf("Encountered unexpected version %q for edge starting at node %q.", beginVersion, beginNodeName)
+			logger.Warnf("Encountered unexpected version %q for dependency of %q on %q.", beginVersion, beginNodeName, endNodeName)
 		}
 		newDependency := &Dependency{
 			begin:   beginNodeName,
