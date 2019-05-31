@@ -105,10 +105,10 @@ Inbound arity statistics:
 		a.IndirectDependencyCount,
 		humanDuration(a.MeanDepAge),
 		humanDuration(a.MaxDepAge),
-		printedDistribution(a.DepAgeMonthDistribution),
+		printedDistribution(a.DepAgeMonthDistribution, 20),
 		a.MeanInboundArity,
 		a.MaxInboundArity,
-		printedDistribution(a.InboundArityDistribution),
+		printedDistribution(a.InboundArityDistribution, 10),
 	)
 	return err
 }
@@ -224,12 +224,8 @@ func annotateDistributionPrintout(lines []string, distribution []float64, groupi
 	return append(lines, bottomLine)
 }
 
-func printedDistribution(distribution []int) string {
-	const (
-		displayHeight = 20
-		maxColumns    = 50 // completely arbitrary value that should fit with most terminal widths.
-		pStep         = 1 / 2 * float64(displayHeight)
-	)
+func printedDistribution(distribution []int, displayHeight int) string {
+	const maxColumns = 50 // completely arbitrary value that should fit with most terminal widths.
 
 	groupingFactor := len(distribution) / maxColumns
 	if len(distribution)%maxColumns > 0 {
