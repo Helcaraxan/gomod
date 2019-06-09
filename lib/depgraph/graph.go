@@ -65,7 +65,7 @@ func (g *DepGraph) Nodes() []Node {
 func (g *DepGraph) createNewNode(name string) (*Node, error) {
 	module := g.modules[name]
 	if module == nil {
-		return nil, fmt.Errorf("No module information for %q.", name)
+		return nil, fmt.Errorf("no module information for %q", name)
 	}
 	return &Node{Module: module}, nil
 }

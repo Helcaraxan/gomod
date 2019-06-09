@@ -80,7 +80,7 @@ func getSelectedModules(logger *logrus.Logger, quiet bool) (*Module, map[string]
 		modules[module.Path] = &moduleList[idx]
 	}
 	if len(main.Path) == 0 {
-		return nil, nil, errors.New("Could not determine main module.")
+		return nil, nil, errors.New("could not determine main module")
 	}
 	return &main, modules, nil
 }
