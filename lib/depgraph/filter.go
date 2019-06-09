@@ -41,7 +41,7 @@ func (g *DepGraph) SubGraph(filters []*DependencyFilter) *DepGraph {
 			g.logger.Debugf("Marking relevant subgraph for dependency %q at version %q.", filter.Dependency, filter.Version)
 			for _, pred := range g.nodes[filter.Dependency].predecessors {
 				_, visited := keep[pred.begin]
-				if moduleMoreRecentThan(pred.RequiredVersion(), filter.Version) && pred.begin != g.module && !visited {
+				if moduleMoreRecentThan(pred.RequiredVersion(), filter.Version) && pred.begin != g.module.Path && !visited {
 					todo = append(todo, pred.begin)
 					keep[pred.begin] = struct{}{}
 				}
