@@ -12,12 +12,13 @@ import (
 )
 
 type Module struct {
+	Main    bool         // is this the main module?
 	Path    string       // module path
-	Version string       // module version
 	Replace *Module      // replaced by this module
+	Version string       // module version
 	Time    *time.Time   // time version was created
 	Update  *Module      // available update, if any (with -u)
-	Main    bool         // is this the main module?
+	GoMod   string       // the path to this module's go.mod file
 	Error   *ModuleError // error loading module
 }
 
