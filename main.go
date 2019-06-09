@@ -83,7 +83,7 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 
 	// Flags controlling output.
 	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.visual, "visual", "V", false, "Format the output as a PDF image")
-	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the resulting graph's nodes and edges with version information")
+	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the graph's nodes and edges with version information")
 	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.force, "force", "f", false, "Overwrite any existing files")
 	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "If set dump the output to this location")
 	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputFormat, "format", "F", "", "Output format for any image file (pdf, png, gif, ...)")
