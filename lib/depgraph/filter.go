@@ -34,32 +34,7 @@ func (g *DepGraph) SubGraph(filters []*DependencyFilter) *DepGraph {
 
 	keep := map[string]struct{}{}
 	for _, filter := range filters {
-		keep[filter.Dependency] = struct{}{}
-
-		var todo []string
-		if filter.Version != "" {
-			g.logger.Debugf("Marking relevant subgraph for dependency %q at version %q.", filter.Dependency, filter.Version)
-			for _, pred := range g.nodes[filter.Dependency].predecessors {
-				_, visited := keep[pred.begin]
-				if moduleMoreRecentThan(pred.RequiredVersion(), filter.Version) && pred.begin != g.module.Path && !visited {
-					todo = append(todo, pred.begin)
-					keep[pred.begin] = struct{}{}
-				}
-			}
-		} else {
-			g.logger.Debugf("Marking relevant subgraph for dependency %q.", filter.Dependency)
-			todo = []string{filter.Dependency}
-		}
-
-		for len(todo) > 0 {
-			for _, pred := range g.nodes[todo[0]].predecessors {
-				if _, ok := keep[pred.begin]; !ok {
-					keep[pred.begin] = struct{}{}
-					todo = append(todo, pred.begin)
-				}
-			}
-			todo = todo[1:]
-		}
+		keep = g.applyFilter(filter, keep)
 	}
 
 	g.logger.Debug("Pruning the dependency graph of irrelevant nodes.")
@@ -71,6 +46,36 @@ func (g *DepGraph) SubGraph(filters []*DependencyFilter) *DepGraph {
 		}
 	}
 	return subGraph
+}
+
+func (g *DepGraph) applyFilter(filter *DependencyFilter, keep map[string]struct{}) map[string]struct{} {
+	keep[filter.Dependency] = struct{}{}
+
+	var todo []string
+	if filter.Version != "" {
+		g.logger.Debugf("Marking relevant subgraph for dependency %q at version %q.", filter.Dependency, filter.Version)
+		for _, pred := range g.nodes[filter.Dependency].predecessors {
+			_, visited := keep[pred.begin]
+			if moduleMoreRecentThan(pred.RequiredVersion(), filter.Version) && pred.begin != g.module.Path && !visited {
+				todo = append(todo, pred.begin)
+				keep[pred.begin] = struct{}{}
+			}
+		}
+	} else {
+		g.logger.Debugf("Marking relevant subgraph for dependency %q.", filter.Dependency)
+		todo = []string{filter.Dependency}
+	}
+
+	for len(todo) > 0 {
+		for _, pred := range g.nodes[todo[0]].predecessors {
+			if _, ok := keep[pred.begin]; !ok {
+				keep[pred.begin] = struct{}{}
+				todo = append(todo, pred.begin)
+			}
+		}
+		todo = todo[1:]
+	}
+	return keep
 }
 
 func (g *DepGraph) prune(pruneFunc func(*Node) bool) *DepGraph {

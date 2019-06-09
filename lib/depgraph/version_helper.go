@@ -14,20 +14,15 @@ var (
 
 func moduleMoreRecentThan(lhs string, rhs string) bool {
 	lhsParsed := versionRE.FindStringSubmatch(lhs)
-	if len(lhsParsed) == 0 {
-		return false
-	}
 	rhsParsed := versionRE.FindStringSubmatch(rhs)
-	if len(rhsParsed) == 0 {
-		return true
+	if len(lhsParsed) == 0 || len(rhsParsed) == 0 {
+		return len(lhsParsed) != 0
 	}
 
 	lhsSemVer := semver.MustParse(lhsParsed[1])
 	rhsSemVer := semver.MustParse(rhsParsed[1])
-	if lhsSemVer.GT(rhsSemVer) {
-		return true
-	} else if lhsSemVer.LT(rhsSemVer) {
-		return false
+	if lhsSemVer.GT(rhsSemVer) || lhsSemVer.LT(rhsSemVer) {
+		return lhsSemVer.GT(rhsSemVer)
 	}
 
 	if len(lhsParsed[2]) == 0 || len(rhsParsed[2]) == 0 {

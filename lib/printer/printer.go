@@ -146,34 +146,7 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 	var fileContent []string
 	fileContent = append(fileContent, "strict digraph {", "  ranksep=3")
 	for _, node := range graph.Nodes() {
-		nodeOptions := []string{}
-		if config.Annotate && len(node.SelectedVersion()) != 0 {
-			var replacement string
-			if node.Module.Replace != nil {
-				replacement = node.Module.Replace.Path + "<br />"
-			}
-			nodeOptions = append(nodeOptions, fmt.Sprintf(
-				"label=<%s<br /><font point-size=\"10\">%s%s</font>>",
-				node.Name(),
-				replacement,
-				node.SelectedVersion(),
-			))
-		}
-		if len(nodeOptions) > 0 {
-			fileContent = append(fileContent, fmt.Sprintf("  \"%s\" [%s]", node.Name(), strings.Join(nodeOptions, ",")))
-		}
-		for _, dep := range node.Successors() {
-			var edgeOptions []string
-			if config.Annotate {
-				edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.RequiredVersion()))
-			}
-			fileContent = append(fileContent, fmt.Sprintf(
-				"  \"%s\" -> \"%s\"%s",
-				dep.Begin(),
-				dep.End(),
-				fmt.Sprintf(" [%s]", strings.Join(edgeOptions, ",")),
-			))
-		}
+		fileContent = printNodeToDot(config, node, fileContent)
 	}
 	fileContent = append(fileContent, "}")
 
@@ -182,4 +155,36 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 		return fmt.Errorf("could not write to %q", out.Name())
 	}
 	return nil
+}
+
+func printNodeToDot(config *PrintConfig, node depgraph.Node, fileContent []string) []string {
+	nodeOptions := []string{}
+	if config.Annotate && len(node.SelectedVersion()) != 0 {
+		var replacement string
+		if node.Module.Replace != nil {
+			replacement = node.Module.Replace.Path + "<br />"
+		}
+		nodeOptions = append(nodeOptions, fmt.Sprintf(
+			"label=<%s<br /><font point-size=\"10\">%s%s</font>>",
+			node.Name(),
+			replacement,
+			node.SelectedVersion(),
+		))
+	}
+	if len(nodeOptions) > 0 {
+		fileContent = append(fileContent, fmt.Sprintf("  \"%s\" [%s]", node.Name(), strings.Join(nodeOptions, ",")))
+	}
+	for _, dep := range node.Successors() {
+		var edgeOptions []string
+		if config.Annotate {
+			edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.RequiredVersion()))
+		}
+		fileContent = append(fileContent, fmt.Sprintf(
+			"  \"%s\" -> \"%s\"%s",
+			dep.Begin(),
+			dep.End(),
+			fmt.Sprintf(" [%s]", strings.Join(edgeOptions, ",")),
+		))
+	}
+	return fileContent
 }
