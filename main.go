@@ -10,8 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/Helcaraxan/gomod/analysis"
-	"github.com/Helcaraxan/gomod/depgraph"
+	"github.com/Helcaraxan/gomod/lib/analysis"
+	"github.com/Helcaraxan/gomod/lib/depgraph"
+	"github.com/Helcaraxan/gomod/lib/printer"
 )
 
 type commonArgs struct {
@@ -187,12 +188,12 @@ func checkGoModulePresence(logger *logrus.Logger) error {
 }
 
 func printResult(graph *depgraph.DepGraph, args *graphArgs) error {
-	return graph.Print(&depgraph.PrintConfig{
+	return printer.Print(graph, &printer.PrintConfig{
 		Logger:       args.logger,
 		OutputPath:   args.outputPath,
 		Force:        args.force,
 		Visual:       args.visual,
 		Annotate:     args.annotate,
-		OutputFormat: depgraph.StringToFormat[args.outputFormat],
+		OutputFormat: printer.StringToFormat[args.outputFormat],
 	})
 }

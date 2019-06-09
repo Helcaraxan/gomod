@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/Helcaraxan/gomod/lib/internal/util"
 )
 
 type Module struct {
@@ -31,12 +33,12 @@ func createNewNode(name string, modules map[string]*Module) (*Node, error) {
 	if module == nil {
 		return nil, fmt.Errorf("No module information for %q.", name)
 	}
-	return &Node{module: module}, nil
+	return &Node{Module: module}, nil
 }
 
 func getSelectedModules(logger *logrus.Logger, quiet bool) (*Module, map[string]*Module, error) {
 	logger.Debug("Retrieving module information via 'go list'")
-	raw, err := runCommand(logger, quiet, "go", "list", "-json", "-m", "all")
+	raw, err := util.RunCommand(logger, quiet, "go", "list", "-json", "-m", "all")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -107,30 +109,30 @@ func (g *DepGraph) Nodes() []Node {
 
 // Node represents a module in a Go module's dependency graph.
 type Node struct {
-	module       *Module
+	Module       *Module
 	predecessors []*Dependency
 	successors   []*Dependency
 }
 
 // Name of the module represented by this Node in the DepGraph instance.
 func (n *Node) Name() string {
-	return n.module.Path
+	return n.Module.Path
 }
 
 // SelectedVersion corresponds to the version of the dependency represented by
 // this Node which was selected for use.
 func (n *Node) SelectedVersion() string {
-	if n.module.Replace != nil {
-		return n.module.Replace.Version
+	if n.Module.Replace != nil {
+		return n.Module.Replace.Version
 	}
-	return n.module.Version
+	return n.Module.Version
 }
 
 func (n *Node) Timestamp() *time.Time {
-	if n.module.Replace != nil {
-		return n.module.Replace.Time
+	if n.Module.Replace != nil {
+		return n.Module.Replace.Time
 	}
-	return n.module.Time
+	return n.Module.Time
 }
 
 // Predecessors returns a slice with copies of all the incoming Dependencies for

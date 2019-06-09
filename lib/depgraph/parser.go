@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/Helcaraxan/gomod/lib/internal/util"
 )
 
 var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
@@ -26,7 +28,7 @@ func GetDepGraph(logger *logrus.Logger, quiet bool) (*DepGraph, error) {
 	}
 
 	logger.Debug("Retrieving dependency information via 'go mod graph'")
-	rawDeps, err := runCommand(logger, quiet, "go", "mod", "graph")
+	rawDeps, err := util.RunCommand(logger, quiet, "go", "mod", "graph")
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +81,7 @@ func GetDepGraph(logger *logrus.Logger, quiet bool) (*DepGraph, error) {
 			logger.Debugf("Created new node: %+v", endNode)
 		}
 
-		if len(beginNode.SelectedVersion()) != 0 && beginNode.module.Replace == nil && beginNode.SelectedVersion() != beginVersion {
+		if len(beginNode.SelectedVersion()) != 0 && beginNode.Module.Replace == nil && beginNode.SelectedVersion() != beginVersion {
 			logger.Warnf("Encountered unexpected version %q for dependency of %q on %q.", beginVersion, beginNodeName, endNodeName)
 		}
 		newDependency := &Dependency{
