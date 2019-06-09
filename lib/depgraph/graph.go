@@ -1,16 +1,11 @@
 package depgraph
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"time"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/Helcaraxan/gomod/lib/internal/util"
 )
 
 type Module struct {
@@ -28,52 +23,12 @@ type ModuleError struct {
 	Err string // the error itself
 }
 
-func createNewNode(name string, modules map[string]*Module) (*Node, error) {
-	module := modules[name]
-	if module == nil {
-		return nil, fmt.Errorf("No module information for %q.", name)
-	}
-	return &Node{Module: module}, nil
-}
-
-func getSelectedModules(logger *logrus.Logger, quiet bool) (*Module, map[string]*Module, error) {
-	logger.Debug("Retrieving module information via 'go list'")
-	raw, err := util.RunCommand(logger, quiet, "go", "list", "-json", "-m", "all")
-	if err != nil {
-		return nil, nil, err
-	}
-	raw = bytes.ReplaceAll(bytes.TrimSpace(raw), []byte("\n}\n"), []byte("\n},\n"))
-	raw = append([]byte("[\n"), raw...)
-	raw = append(raw, []byte("\n]")...)
-
-	var moduleList []Module
-	if err = json.Unmarshal(raw, &moduleList); err != nil {
-		return nil, nil, fmt.Errorf("Unable to retrieve information from 'go list': %v", err)
-	}
-
-	var main Module
-	modules := map[string]*Module{}
-	for idx, module := range moduleList {
-		if module.Error != nil {
-			logger.Warnf("Unable to retrieve information for module %q: %s", module.Path, module.Error.Err)
-		}
-
-		if module.Main {
-			main = module
-		}
-		modules[module.Path] = &moduleList[idx]
-	}
-	if len(main.Path) == 0 {
-		return nil, nil, errors.New("Could not determine main module.")
-	}
-	return &main, modules, nil
-}
-
 // DepGraph represents a Go module's dependency graph.
 type DepGraph struct {
-	logger *logrus.Logger
-	module string
-	nodes  map[string]*Node
+	logger  *logrus.Logger
+	module  *Module
+	modules map[string]*Module
+	nodes   map[string]*Node
 }
 
 // NewGraph returns a new DepGraph instance which will use the specified
@@ -91,7 +46,7 @@ func NewGraph(logger *logrus.Logger) *DepGraph {
 
 // Module returns the name of the module to which this DepGraph instance applies.
 func (g *DepGraph) Module() string {
-	return g.module
+	return g.module.Path
 }
 
 // Nodes returns a slice with copies of all nodes belonging to this DepGraph
@@ -105,6 +60,14 @@ func (g *DepGraph) Nodes() []Node {
 		idx++
 	}
 	return nodes
+}
+
+func (g *DepGraph) createNewNode(name string) (*Node, error) {
+	module := g.modules[name]
+	if module == nil {
+		return nil, fmt.Errorf("No module information for %q.", name)
+	}
+	return &Node{Module: module}, nil
 }
 
 // Node represents a module in a Go module's dependency graph.
@@ -163,10 +126,9 @@ func (n *Node) Successors() []Dependency {
 
 // Dependency represents a dependency in a DepGraph instance.
 type Dependency struct {
-	begin     string
-	end       string
-	version   string
-	offending bool
+	begin   string
+	end     string
+	version string
 }
 
 // Begin returns the name of the Go module at which this Dependency originates.
