@@ -33,9 +33,9 @@ func GetDepGraph(logger *logrus.Logger, quiet bool) (*DepGraph, error) {
 
 	graph := &DepGraph{
 		logger:  logger,
-		module:  main,
-		modules: modules,
-		nodes:   map[string]*Node{},
+		Module:  main,
+		Modules: modules,
+		Nodes:   map[string]*Node{},
 	}
 
 	logger.Debug("Retrieving dependency information via 'go mod graph'")
@@ -94,20 +94,20 @@ func (g *DepGraph) addDependency(depString string) error {
 	}
 
 	var err error
-	beginNode := g.nodes[parsedDep.beginNodeName]
+	beginNode := g.Nodes[parsedDep.beginNodeName]
 	if beginNode == nil {
 		if beginNode, err = g.createNewNode(parsedDep.beginNodeName); err != nil {
 			return err
 		}
-		g.nodes[parsedDep.beginNodeName] = beginNode
+		g.Nodes[parsedDep.beginNodeName] = beginNode
 		g.logger.Debugf("Created new node: %+v", beginNode)
 	}
-	endNode := g.nodes[parsedDep.endNodeName]
+	endNode := g.Nodes[parsedDep.endNodeName]
 	if endNode == nil {
 		if endNode, err = g.createNewNode(parsedDep.endNodeName); err != nil {
 			return err
 		}
-		g.nodes[parsedDep.endNodeName] = endNode
+		g.Nodes[parsedDep.endNodeName] = endNode
 		g.logger.Debugf("Created new node: %+v", endNode)
 	}
 
@@ -147,8 +147,8 @@ func (g *DepGraph) parseDependency(depString string) (*rawDependency, bool) {
 	beginNodeName, beginVersion := depContent[1], depContent[2]
 	endNodeName, endVersion := depContent[3], depContent[4]
 
-	beginModule := g.modules[beginNodeName]
-	endModule := g.modules[endNodeName]
+	beginModule := g.Modules[beginNodeName]
+	endModule := g.Modules[endNodeName]
 	if beginModule == nil || endModule == nil {
 		g.logger.Warnf("Encountered a dependency edge starting or ending at an unknown module %q -> %q.", beginNodeName, endNodeName)
 		return nil, false

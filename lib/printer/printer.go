@@ -145,7 +145,7 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 
 	var fileContent []string
 	fileContent = append(fileContent, "strict digraph {", "  ranksep=3")
-	for _, node := range graph.Nodes() {
+	for _, node := range graph.Nodes {
 		fileContent = printNodeToDot(config, node, fileContent)
 	}
 	fileContent = append(fileContent, "}")
@@ -157,7 +157,7 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 	return nil
 }
 
-func printNodeToDot(config *PrintConfig, node depgraph.Node, fileContent []string) []string {
+func printNodeToDot(config *PrintConfig, node *depgraph.Node, fileContent []string) []string {
 	nodeOptions := []string{}
 	if config.Annotate && len(node.SelectedVersion()) != 0 {
 		var replacement string

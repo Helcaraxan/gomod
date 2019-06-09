@@ -39,7 +39,7 @@ func (g *DepGraph) SubGraph(filters []*DependencyFilter) *DepGraph {
 
 	g.logger.Debug("Pruning the dependency graph of irrelevant nodes.")
 	subGraph := g.DeepCopy()
-	for node := range g.nodes {
+	for node := range g.Nodes {
 		if _, ok := keep[node]; !ok {
 			g.logger.Debugf("Pruning %q.", node)
 			subGraph.removeNode(node)
@@ -54,9 +54,9 @@ func (g *DepGraph) applyFilter(filter *DependencyFilter, keep map[string]struct{
 	var todo []string
 	if filter.Version != "" {
 		g.logger.Debugf("Marking relevant subgraph for dependency %q at version %q.", filter.Dependency, filter.Version)
-		for _, pred := range g.nodes[filter.Dependency].predecessors {
+		for _, pred := range g.Nodes[filter.Dependency].predecessors {
 			_, visited := keep[pred.begin]
-			if moduleMoreRecentThan(pred.RequiredVersion(), filter.Version) && pred.begin != g.module.Path && !visited {
+			if moduleMoreRecentThan(pred.RequiredVersion(), filter.Version) && pred.begin != g.Name() && !visited {
 				todo = append(todo, pred.begin)
 				keep[pred.begin] = struct{}{}
 			}
@@ -67,7 +67,7 @@ func (g *DepGraph) applyFilter(filter *DependencyFilter, keep map[string]struct{
 	}
 
 	for len(todo) > 0 {
-		for _, pred := range g.nodes[todo[0]].predecessors {
+		for _, pred := range g.Nodes[todo[0]].predecessors {
 			if _, ok := keep[pred.begin]; !ok {
 				keep[pred.begin] = struct{}{}
 				todo = append(todo, pred.begin)
@@ -83,7 +83,7 @@ func (g *DepGraph) prune(pruneFunc func(*Node) bool) *DepGraph {
 	var done bool
 	for !done {
 		done = true
-		for name, node := range prunedGraph.nodes {
+		for name, node := range prunedGraph.Nodes {
 			if pruneFunc(node) {
 				done = false
 				prunedGraph.removeNode(name)
@@ -95,7 +95,7 @@ func (g *DepGraph) prune(pruneFunc func(*Node) bool) *DepGraph {
 
 func (g *DepGraph) removeNode(name string) {
 	g.logger.Debugf("Removing node with name %q.", name)
-	node := g.nodes[name]
+	node := g.Nodes[name]
 	if node == nil {
 		return
 	}
@@ -106,13 +106,13 @@ func (g *DepGraph) removeNode(name string) {
 	for _, dep := range node.predecessors {
 		g.removeEdge(dep.begin, dep.end)
 	}
-	delete(g.nodes, name)
+	delete(g.Nodes, name)
 }
 
 func (g *DepGraph) removeEdge(start string, end string) {
 	g.logger.Debugf("Removing any edge between %q and %q.", start, end)
-	startNode := g.nodes[start]
-	endNode := g.nodes[end]
+	startNode := g.Nodes[start]
+	endNode := g.Nodes[end]
 	if startNode == nil || endNode == nil {
 		return
 	}

@@ -41,9 +41,8 @@ func Analyse(g *depgraph.DepGraph) *DepAnalysis {
 		distributionReverseDependencyCount []int
 	)
 
-	nodes := g.Nodes()
-	for _, node := range nodes {
-		if node.Name() == g.Module() {
+	for _, node := range g.Nodes {
+		if node.Name() == g.Name() {
 			directDependencyCount = len(node.Successors())
 		}
 		if timestamp := node.Timestamp(); timestamp != nil {
@@ -68,9 +67,9 @@ func Analyse(g *depgraph.DepGraph) *DepAnalysis {
 	}
 
 	return &DepAnalysis{
-		Module:                        g.Module(),
+		Module:                        g.Name(),
 		DirectDependencyCount:         directDependencyCount,
-		IndirectDependencyCount:       len(nodes) - directDependencyCount - 1,
+		IndirectDependencyCount:       len(g.Nodes) - directDependencyCount - 1,
 		MeanDepAge:                    time.Duration(int64(totalDepAge / countDepAge)),
 		MaxDepAge:                     maxDepAge,
 		DepAgeMonthDistribution:       distributionDepAge,
