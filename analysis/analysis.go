@@ -3,7 +3,6 @@ package analysis
 import (
 	"fmt"
 	"io"
-	"math"
 	"strings"
 	"time"
 
@@ -176,8 +175,9 @@ func distributionToLines(distribution []float64, displayHeight int) []string {
 
 	lines[0] = strings.Repeat("|", displayHeight+1)
 	for idx, value := range distribution {
-		line := "_" + strings.Repeat("#", int(value/step))
-		if math.Mod(value, step) > step/2 {
+		stepCount := int(value / step)
+		line := "_" + strings.Repeat("#", stepCount)
+		if value-float64(stepCount)*step > step/2 { // We can't use 'math.Mod()' as that can lead to rounding issues.
 			line += "_"
 		}
 		lines[idx*2+1] = line

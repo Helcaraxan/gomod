@@ -18,13 +18,13 @@ func Test_DistributionToLines(t *testing.T) {
 	inputDistribution := []float64{0.05, 0.48, 0.35, 0.12}
 	expectedOutput := []string{
 		"||||||",
-		"_",
-		"_",
-		"_##",
-		"_",
-		"_#_",
-		"_",
 		"__",
+		"_",
+		"_#####",
+		"_",
+		"_###_",
+		"_",
+		"_#",
 	}
 	assert.Equal(t, expectedOutput, distributionToLines(inputDistribution, 5))
 }
