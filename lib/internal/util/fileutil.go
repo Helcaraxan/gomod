@@ -1,43 +1,17 @@
-package depgraph
+package util
 
 import (
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 )
 
-func runCommand(logger *logrus.Logger, quiet bool, path string, args ...string) ([]byte, error) {
-	cmd := exec.Command(path, args...)
-
-	if !quiet {
-		errStream, err := cmd.StderrPipe()
-		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve the stderr pipe for '%s %s", cmd.Path, strings.Join(cmd.Args, " "))
-		}
-		go func() {
-			_, copyErr := io.Copy(os.Stdout, errStream)
-			if copyErr != nil {
-				fmt.Fprintf(os.Stderr, "Subprocess output pipe broke down: %v\n", copyErr)
-			}
-		}()
-	}
-
-	logger.Debugf("Running command '%s %s'.", cmd.Path, strings.Join(cmd.Args, " "))
-	raw, err := cmd.Output()
-	if err != nil {
-		logger.WithError(err).Errorf("'%s %s' exited with an error", cmd.Path, strings.Join(cmd.Args, " "))
-		logger.Errorf("Command output was: %s", raw)
-		return nil, fmt.Errorf("'%s %s' error", cmd.Path, strings.Join(cmd.Args, " "))
-	}
-	return raw, nil
-}
-
-func prepareOutputPath(logger *logrus.Logger, outputPath string, force bool) error {
+// PrepareOutputPath ensures that the directory containing the specified path exist. It also checks
+// that the full path does not refer to an existing file or directory. If such a path already exists
+// an error is returned unless the `force` parameter is set to `true` in which case we delete it.
+func PrepareOutputPath(logger *logrus.Logger, outputPath string, force bool) error {
 	logger.Debugf("Preparing output path %q.", outputPath)
 	if force {
 		logger.Debug("Attempting to delete any pre-existing folder or file.")

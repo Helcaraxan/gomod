@@ -1,4 +1,4 @@
-package depgraph
+package printer
 
 import (
 	"errors"
@@ -9,6 +9,9 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/Helcaraxan/gomod/lib/depgraph"
+	"github.com/Helcaraxan/gomod/lib/internal/util"
 )
 
 type Format int
@@ -62,18 +65,18 @@ type PrintConfig struct {
 
 // Print takes in a PrintConfig struct and dumps the content of this DepGraph
 // instance according to parameters.
-func (g *DepGraph) Print(config *PrintConfig) error {
-	var printer func(*PrintConfig) error
+func Print(graph *depgraph.DepGraph, config *PrintConfig) error {
+	var printer func(*depgraph.DepGraph, *PrintConfig) error
 	if config.Visual {
-		printer = g.PrintToVisual
+		printer = PrintToVisual
 	} else {
-		printer = g.PrintToDOT
+		printer = PrintToDOT
 	}
-	return printer(config)
+	return printer(graph, config)
 }
 
 // PrintToVisual creates an image file at the specified target path that represents the dependency graph.
-func (g *DepGraph) PrintToVisual(config *PrintConfig) error {
+func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
 	if config.OutputFormat == FormatUnknown {
 		config.OutputFormat = StringToFormat[filepath.Ext(config.OutputPath)[1:]]
 	}
@@ -104,26 +107,26 @@ func (g *DepGraph) PrintToVisual(config *PrintConfig) error {
 		config.Logger.Warnf("Will be writing to %q instead.", outputPath)
 	}
 
-	if err := prepareOutputPath(config.Logger, outputPath, config.Force); err != nil {
+	if err := util.PrepareOutputPath(config.Logger, outputPath, config.Force); err != nil {
 		return err
 	}
 
 	dotPrintConfig := *config
 	dotPrintConfig.OutputPath = filepath.Join(tempDir, "out.dot")
-	if err = g.PrintToDOT(&dotPrintConfig); err != nil {
+	if err = PrintToDOT(graph, &dotPrintConfig); err != nil {
 		return err
 	}
 
 	config.Logger.Debugf("Generating %q.", outputPath)
-	_, err = runCommand(config.Logger, config.Quiet, "dot", "-T"+FormatToString[config.OutputFormat], "-o"+outputPath, dotPrintConfig.OutputPath)
+	_, err = util.RunCommand(config.Logger, config.Quiet, "dot", "-T"+FormatToString[config.OutputFormat], "-o"+outputPath, dotPrintConfig.OutputPath)
 	return err
 }
 
-func (g *DepGraph) PrintToDOT(config *PrintConfig) error {
+func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 	var err error
 	out := os.Stdout
 	if len(config.OutputPath) > 0 {
-		if err = prepareOutputPath(config.Logger, config.OutputPath, config.Force); err != nil {
+		if err = util.PrepareOutputPath(config.Logger, config.OutputPath, config.Force); err != nil {
 			return err
 		}
 
@@ -142,32 +145,32 @@ func (g *DepGraph) PrintToDOT(config *PrintConfig) error {
 
 	var fileContent []string
 	fileContent = append(fileContent, "strict digraph {", "  ranksep=3")
-	for name, node := range g.nodes {
+	for _, node := range graph.Nodes() {
 		nodeOptions := []string{}
 		if config.Annotate && len(node.SelectedVersion()) != 0 {
 			var replacement string
-			if node.module.Replace != nil {
-				replacement = node.module.Replace.Path + "<br />"
+			if node.Module.Replace != nil {
+				replacement = node.Module.Replace.Path + "<br />"
 			}
 			nodeOptions = append(nodeOptions, fmt.Sprintf(
 				"label=<%s<br /><font point-size=\"10\">%s%s</font>>",
-				name,
+				node.Name(),
 				replacement,
 				node.SelectedVersion(),
 			))
 		}
 		if len(nodeOptions) > 0 {
-			fileContent = append(fileContent, fmt.Sprintf("  \"%s\" [%s]", name, strings.Join(nodeOptions, ",")))
+			fileContent = append(fileContent, fmt.Sprintf("  \"%s\" [%s]", node.Name(), strings.Join(nodeOptions, ",")))
 		}
-		for _, dep := range node.successors {
+		for _, dep := range node.Successors() {
 			var edgeOptions []string
 			if config.Annotate {
-				edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.version))
+				edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.RequiredVersion()))
 			}
 			fileContent = append(fileContent, fmt.Sprintf(
 				"  \"%s\" -> \"%s\"%s",
-				dep.begin,
-				dep.end,
+				dep.Begin(),
+				dep.End(),
 				fmt.Sprintf(" [%s]", strings.Join(edgeOptions, ",")),
 			))
 		}

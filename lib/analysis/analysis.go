@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Helcaraxan/gomod/depgraph"
+	"github.com/Helcaraxan/gomod/lib/depgraph"
 )
 
 type DepAnalysis struct {
