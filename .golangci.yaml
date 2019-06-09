@@ -37,7 +37,7 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - goling
+    - golint
     - govet
     - lll
     - maligned
@@ -144,4 +144,4 @@ issues:
   new: false
 
   # Show only new issues created after git revision `REV`
-  new-from-rev: "HEAD~1"
+  new-from-rev: "origin/master"

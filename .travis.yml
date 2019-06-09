@@ -1,0 +1,43 @@
+language: go
+go_import_path: github.com/Helcaraxan/gomod
+
+env:
+  global:
+    - GO111MODULE=on
+
+git:
+  depth: 200
+
+notifications:
+  email: false
+
+branches:
+  only:
+    - master
+
+jobs:
+  include:
+    # Perform linting before running any tests.
+    - stage: lint
+      go: 1.12.x
+      stage: lint
+      script: ./ci/lint.sh
+      env:
+        - GOLANGCI_VERSION="v1.16.0"
+
+    # Test on the latest stable Go version.
+    - stage: test
+      go: 1.12.x
+      script: ./ci/test.sh
+      before_script:
+        # Retrieve and prepare CodeClimate's test coverage reporter.
+        - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+        - chmod +x ./cc-test-reporter
+        - ./cc-test-reporter before-build
+      after_script:
+        # Submit CodeClimate's test coverage report.
+        - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+
+    # Run the tests also on 'tip' to ensure we're OK with respect to the latest development version.
+    - go: master
+      script: ./ci/test.sh
