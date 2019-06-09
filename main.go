@@ -32,9 +32,6 @@ func main() {
 			if err := checkGoModulePresence(commonArgs.logger); err != nil {
 				return err
 			}
-			if err := checkToolDependencies(commonArgs.logger); err != nil {
-				return err
-			}
 			if verbose {
 				commonArgs.logger.SetLevel(logrus.DebugLevel)
 			}
@@ -76,6 +73,9 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 		Use:   "graph",
 		Short: "Visualise the dependency graph of a Go module.",
 		RunE: func(_ *cobra.Command, _ []string) error {
+			if err := checkToolDependencies(cmdArgs.logger); err != nil {
+				return err
+			}
 			return runGraphCmd(cmdArgs)
 		},
 	}
