@@ -49,7 +49,7 @@ func Analyse(g *depgraph.DepGraph) *DepAnalysis {
 		if timestamp := node.Timestamp(); timestamp != nil {
 			depAge := time.Since(*timestamp)
 			totalDepAge += float64(depAge.Nanoseconds())
-			countDepAge += 1
+			countDepAge++
 			if depAge > maxDepAge {
 				maxDepAge = depAge
 			}
@@ -59,7 +59,7 @@ func Analyse(g *depgraph.DepGraph) *DepAnalysis {
 		depArity := len(node.Predecessors())
 		if depArity > 0 {
 			totalReverseDependencies += float64(depArity)
-			countReverseDependencies += 1
+			countReverseDependencies++
 			if depArity > maxReverseDependencies {
 				maxReverseDependencies = depArity
 			}

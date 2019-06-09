@@ -81,7 +81,7 @@ func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
 		config.OutputFormat = StringToFormat[filepath.Ext(config.OutputPath)[1:]]
 	}
 	if config.OutputFormat == FormatUnknown {
-		return errors.New("Unknown format for output file.")
+		return errors.New("unknown format for output file")
 	}
 
 	tempDir, err := ioutil.TempDir("", "depgraph")

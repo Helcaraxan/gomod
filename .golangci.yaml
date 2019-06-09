@@ -40,7 +40,6 @@ linters:
     - golint
     - govet
     - lll
-    - maligned
     - misspell
     - nakedret
     - unparam
@@ -103,7 +102,7 @@ linters-settings:
   goimports:
     # put imports beginning with prefix after 3rd-party packages;
     # it's a comma-separated list of prefixes
-    local-prefixes: github.com/Helcaraxan/gomod
+    #local-prefixes: github.com/Helcaraxan/gomod
   lll:
     # max line length, lines longer will be reported. Default is 120.
     # '\t' is counted as 1 character by default, and can be changed with the tab-width option
@@ -143,5 +142,6 @@ issues:
   # Default is false.
   new: false
 
-  # Show only new issues created after git revision `REV`
-  new-from-rev: "origin/master"
+  # Show only new issues created after git revision `REV`. If set to "" lint the
+  # entire specified packages.
+  new-from-rev: ""
