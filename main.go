@@ -13,6 +13,7 @@ import (
 	"github.com/Helcaraxan/gomod/lib/analysis"
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 	"github.com/Helcaraxan/gomod/lib/printer"
+	"github.com/Helcaraxan/gomod/lib/reveal"
 )
 
 type commonArgs struct {
@@ -27,7 +28,7 @@ func main() {
 
 	var verbose bool
 	rootCmd := &cobra.Command{
-		Use:   os.Args[0],
+		Use:   "gomod",
 		Short: "A tool to visualize and analyze a Go module's dependency graph.",
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			if err := checkGoModulePresence(commonArgs.logger); err != nil {
@@ -45,6 +46,7 @@ func main() {
 	rootCmd.AddCommand(
 		initGraphCmd(commonArgs),
 		initAnalyseCmd(commonArgs),
+		initRevealCmd(commonArgs),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
@@ -147,6 +149,39 @@ func runAnalyseCmd(args *analyseArgs) error {
 	}
 	analysisResult := analysis.Analyse(graph)
 	return analysisResult.Print(os.Stdout)
+}
+
+type revealArgs struct {
+	*commonArgs
+	sources []string
+	targets []string
+}
+
+func initRevealCmd(cArgs *commonArgs) *cobra.Command {
+	cmdArgs := &revealArgs{
+		commonArgs: cArgs,
+	}
+
+	revealCmd := &cobra.Command{
+		Use:   "reveal",
+		Short: "Reveal 'hidden' replace'd modules in your direct and direct independencies.",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return runRevealCmd(cmdArgs)
+		},
+	}
+
+	revealCmd.Flags().StringSliceVarP(&cmdArgs.sources, "sources", "s", nil, "Filter all places that are replacing dependencies.")
+	revealCmd.Flags().StringSliceVarP(&cmdArgs.targets, "targets", "t", nil, "Filter all places that replace the specified modules.")
+
+	return revealCmd
+}
+
+func runRevealCmd(args *revealArgs) error {
+	graph, err := depgraph.GetDepGraph(args.logger, args.quiet)
+	if err != nil {
+		return err
+	}
+	return reveal.FindReplacements(args.logger, graph).Print(os.Stdout, args.sources, args.targets)
 }
 
 func checkToolDependencies(logger *logrus.Logger) error {
