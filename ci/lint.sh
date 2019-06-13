@@ -7,7 +7,7 @@ if [[ -z "${GOLANGCI_VERSION-}" ]]; then
 fi
 
 # Retrieve the golangci-lint linter binary.
-curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | bash -s -- -b ${GOPATH}/bin ${GOLANGCI_VERSION}
+curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | BINARY="golang-ci" bash -s -- -b ${GOPATH}/bin ${GOLANGCI_VERSION}
 
 # Run the linter.
 golangci-lint run
