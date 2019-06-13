@@ -133,8 +133,9 @@ func initAnalyseCmd(cArgs *commonArgs) *cobra.Command {
 	}
 
 	analyseCmd := &cobra.Command{
-		Use:   "analyse",
-		Short: "Analyse the graph of dependencies for this Go module and output interesting statistics.",
+		Use:     "analyse",
+		Aliases: []string{"analyze"},
+		Short:   "Analyse the graph of dependencies for this Go module and output interesting statistics.",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runAnalyseCmd(cmdArgs)
 		},
