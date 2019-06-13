@@ -182,7 +182,11 @@ func runRevealCmd(args *revealArgs) error {
 	if err != nil {
 		return err
 	}
-	return reveal.FindReplacements(args.logger, graph).Print(os.Stdout, args.sources, args.targets)
+	replacements, err := reveal.FindReplacements(args.logger, graph)
+	if err != nil {
+		return err
+	}
+	return replacements.Print(args.logger, os.Stdout, args.sources, args.targets)
 }
 
 func checkToolDependencies(logger *logrus.Logger) error {
