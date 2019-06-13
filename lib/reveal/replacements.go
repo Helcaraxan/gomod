@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 
@@ -19,29 +21,29 @@ type Replacement struct {
 	Version  string
 }
 
-type Replacements []Replacement
+type Replacements struct {
+	main     string
+	topLevel map[string]string
 
-func (r Replacements) Print(writer io.Writer, offenders []string, targets []string) error {
-	var (
-		lastOriginal         string
-		output               string
-		offenderReplacements Replacements
-	)
+	replacedModules []string
+	originToReplace map[string][]Replacement
+}
 
+func (r *Replacements) Print(logger *logrus.Logger, writer io.Writer, offenders []string, targets []string) error {
 	filtered := r.FilterOnOffendingModule(offenders).FilterOnReplacedModule(targets)
-	sort.Slice(r, r.lessThanOriginal)
 
-	for idx, replacement := range filtered {
-		if lastOriginal != replacement.Original {
-			output += offenderReplacements.printModuleReplacements()
-			offenderReplacements = Replacements{replacement}
-			lastOriginal = replacement.Original
-		} else {
-			offenderReplacements = append(offenderReplacements, replacement)
-		}
-		if idx == len(filtered)-1 {
-			output += offenderReplacements.printModuleReplacements()
-		}
+	var (
+		output     string
+		matchFound bool
+	)
+	for _, origin := range filtered.replacedModules {
+		newOutput, match := filtered.printModuleReplacements(origin)
+		output += newOutput
+		matchFound = matchFound || match
+	}
+
+	if matchFound {
+		output += fmt.Sprintf("[✓] Match with a top-level replace in '%s'\n", r.main)
 	}
 
 	if _, err := writer.Write([]byte(output)); err != nil {
@@ -50,80 +52,113 @@ func (r Replacements) Print(writer io.Writer, offenders []string, targets []stri
 	return nil
 }
 
-func (r Replacements) printModuleReplacements() string {
-	if len(r) == 0 {
-		return ""
+func (r *Replacements) FilterOnOffendingModule(offenders []string) *Replacements {
+	if len(offenders) == 0 {
+		return r
+	}
+	sort.Strings(offenders)
+
+	filtered := &Replacements{
+		main:            r.main,
+		topLevel:        map[string]string{},
+		originToReplace: map[string][]Replacement{},
+	}
+	for k, v := range r.topLevel {
+		filtered.topLevel[k] = v
 	}
 
+	for _, origin := range r.replacedModules {
+		unfilteredReplaces := r.originToReplace[origin]
+
+		var filteredReplaces []Replacement
+		var rIdx, oIdx int
+		for {
+			if rIdx == len(unfilteredReplaces) || oIdx == len(offenders) {
+				break
+			}
+			switch {
+			case unfilteredReplaces[rIdx].Offender.Path == offenders[oIdx]:
+				filteredReplaces = append(filteredReplaces, unfilteredReplaces[rIdx])
+				rIdx++
+				oIdx++
+			case unfilteredReplaces[rIdx].Offender.Path < offenders[oIdx]:
+				rIdx++
+			case unfilteredReplaces[rIdx].Offender.Path > offenders[oIdx]:
+				oIdx++
+			}
+		}
+		if len(filteredReplaces) != 0 {
+			filtered.replacedModules = append(filtered.replacedModules, origin)
+			filtered.originToReplace[origin] = filteredReplaces
+		}
+	}
+	return filtered
+}
+
+func (r *Replacements) FilterOnReplacedModule(origins []string) *Replacements {
+	if len(origins) == 0 {
+		return r
+	}
+	sort.Strings(origins)
+
+	filtered := &Replacements{
+		main:            r.main,
+		topLevel:        map[string]string{},
+		originToReplace: map[string][]Replacement{},
+	}
+	for k, v := range r.topLevel {
+		filtered.topLevel[k] = v
+	}
+	for _, origin := range origins {
+		if len(r.originToReplace[origin]) == 0 {
+			continue
+		}
+		filtered.replacedModules = append(filtered.replacedModules, origin)
+		replaces := make([]Replacement, len(r.originToReplace[origin]))
+		copy(replaces, r.originToReplace[origin])
+		filtered.originToReplace[origin] = replaces
+	}
+	return filtered
+}
+
+func (r *Replacements) printModuleReplacements(origin string) (string, bool) {
+	const (
+		matchedMark   = " ✓ "
+		unmatchedMark = "   "
+	)
 	var (
 		maxOffenderLength int
 		maxOverrideLength int
+		maxVersionLength  int
 	)
-	for _, replacement := range r {
+
+	for _, replacement := range r.originToReplace[origin] {
 		if len(replacement.Offender.Path) > maxOffenderLength {
 			maxOffenderLength = len(replacement.Offender.Path)
 		}
 		if len(replacement.Override) > maxOverrideLength {
 			maxOverrideLength = len(replacement.Override)
 		}
+		if len(replacement.Version) > maxVersionLength {
+			maxVersionLength = len(replacement.Version)
+		}
 	}
-	moduleLineTemplate := fmt.Sprintf(" %%-%ds -> %%-%ds @ %%s\n", maxOffenderLength, maxOverrideLength)
+	moduleLineTemplate := fmt.Sprintf("%%-%ds -> %%-%ds @ %%%ds", maxOffenderLength, maxOverrideLength, maxVersionLength)
 
-	output := fmt.Sprintf("%q is replaced:\n", r[0].Original)
-	for _, replacement := range r {
+	output := fmt.Sprintf("'%s' is replaced:\n", origin)
+
+	var foundMatch bool
+	for _, replacement := range r.originToReplace[origin] {
+		if topLevelOverride, ok := r.topLevel[replacement.Original]; ok && topLevelOverride == replacement.Override {
+			output += matchedMark
+			foundMatch = true
+		} else {
+			output += unmatchedMark
+		}
 		output += fmt.Sprintf(moduleLineTemplate, replacement.Offender.Path, replacement.Override, replacement.Version)
+		output += "\n"
 	}
-	return output + "\n"
-}
-
-func (r Replacements) FilterOnOffendingModule(offenders []string) Replacements {
-	if len(offenders) == 0 {
-		return r
-	}
-
-	sort.Strings(offenders)
-	sort.Slice(r, r.lessThanOffenders)
-
-	filteredReplacements := make(Replacements, 0, len(r))
-	var fIdx, rIdx int
-	for {
-		switch {
-		case fIdx == len(offenders) || rIdx == len(r):
-			return filteredReplacements
-		case offenders[fIdx] < r[rIdx].Offender.Path:
-			fIdx++
-		case r[rIdx].Offender.Path < offenders[fIdx]:
-			rIdx++
-		default:
-			filteredReplacements = append(filteredReplacements, r[rIdx])
-			rIdx++
-		}
-	}
-}
-
-func (r Replacements) FilterOnReplacedModule(targets []string) Replacements {
-	if len(targets) == 0 {
-		return r
-	}
-
-	sort.Strings(targets)
-	sort.Slice(r, r.lessThanOriginal)
-
-	filteredReplacements := make(Replacements, 0, len(r))
-	var fIdx, rIdx int
-	for {
-		switch {
-		case fIdx == len(targets) || rIdx == len(r):
-			return filteredReplacements
-		case targets[fIdx] < r[rIdx].Original:
-			fIdx++
-		case r[rIdx].Original < targets[fIdx]:
-			rIdx++
-		default:
-			filteredReplacements = append(filteredReplacements, r[rIdx])
-			rIdx++
-		}
-	}
+	return output + "\n", foundMatch
 }
 
 var (
@@ -132,25 +167,96 @@ var (
 	replaceRE       = regexp.MustCompile("([^\\s]+) => ([^\\s]+) ([^\\s]+)")
 )
 
-func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) Replacements {
-	var replacements []Replacement
+func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replacements, error) {
+	replacements := &Replacements{
+		main:            graph.Name(),
+		topLevel:        map[string]string{},
+		originToReplace: map[string][]Replacement{},
+	}
+
+	replaces, err := parseGoMod(logger, graph.Module, replacements.topLevel, graph.Module)
+	if err != nil {
+		return nil, err
+	}
+	for _, replace := range replaces {
+		replacements.topLevel[replace.Original] = replace.Override
+	}
+
 	for _, module := range graph.Modules {
-		if module.Main || module.GoMod == "" {
-			continue
+		replaces, err = parseGoMod(logger, graph.Module, replacements.topLevel, module)
+		if err != nil {
+			return nil, err
 		}
 
-		if module.Replace != nil {
-			logger.Debugf("Following top-level replace for %q to %q", module.Path, module.Replace.Path)
-			module = module.Replace
+		for _, replace := range replaces {
+			replaces, ok := replacements.originToReplace[replace.Original]
+			if !ok {
+				replacements.replacedModules = append(replacements.replacedModules, replace.Original)
+			}
+			replacements.originToReplace[replace.Original] = append(replaces, replace)
 		}
-		logger.Debugf("Parsing go.mod for %q at %q.", module.Path, module.GoMod)
-		rawMod, err := ioutil.ReadFile(module.GoMod)
-		if err != nil {
-			logger.WithError(err).Warnf("Failed to read content from go.mod at %q.", module.GoMod)
-		}
-		replacements = append(replacements, parseGoModForReplacements(logger, module, string(rawMod))...)
 	}
-	return replacements
+	sort.Strings(replacements.replacedModules)
+	for origin, replaces := range replacements.originToReplace {
+		sort.Sort(orderedReplacements(replaces))
+		replacements.originToReplace[origin] = replaces
+	}
+	return replacements, nil
+}
+
+func parseGoMod(
+	logger *logrus.Logger,
+	topLevelModule *depgraph.Module,
+	topLevelReplaces map[string]string,
+	module *depgraph.Module,
+) ([]Replacement, error) {
+	module, goModPath := findGoModFile(logger, module)
+	if goModPath == "" {
+		logger.Debugf("Skipping %q as no go.mod file was found.", module.Path)
+		return nil, nil
+	}
+
+	logger.Debugf("Parsing go.mod for %q at %q.", module.Path, goModPath)
+	rawGoMod, err := ioutil.ReadFile(goModPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read your module's go.mod file %q", goModPath)
+	}
+
+	replaces := parseGoModForReplacements(logger, topLevelModule, string(rawGoMod))
+	if module.Path == topLevelModule.Path {
+		logger.Debugf(
+			"Auto-dependency on %q detected at version %q. Filtering already known top-level dependencies.",
+			topLevelModule.Path,
+			module.Version,
+		)
+		var filteredReplaces []Replacement
+		for _, replace := range replaces {
+			if _, ok := topLevelReplaces[replace.Original]; !ok {
+				filteredReplaces = append(filteredReplaces, replace)
+			}
+		}
+		replaces = filteredReplaces
+	}
+	return replaces, nil
+}
+
+func findGoModFile(logger *logrus.Logger, module *depgraph.Module) (*depgraph.Module, string) {
+	if module == nil {
+		return nil, ""
+	} else if module.Replace != nil {
+		logger.Debugf("Following top-level replace for %q to %q", module.Path, module.Replace.Path)
+		module = module.Replace
+	}
+
+	if module.GoMod != "" {
+		return module, module.GoMod
+	}
+	defaultPath := filepath.Join(module.Path, "go.mod")
+	if _, err := os.Stat(defaultPath); err == nil {
+		logger.Debugf("Found go.mod file at default path %q.", defaultPath)
+		return module, defaultPath
+	}
+	return module, ""
 }
 
 func parseGoModForReplacements(logger *logrus.Logger, module *depgraph.Module, goModContent string) []Replacement {
@@ -184,16 +290,8 @@ func parseReplacements(logger *logrus.Logger, module *depgraph.Module, replaceSt
 	return replacements
 }
 
-func (r Replacements) lessThanOffenders(i int, j int) bool {
-	if r[i].Offender.Path != r[j].Offender.Path {
-		return r[i].Offender.Path < r[j].Offender.Path
-	}
-	return r[i].Original < r[j].Original
-}
+type orderedReplacements []Replacement
 
-func (r Replacements) lessThanOriginal(i int, j int) bool {
-	if r[i].Original != r[j].Original {
-		return r[i].Original < r[j].Original
-	}
-	return r[i].Offender.Path < r[j].Offender.Path
-}
+func (r orderedReplacements) Len() int               { return len(r) }
+func (r orderedReplacements) Swap(i int, j int)      { r[i], r[j] = r[j], r[i] }
+func (r orderedReplacements) Less(i int, j int) bool { return r[i].Offender.Path < r[j].Offender.Path }

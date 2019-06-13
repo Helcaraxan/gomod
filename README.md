@@ -63,14 +63,16 @@ version annotations.
 ### Hidden `replace`'s
 
 ```text
- $> gomod reveal
-"github.com/Rhymen/go-whatsapp" is replaced:
- maunium.net/go/mautrix-whatsapp -> github.com/tulir/go-whatsapp @ v0.0.2-0.20190528182350-fde573a2a73b
+ -> gomod reveal
+'github.com/Rhymen/go-whatsapp' is replaced:
+   maunium.net/go/mautrix-whatsapp -> github.com/tulir/go-whatsapp @ v0.0.2-0.20190528182350-fde573a2a73b
 
-"gopkg.in/russross/blackfriday.v2" is replaced:
- maunium.net/go/mautrix            -> github.com/russross/blackfriday/v2 @ v2.0.1
- maunium.net/go/mautrix-appservice -> github.com/russross/blackfriday/v2 @ v2.0.1
- maunium.net/go/mautrix-whatsapp   -> github.com/russross/blackfriday/v2 @ v2.0.1
+'gopkg.in/russross/blackfriday.v2' is replaced:
+ ✓ maunium.net/go/mautrix            -> github.com/russross/blackfriday/v2 @ v2.0.1
+ ✓ maunium.net/go/mautrix-appservice -> github.com/russross/blackfriday/v2 @ v2.0.1
+ ✓ maunium.net/go/mautrix-whatsapp   -> github.com/russross/blackfriday/v2 @ v2.0.1
+
+[✓] Match with a top-level replace in 'github.com/42wim/matterbridge'
 ```
 
 ### Dependency statistics
@@ -78,7 +80,7 @@ version annotations.
 Statistical analysis of the [Matterbridge](https://github.com/42wim/matterbridge) dependency graph.
 
 ```text
- $> gomod analyse
+ -> gomod analyse
 -- Analysis for 'github.com/42wim/matterbridge' --
 Dependency counts:
 - Direct dependencies:   69
