@@ -29,7 +29,7 @@ func main() {
 	var verbose bool
 	rootCmd := &cobra.Command{
 		Use:   "gomod",
-		Short: "A tool to visualize and analyze a Go module's dependency graph.",
+		Short: "A tool to visualise and analyse a Go module's dependency graph.",
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			if err := checkGoModulePresence(commonArgs.logger); err != nil {
 				return err
@@ -50,6 +50,7 @@ func main() {
 	)
 
 	if err := rootCmd.Execute(); err != nil {
+		commonArgs.logger.WithError(err).Debug("Exited with an error.")
 		os.Exit(1)
 	}
 }
@@ -134,7 +135,7 @@ func initAnalyseCmd(cArgs *commonArgs) *cobra.Command {
 
 	analyseCmd := &cobra.Command{
 		Use:     "analyse",
-		Aliases: []string{"analyze"},
+		Aliases: []string{"analyze"}, // nolint
 		Short:   "Analyse the graph of dependencies for this Go module and output interesting statistics.",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runAnalyseCmd(cmdArgs)

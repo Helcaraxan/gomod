@@ -10,7 +10,7 @@ fi
 curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | BINARY="golang-ci" bash -s -- -b ${GOPATH}/bin ${GOLANGCI_VERSION}
 
 # Run the linter.
-golangci-lint run
+golangci-lint run ./...
 
 # Check that dependencies are correctly being maintained.
 go mod tidy
