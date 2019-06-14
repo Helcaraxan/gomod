@@ -95,11 +95,11 @@ func (r *Replacements) FilterOnOffendingModule(offenders []string) *Replacements
 	return filtered
 }
 
-func (r *Replacements) FilterOnReplacedModule(origins []string) *Replacements {
-	if len(origins) == 0 {
+func (r *Replacements) FilterOnReplacedModule(originals []string) *Replacements {
+	if len(originals) == 0 {
 		return r
 	}
-	sort.Strings(origins)
+	sort.Strings(originals)
 
 	filtered := &Replacements{
 		main:            r.main,
@@ -109,19 +109,19 @@ func (r *Replacements) FilterOnReplacedModule(origins []string) *Replacements {
 	for k, v := range r.topLevel {
 		filtered.topLevel[k] = v
 	}
-	for _, origin := range origins {
-		if len(r.originToReplace[origin]) == 0 {
+	for _, original := range originals {
+		if len(r.originToReplace[original]) == 0 {
 			continue
 		}
-		filtered.replacedModules = append(filtered.replacedModules, origin)
-		replaces := make([]Replacement, len(r.originToReplace[origin]))
-		copy(replaces, r.originToReplace[origin])
-		filtered.originToReplace[origin] = replaces
+		filtered.replacedModules = append(filtered.replacedModules, original)
+		replaces := make([]Replacement, len(r.originToReplace[original]))
+		copy(replaces, r.originToReplace[original])
+		filtered.originToReplace[original] = replaces
 	}
 	return filtered
 }
 
-func (r *Replacements) printModuleReplacements(origin string) (string, bool) {
+func (r *Replacements) printModuleReplacements(original string) (string, bool) {
 	const (
 		matchedMark   = " ✓ "
 		unmatchedMark = "   "
@@ -132,7 +132,7 @@ func (r *Replacements) printModuleReplacements(origin string) (string, bool) {
 		maxVersionLength  int
 	)
 
-	for _, replacement := range r.originToReplace[origin] {
+	for _, replacement := range r.originToReplace[original] {
 		if len(replacement.Offender.Path) > maxOffenderLength {
 			maxOffenderLength = len(replacement.Offender.Path)
 		}
@@ -145,10 +145,10 @@ func (r *Replacements) printModuleReplacements(origin string) (string, bool) {
 	}
 	moduleLineTemplate := fmt.Sprintf("%%-%ds -> %%-%ds @ %%%ds", maxOffenderLength, maxOverrideLength, maxVersionLength)
 
-	output := fmt.Sprintf("'%s' is replaced:\n", origin)
+	output := fmt.Sprintf("'%s' is replaced:\n", original)
 
 	var foundMatch bool
-	for _, replacement := range r.originToReplace[origin] {
+	for _, replacement := range r.originToReplace[original] {
 		if topLevelOverride, ok := r.topLevel[replacement.Original]; ok && topLevelOverride == replacement.Override {
 			output += matchedMark
 			foundMatch = true
@@ -222,7 +222,7 @@ func parseGoMod(
 		return nil, fmt.Errorf("failed to read your module's go.mod file %q", goModPath)
 	}
 
-	replaces := parseGoModForReplacements(logger, topLevelModule, string(rawGoMod))
+	replaces := parseGoModForReplacements(logger, module, string(rawGoMod))
 	if module.Path == topLevelModule.Path {
 		logger.Debugf(
 			"Auto-dependency on %q detected at version %q. Filtering already known top-level dependencies.",
