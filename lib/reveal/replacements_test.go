@@ -13,32 +13,36 @@ import (
 )
 
 var (
-	offender = &depgraph.Module{Path: "offender"}
 	replaceA = Replacement{
-		Offender: offender,
+		Offender: &depgraph.Module{Path: "offender"},
 		Original: "originalA",
 		Override: "overrideA",
 		Version:  "v1.0.0",
 	}
 	replaceB = Replacement{
-		Offender: offender,
+		Offender: moduleA,
 		Original: "originalB",
 		Override: "overrideB",
 		Version:  "v1.0.0",
 	}
 	replaceC = Replacement{
-		Offender: offender,
+		Offender: moduleA,
 		Original: "originalC",
 		Override: "overrideC",
 		Version:  "v1.0.0",
 	}
 	replaceD = Replacement{
+		Offender: moduleA,
+		Original: "originalD",
+		Override: "overrideD",
+	}
+	replaceE = Replacement{
 		Offender: &depgraph.Module{Path: "offender-bis"},
 		Original: "originalA",
 		Override: "overrideA-bis",
 		Version:  "v2.0.0",
 	}
-	replaceE = Replacement{
+	replaceF = Replacement{
 		Offender: &depgraph.Module{Path: "offender-tertio"},
 		Original: "originalB",
 		Override: "overrideB-bis",
@@ -57,8 +61,8 @@ var (
 			"originalC",
 		},
 		originToReplace: map[string][]Replacement{
-			"originalA": {replaceA, replaceD},
-			"originalB": {replaceB, replaceE},
+			"originalA": {replaceA, replaceE},
+			"originalB": {replaceB, replaceF},
 			"originalC": {replaceC},
 		},
 	}
@@ -87,6 +91,14 @@ var (
 		Version: "v0.0.1",
 		GoMod:   "",
 	}
+	testGraph = &depgraph.DepGraph{
+		Module: &depgraph.Module{
+			Main:  true,
+			Path:  "test/module",
+			GoMod: filepath.Join("testdata", "mainModule", "go.mod"),
+		},
+		Modules: map[string]*depgraph.Module{"moduleA": moduleA},
+	}
 )
 
 func Test_ParseReplaces(t *testing.T) {
@@ -94,22 +106,25 @@ func Test_ParseReplaces(t *testing.T) {
 
 	testcases := map[string]struct {
 		input    string
+		offender *depgraph.Module
 		expected []Replacement
 	}{
 		"SingleReplace": {
 			input:    "replace originalA => overrideA v1.0.0",
+			offender: &depgraph.Module{Path: "offender"},
 			expected: []Replacement{replaceA},
 		},
 		"MultiReplace": {
 			input: `
 replace (
-	originalA => overrideA v1.0.0
 	originalB => overrideB v1.0.0
+	originalC => overrideC v1.0.0
 )
 `,
+			offender: moduleA,
 			expected: []Replacement{
-				replaceA,
 				replaceB,
+				replaceC,
 			},
 		},
 		"MixedReplace": {
@@ -119,10 +134,11 @@ replace (
 	originalC => overrideC v1.0.0
 )
 
-replace originalA => overrideA v1.0.0
+replace originalD => overrideD
 `,
+			offender: moduleA,
 			expected: []Replacement{
-				replaceA,
+				replaceD,
 				replaceB,
 				replaceC,
 			},
@@ -135,35 +151,60 @@ go = 1.12.5
 require (
 	github.com/my-dep/A v1.2.0
 	github.com/my-dep/B v1.9.2-201905291510-0123456789ab // indirect
-	originalA v0.1.0
 	originalB v0.4.3
 	originalC v0.2.3
+	originalD v0.1.0
 )
 
 // Override this because it's upstream is broken.
-replace originalA => overrideA v1.0.0
+replace originalC => overrideC v1.0.0 // Bar
 
 // Moar overrides.
 replace (
 	// Foo.
 	originalB => overrideB v1.0.0
-	originalC => overrideC v1.0.0 // Bar
+	originalD => overrideD
 )
 `,
+			offender: moduleA,
 			expected: []Replacement{
-				replaceA,
-				replaceB,
 				replaceC,
+				replaceB,
+				replaceD,
 			},
 		},
 	}
 
 	for name, test := range testcases {
 		t.Run(name, func(t *testing.T) {
-			output := parseGoModForReplacements(logger, offender, test.input)
+			output := parseGoModForReplacements(logger, test.offender, test.input)
 			assert.Equal(t, test.expected, output)
 		})
 	}
+}
+
+func Test_FindReplacements(t *testing.T) {
+	logger := logrus.New()
+	logger.SetOutput(ioutil.Discard)
+
+	expectedReplacements := &Replacements{
+		main:     "test/module",
+		topLevel: map[string]string{"module/foo": "module/foo-bis"},
+		replacedModules: []string{
+			"originalB",
+			"originalC",
+			"originalD",
+		},
+		originToReplace: map[string][]Replacement{
+			"originalB": {replaceB},
+			"originalC": {replaceC},
+			"originalD": {replaceD},
+		},
+	}
+
+	replacements, err := FindReplacements(logger, testGraph)
+	assert.NoError(t, err, "Should not error while searching for replacements.")
+	assert.Equal(t, expectedReplacements, replacements, "Should find the expected replacement information.")
 }
 
 func Test_FilterReplacements(t *testing.T) {
@@ -181,13 +222,9 @@ func Test_FilterReplacements(t *testing.T) {
 			},
 			replacedModules: []string{
 				"originalA",
-				"originalB",
-				"originalC",
 			},
 			originToReplace: map[string][]Replacement{
 				"originalA": {replaceA},
-				"originalB": {replaceB},
-				"originalC": {replaceC},
 			},
 		}, filtered, "Should filter out the expected replacements.")
 	})
@@ -209,7 +246,7 @@ func Test_FilterReplacements(t *testing.T) {
 				"originalC",
 			},
 			originToReplace: map[string][]Replacement{
-				"originalA": {replaceA, replaceD},
+				"originalA": {replaceA, replaceE},
 				"originalC": {replaceC},
 			},
 		}, filtered, "Should filter out the expected replacements.")
@@ -222,11 +259,11 @@ func Test_PrintReplacements(t *testing.T) {
    offender-bis -> overrideA-bis @ v2.0.0
 
 'originalB' is replaced:
-   offender        -> overrideB     @ v1.0.0
+   moduleA         -> overrideB     @ v1.0.0
  ✓ offender-tertio -> overrideB-bis @ v2.0.0
 
 'originalC' is replaced:
-   offender -> overrideC @ v1.0.0
+   moduleA -> overrideC @ v1.0.0
 
 [✓] Match with a top-level replace in 'test-module'
 `
