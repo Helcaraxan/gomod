@@ -164,7 +164,7 @@ func (r *Replacements) printModuleReplacements(original string) (string, bool) {
 var (
 	singleReplaceRE = regexp.MustCompile("replace ([^\n]+)")
 	multiReplaceRE  = regexp.MustCompile("replace \\(([^)]+)\\)")
-	replaceRE       = regexp.MustCompile("([^\\s]+) => ([^\\s]+) ([^\\s]+)")
+	replaceRE       = regexp.MustCompile("([^\\s]+) => ([^\\s]+)(?: ([^\\s]+))?")
 )
 
 func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replacements, error) {
