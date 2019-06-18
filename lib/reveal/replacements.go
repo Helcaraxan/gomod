@@ -143,7 +143,8 @@ func (r *Replacements) printModuleReplacements(original string) (string, bool) {
 			maxVersionLength = len(replacement.Version)
 		}
 	}
-	moduleLineTemplate := fmt.Sprintf("%%-%ds -> %%-%ds @ %%%ds", maxOffenderLength, maxOverrideLength, maxVersionLength)
+	nonVersionedReplaceTemplate := fmt.Sprintf("%%-%ds -> %%-%ds", maxOffenderLength, maxOverrideLength)
+	versionedReplaceTemplate := fmt.Sprintf("%s @ %%%ds", nonVersionedReplaceTemplate, maxVersionLength)
 
 	output := fmt.Sprintf("'%s' is replaced:\n", original)
 
@@ -155,7 +156,11 @@ func (r *Replacements) printModuleReplacements(original string) (string, bool) {
 		} else {
 			output += unmatchedMark
 		}
-		output += fmt.Sprintf(moduleLineTemplate, replacement.Offender.Path, replacement.Override, replacement.Version)
+		if replacement.Version != "" {
+			output += fmt.Sprintf(versionedReplaceTemplate, replacement.Offender.Path, replacement.Override, replacement.Version)
+		} else {
+			output += fmt.Sprintf(nonVersionedReplaceTemplate, replacement.Offender.Path, replacement.Override)
+		}
 		output += "\n"
 	}
 	return output + "\n", foundMatch
@@ -164,7 +169,7 @@ func (r *Replacements) printModuleReplacements(original string) (string, bool) {
 var (
 	singleReplaceRE = regexp.MustCompile("replace ([^\n]+)")
 	multiReplaceRE  = regexp.MustCompile("replace \\(([^)]+)\\)")
-	replaceRE       = regexp.MustCompile("([^\\s]+) => ([^\\s]+)(?: ([^\\s]+))?")
+	replaceRE       = regexp.MustCompile("([^\\s]+) => ([^\\s]+)(?: (v[^\\s]+))?")
 )
 
 func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replacements, error) {
