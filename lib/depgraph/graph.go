@@ -1,7 +1,6 @@
 package depgraph
 
 import (
-	"fmt"
 	"io/ioutil"
 	"time"
 
@@ -25,35 +24,57 @@ type ModuleError struct {
 
 // DepGraph represents a Go module's dependency graph.
 type DepGraph struct {
-	logger  *logrus.Logger
-	Module  *Module
-	Modules map[string]*Module
-	Nodes   map[string]*Node
+	logger   *logrus.Logger
+	main     *Node
+	nodes    map[string]*Node
+	replaces map[string]string
 }
 
 // NewGraph returns a new DepGraph instance which will use the specified
 // logger for writing log output. If nil a null-logger will be used instead.
-func NewGraph(logger *logrus.Logger) *DepGraph {
+func NewGraph(logger *logrus.Logger, main *Module) *DepGraph {
 	if logger == nil {
 		logger = logrus.New()
 		logger.SetOutput(ioutil.Discard)
 	}
-	return &DepGraph{
-		logger: logger,
-		Nodes:  map[string]*Node{},
+	newGraph := &DepGraph{
+		logger:   logger,
+		nodes:    map[string]*Node{},
+		replaces: map[string]string{},
 	}
+	mainNode, _ := newGraph.AddNode(main)
+	newGraph.main = mainNode
+	return newGraph
 }
 
-func (g *DepGraph) Name() string {
-	return g.Module.Path
+func (g *DepGraph) Main() *Node {
+	return g.main
 }
 
-func (g *DepGraph) createNewNode(name string) (*Node, error) {
-	module := g.Modules[name]
+func (g *DepGraph) Node(name string) *Node {
+	if replaced, ok := g.replaces[name]; ok {
+		name = replaced
+	}
+	return g.nodes[name]
+}
+
+func (g *DepGraph) Nodes() map[string]*Node {
+	return g.nodes
+}
+
+func (g *DepGraph) AddNode(module *Module) (*Node, bool) {
 	if module == nil {
-		return nil, fmt.Errorf("no module information for %q", name)
+		return nil, false
 	}
-	return &Node{Module: module}, nil
+	if node, ok := g.nodes[module.Path]; ok && node != nil {
+		return node, true
+	}
+	newNode := &Node{Module: module}
+	g.nodes[module.Path] = newNode
+	if module.Replace != nil {
+		g.replaces[module.Replace.Path] = module.Path
+	}
+	return newNode, true
 }
 
 // Node represents a module in a Go module's dependency graph.
@@ -88,11 +109,9 @@ func (n *Node) Timestamp() *time.Time {
 // this  Node. These Dependency copies can be interacted with without modifying
 // the underlying DepGraph.
 func (n *Node) Predecessors() []Dependency {
-	var idx int
-	predecessors := make([]Dependency, len(n.predecessors))
+	predecessors := make([]Dependency, 0, len(n.predecessors))
 	for _, predecessor := range n.predecessors {
-		predecessors[idx] = *predecessor
-		idx++
+		predecessors = append(predecessors, *predecessor)
 	}
 	return predecessors
 }
@@ -101,11 +120,9 @@ func (n *Node) Predecessors() []Dependency {
 // this  Node. These Dependency copies can be interacted with without modifying
 // the underlying DepGraph.
 func (n *Node) Successors() []Dependency {
-	var idx int
-	successors := make([]Dependency, len(n.successors))
+	successors := make([]Dependency, 0, len(n.successors))
 	for _, successor := range n.successors {
-		successors[idx] = *successor
-		idx++
+		successors = append(successors, *successor)
 	}
 	return successors
 }
@@ -137,24 +154,22 @@ func (d *Dependency) RequiredVersion() string {
 // safely modified without affecting the original graph. The logger argument can
 // be nil in which case nothing will be logged.
 func (g *DepGraph) DeepCopy() *DepGraph {
-	newGraph := &DepGraph{
-		logger:  g.logger,
-		Module:  g.Module,
-		Modules: g.Modules,
-		Nodes:   map[string]*Node{},
-	}
-	for name, node := range g.Nodes {
-		nodeCopy := *node
-		nodeCopy.successors = nil
-		nodeCopy.predecessors = nil
-		newGraph.Nodes[name] = &nodeCopy
+	g.logger.Debugf("Deep-copying dependency graph for %q.", g.Main().Name())
+
+	newGraph := NewGraph(g.logger, g.main.Module)
+	for name, node := range g.nodes {
+		if _, ok := newGraph.AddNode(node.Module); !ok {
+			g.logger.Errorf("Encountered an empty node for %q.", name)
+		}
 	}
 
-	for name, node := range g.Nodes {
+	for _, node := range g.nodes {
+		beginNode := newGraph.Node(node.Name())
 		for _, successor := range node.successors {
+			endNode := newGraph.Node(successor.End())
 			dependencyCopy := *successor
-			newGraph.Nodes[name].successors = append(newGraph.Nodes[name].successors, &dependencyCopy)
-			newGraph.Nodes[successor.end].predecessors = append(newGraph.Nodes[successor.end].predecessors, &dependencyCopy)
+			beginNode.successors = append(beginNode.successors, &dependencyCopy)
+			endNode.predecessors = append(endNode.predecessors, &dependencyCopy)
 		}
 	}
 	g.logger.Debug("Created a deep copy of graph.")

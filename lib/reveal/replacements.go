@@ -169,12 +169,12 @@ var (
 
 func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replacements, error) {
 	replacements := &Replacements{
-		main:            graph.Name(),
+		main:            graph.Main().Name(),
 		topLevel:        map[string]string{},
 		originToReplace: map[string][]Replacement{},
 	}
 
-	replaces, err := parseGoMod(logger, graph.Module, replacements.topLevel, graph.Module)
+	replaces, err := parseGoMod(logger, graph.Main().Module, replacements.topLevel, graph.Main().Module)
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +182,8 @@ func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replace
 		replacements.topLevel[replace.Original] = replace.Override
 	}
 
-	for _, module := range graph.Modules {
-		replaces, err = parseGoMod(logger, graph.Module, replacements.topLevel, module)
+	for _, node := range graph.Nodes() {
+		replaces, err = parseGoMod(logger, graph.Main().Module, replacements.topLevel, node.Module)
 		if err != nil {
 			return nil, err
 		}

@@ -91,15 +91,24 @@ var (
 		Version: "v0.0.1",
 		GoMod:   "",
 	}
-	testGraph = &depgraph.DepGraph{
-		Module: &depgraph.Module{
-			Main:  true,
-			Path:  "test/module",
-			GoMod: filepath.Join("testdata", "mainModule", "go.mod"),
-		},
-		Modules: map[string]*depgraph.Module{"moduleA": moduleA},
-	}
 )
+
+var testGraph *depgraph.DepGraph
+
+func init() {
+	logger := logrus.New()
+	logger.SetOutput(ioutil.Discard)
+
+	testGraph = depgraph.NewGraph(logger, &depgraph.Module{
+		Main:  true,
+		Path:  "test/module",
+		GoMod: filepath.Join("testdata", "mainModule", "go.mod"),
+	})
+	testGraph.AddNode(moduleA)
+	testGraph.AddNode(moduleB)
+	testGraph.AddNode(moduleC)
+	testGraph.AddNode(moduleD)
+}
 
 func Test_ParseReplaces(t *testing.T) {
 	logger := logrus.New()
