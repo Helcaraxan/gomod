@@ -1,7 +1,6 @@
 package printer
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -77,11 +76,12 @@ func Print(graph *depgraph.DepGraph, config *PrintConfig) error {
 
 // PrintToVisual creates an image file at the specified target path that represents the dependency graph.
 func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
-	if config.OutputFormat == FormatUnknown {
+	if config.OutputFormat == FormatUnknown && len(config.OutputPath) > 1 {
 		config.OutputFormat = StringToFormat[filepath.Ext(config.OutputPath)[1:]]
 	}
 	if config.OutputFormat == FormatUnknown {
-		return errors.New("unknown format for output file")
+		config.Logger.Debug("Defaulting to PNG output format as none is set and it could not be deduced from the output filename.")
+		config.OutputFormat = FormatPNG
 	}
 
 	tempDir, err := ioutil.TempDir("", "depgraph")
@@ -145,7 +145,7 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 
 	var fileContent []string
 	fileContent = append(fileContent, "strict digraph {", "  ranksep=3")
-	for _, node := range graph.Nodes {
+	for _, node := range graph.Nodes() {
 		fileContent = printNodeToDot(config, node, fileContent)
 	}
 	fileContent = append(fileContent, "}")
