@@ -28,13 +28,12 @@ var (
 	replaceC = Replacement{
 		Offender: moduleA,
 		Original: "originalC",
-		Override: "overrideC",
-		Version:  "v1.0.0",
+		Override: "./overrideC",
 	}
 	replaceD = Replacement{
 		Offender: moduleA,
 		Original: "originalD",
-		Override: "overrideD",
+		Override: "./overrideD",
 	}
 	replaceE = Replacement{
 		Offender: &depgraph.Module{Path: "offender-bis"},
@@ -127,7 +126,7 @@ func Test_ParseReplaces(t *testing.T) {
 			input: `
 replace (
 	originalB => overrideB v1.0.0
-	originalC => overrideC v1.0.0
+	originalC => ./overrideC
 )
 `,
 			offender: moduleA,
@@ -140,10 +139,10 @@ replace (
 			input: `
 replace (
 	originalB => overrideB v1.0.0
-	originalC => overrideC v1.0.0
+	originalC => ./overrideC
 )
 
-replace originalD => overrideD
+replace originalD => ./overrideD
 `,
 			offender: moduleA,
 			expected: []Replacement{
@@ -166,13 +165,13 @@ require (
 )
 
 // Override this because it's upstream is broken.
-replace originalC => overrideC v1.0.0 // Bar
+replace originalC => ./overrideC // Bar
 
 // Moar overrides.
 replace (
 	// Foo.
 	originalB => overrideB v1.0.0
-	originalD => overrideD
+	originalD => ./overrideD
 )
 `,
 			offender: moduleA,
@@ -272,7 +271,7 @@ func Test_PrintReplacements(t *testing.T) {
  ✓ offender-tertio -> overrideB-bis @ v2.0.0
 
 'originalC' is replaced:
-   moduleA -> overrideC @ v1.0.0
+   moduleA -> ./overrideC
 
 [✓] Match with a top-level replace in 'test-module'
 `

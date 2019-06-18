@@ -8,9 +8,9 @@ require (
     originalD v1.0.0
 )
 
-replace originalD => overrideD
+replace originalD => ./overrideD
 
 replace (
     originalB => overrideB v1.0.0
-    originalC => overrideC v1.0.0
+    originalC => ./overrideC
 )
