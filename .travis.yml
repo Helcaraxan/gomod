@@ -20,10 +20,10 @@ jobs:
     # Perform linting before running any tests.
     - stage: lint
       go: 1.12.x
-      stage: lint
       script: ./ci/lint.sh
       env:
         - GOLANGCI_VERSION="v1.16.0"
+        - SHELLCHECK_VERSION="0.6.0"
 
     # Test on the latest stable Go version.
     - stage: test
@@ -39,5 +39,5 @@ jobs:
         - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
 
     # Run the tests also on 'tip' to ensure we're OK with respect to the latest development version.
-    - go: master
-      script: ./ci/test.sh
+    - script: ./ci/test.sh
+      go: master

@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/Helcaraxan/gomod/internal/completion"
 	"github.com/Helcaraxan/gomod/lib/analysis"
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 	"github.com/Helcaraxan/gomod/lib/printer"
@@ -39,13 +40,15 @@ func main() {
 			}
 			return nil
 		},
+		BashCompletionFunction: completion.GomodCustomFunc,
 	}
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 	rootCmd.PersistentFlags().BoolVarP(&commonArgs.quiet, "quiet", "q", false, "Silence output from go tool invocations")
 
 	rootCmd.AddCommand(
-		initGraphCmd(commonArgs),
 		initAnalyseCmd(commonArgs),
+		initCompletionCommand(commonArgs),
+		initGraphCmd(commonArgs),
 		initRevealCmd(commonArgs),
 	)
 
@@ -53,6 +56,79 @@ func main() {
 		commonArgs.logger.WithError(err).Debug("Exited with an error.")
 		os.Exit(1)
 	}
+}
+
+type completionArgs struct {
+	*commonArgs
+
+	rootCmd    *cobra.Command
+	shell      completion.ShellType
+	outputPath string
+}
+
+func initCompletionCommand(cArgs *commonArgs) *cobra.Command {
+	cmdArgs := &completionArgs{
+		commonArgs: cArgs,
+	}
+
+	completionCommand := &cobra.Command{
+		Use:   "completion",
+		Short: "Commands to generate shell completion for various environments.",
+	}
+
+	completionCommand.PersistentFlags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "Output path for the generated completion script.")
+	completionCommand.PersistentFlags().Lookup("output").Annotations = map[string][]string{cobra.BashCompFilenameExt: {"", "sh"}}
+
+	completionCommand.AddCommand(
+		&cobra.Command{
+			Use:   "bash",
+			Short: "Generates a bash completion script ready to be sourced.",
+			Long: `To load 'gomod' completion rules for a single shell simply run
+. <(gomod completion bash)
+
+To load 'gomod' completion for each new bash shell by default add the following to your ~/.bashrc (or equivalent).
+# ~/.bashrc or ~/.profile
+[[ -n "$(which gomod)" ]] && . <(gomod completion bash)
+`,
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				cmdArgs.shell = completion.BASH
+				cmdArgs.rootCmd = cmd.Root()
+				return runCompletionCommand(cmdArgs)
+			},
+		},
+		&cobra.Command{
+			Use:   "ps",
+			Short: "Generates a Powershell completion script ready to be sourced.",
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				cmdArgs.shell = completion.POWERSHELL
+				cmdArgs.rootCmd = cmd.Root()
+				return runCompletionCommand(cmdArgs)
+			},
+		},
+		&cobra.Command{
+			Use:   "zsh",
+			Short: "Generates a zsh completion script ready to be sourced.",
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				cmdArgs.shell = completion.ZSH
+				cmdArgs.rootCmd = cmd.Root()
+				return runCompletionCommand(cmdArgs)
+			},
+		},
+	)
+
+	return completionCommand
+}
+
+func runCompletionCommand(args *completionArgs) error {
+	var err error
+	writer := os.Stdout
+	if args.outputPath != "" {
+		if writer, err = os.OpenFile(args.outputPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644); err != nil {
+			args.logger.WithError(err).Errorf("Failed to open %q to write completion script.", args.outputPath)
+			return err
+		}
+	}
+	return completion.GenerateCompletionScript(args.logger, args.rootCmd, args.shell, writer)
 }
 
 type graphArgs struct {
@@ -85,15 +161,20 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 	}
 
 	// Flags controlling output.
-	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.visual, "visual", "V", false, "Format the output as a PDF image")
-	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the graph's nodes and edges with version information")
-	graphCmd.PersistentFlags().BoolVarP(&cmdArgs.force, "force", "f", false, "Overwrite any existing files")
-	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "If set dump the output to this location")
-	graphCmd.PersistentFlags().StringVarP(&cmdArgs.outputFormat, "format", "F", "", "Output format for any image file (pdf, png, gif, ...)")
+	graphCmd.Flags().BoolVarP(&cmdArgs.visual, "visual", "V", false, "Format the output as a PDF image")
+	graphCmd.Flags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the graph's nodes and edges with version information")
+	graphCmd.Flags().BoolVarP(&cmdArgs.force, "force", "f", false, "Overwrite any existing files")
+	graphCmd.Flags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "If set dump the output to this location")
+	graphCmd.Flags().StringVarP(&cmdArgs.outputFormat, "format", "F", "", "Output format for any image file (pdf, png, gif, ...)")
+
+	graphCmd.Flags().Lookup("output").Annotations = map[string][]string{cobra.BashCompFilenameExt: {"dot", "gif", "pdf", "png", "ps"}}
+	graphCmd.Flags().Lookup("format").Annotations = map[string][]string{cobra.BashCompCustom: {"__gomod_graph_format"}}
 
 	// Flags controlling graph filtering.
 	graphCmd.Flags().BoolVarP(&cmdArgs.shared, "shared", "s", false, "Filter out unshared dependencies (i.e. only required by one Go module)")
 	graphCmd.Flags().StringSliceVarP(&cmdArgs.dependencies, "dependencies", "d", nil, "Dependency for which to show the dependency graph")
+
+	graphCmd.Flags().Lookup("dependencies").Annotations = map[string][]string{cobra.BashCompCustom: {"__gomod_graph_dependencies"}}
 
 	return graphCmd
 }
