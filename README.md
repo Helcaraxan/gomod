@@ -29,8 +29,8 @@ example:
 - Annotate dependencies with the versions in which they are used and the versions constraint
   imposed by each edge of the graph.
 
-This functionality requires the `dot` tool which you will need to install separately. You can
-produce images in GIF, JPG, PDF, PNG and PS format.
+This functionality requires the [`dot` tool](https://www.graphviz.org/) which you will need to
+install separately. You can produce images in GIF, JPG, PDF, PNG and PS format.
 
 ### `gomod reveal`
 
