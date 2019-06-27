@@ -13,12 +13,73 @@ answer typical questions such as:
 - How old are the versions of my dependencies that I depend on?
 - Are different dependencies of my project using potentially conflicting forks of the same module?
 - What dependency chains lead to `github.com/foo/bar` and what constraints do they put on versions?
-- Why is dependency `github.com/foo/bar` used at version 1.12.0 and not at version `1.5.0` as I
-  specified it to be?
+- Why is dependency `github.com/foo/bar` used at version `1.12.0` and not at version `1.5.0` as I
+  want it to be?
 
 ## Detailed features
 
-### `gomod graph`
+### Command-line use
+
+The sub-commands of `gomod completion` provide you with the benefit of shell auto-completion making
+it easier to cycle through the available sub-commands and flags.
+
+#### Bash
+
+Besides completion for static elements such as commands and flags, the auto-complete functionality
+for Bash also provides some context-specific completion such as the dependency names of your current
+project.
+
+If you only want completion to be added to your current shell you can simply run
+
+```bash
+source <(gomod completion bash)
+```
+
+If you want to have it added by default to each shell instance that you start you can add the
+following to your `.bashrc`, `.profile` (Linux) or `.bash_profile` (MacOS / OSX)
+
+```bash
+# Provide Bash auto-completion for the 'gomod' tool if it's in the PATH.
+if [[ -n "$(which gomod)" ]]; then
+   source <(gomod completion bash)
+fi
+```
+
+#### Powershell
+
+In order to auto-completion by default to each shell instance that you start you can add the
+following to your [PowerShell profile](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-6)
+
+```powershell
+if (Get-Command "gomod" -errorAction SilentlyContinue) {
+   $tmp = New-TemporaryFile
+   gomod completion ps | Out-File $tmp.FullName
+   . $tmp.FullName
+   Remove-Item $tmp.FullName
+}
+```
+
+#### ZSH
+
+If you only want completion to be added to your current shell you can simply run
+
+```zsh
+source <(gomod completion zsh)
+```
+
+If you want to have it added by default to each shell instance that you start you can add the
+following to your `.bashrc`, `.profile` (Linux) or `.bash_profile` (MacOS / OSX)
+
+```zsh
+# Provide ZSH auto-completion for the 'gomod' tool if it's in the PATH.
+if [[ -n "$(which gomod)" ]]; then
+   source <(gomod completion zsh)
+fi
+```
+
+### Dependency analysis commands
+
+#### `gomod graph`
 
 Create a graphical representations of your dependency graph with the possibility to filter out
 noise, add annotations and focus on the pieces of the graph that are of interest to you. You can for
@@ -32,12 +93,12 @@ example:
 This functionality requires the [`dot` tool](https://www.graphviz.org/) which you will need to
 install separately. You can produce images in GIF, JPG, PDF, PNG and PS format.
 
-### `gomod reveal`
+#### `gomod reveal`
 
 Show all the places at which your (indirect) module dependencies use `replace` statements which you
 might need to account for in your own `go.mod` in order to build your project.
 
-### `gomod analyse`
+#### `gomod analyse`
 
 Produce a short statistical report of what is going on with your dependencies. The report includes
 things like (in)direct dependency counts, mean and max dependency ages, dependency age distribution,
