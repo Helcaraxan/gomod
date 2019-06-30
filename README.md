@@ -16,7 +16,54 @@ answer typical questions such as:
 - Why is dependency `github.com/foo/bar` used at version `1.12.0` and not at version `1.5.0` as I
   want it to be?
 
+## Table of Contents
+
+- [Detailed features](#detailed-features)
+  - [Dependency analysis commands](#dependency-analysis-commands)
+    - [`gomod graph`](#gomod-graph)
+    - [`gomod reveal`](#gomod-reveal)
+    - [`gomod analyse`](#gomod-analyse)
+  - [Command-line use](#command-line-use)
+    - [Bash](#bash)
+    - [Powershell](#powershell)
+    - [ZSH](#zsh)
+- [Example output](#example-output)
+  - [Shared dependencies](#shared-dependencies)
+  - [Dependency chains](#dependency-chains)
+  - [Hidden `replace`'s](#hidden-replaces)
+  - [Dependency statistics](#dependency-statistics)
+
 ## Detailed features
+
+### Dependency analysis commands
+
+#### `gomod graph`
+
+Create a graphical representations of your dependency graph with the possibility to filter out
+noise, add annotations and focus on the pieces of the graph that are of interest to you. You can for
+example:
+
+- Only show dependencies that are required by more than one package.
+- Only show the dependency chains that lead to one or more specified packages.
+- Annotate dependencies with the versions in which they are used and the versions constraint
+  imposed by each edge of the graph.
+
+This functionality requires the [`dot` tool](https://www.graphviz.org/) which you will need to
+install separately. You can produce images in GIF, JPG, PDF, PNG and PS format.
+
+#### `gomod reveal`
+
+Show all the places at which your (indirect) module dependencies use `replace` statements which you
+might need to account for in your own `go.mod` in order to build your project.
+
+#### `gomod analyse`
+
+Produce a short statistical report of what is going on with your dependencies. The report includes
+things like (in)direct dependency counts, mean and max dependency ages, dependency age distribution,
+and more.
+
+**NB**: This command can also be invoked as `gomod analyze` for those who intuitively use American
+spelling.
 
 ### Command-line use
 
@@ -76,36 +123,6 @@ if [[ -n "$(which gomod)" ]]; then
    source <(gomod completion zsh)
 fi
 ```
-
-### Dependency analysis commands
-
-#### `gomod graph`
-
-Create a graphical representations of your dependency graph with the possibility to filter out
-noise, add annotations and focus on the pieces of the graph that are of interest to you. You can for
-example:
-
-- Only show dependencies that are required by more than one package.
-- Only show the dependency chains that lead to one or more specified packages.
-- Annotate dependencies with the versions in which they are used and the versions constraint
-  imposed by each edge of the graph.
-
-This functionality requires the [`dot` tool](https://www.graphviz.org/) which you will need to
-install separately. You can produce images in GIF, JPG, PDF, PNG and PS format.
-
-#### `gomod reveal`
-
-Show all the places at which your (indirect) module dependencies use `replace` statements which you
-might need to account for in your own `go.mod` in order to build your project.
-
-#### `gomod analyse`
-
-Produce a short statistical report of what is going on with your dependencies. The report includes
-things like (in)direct dependency counts, mean and max dependency ages, dependency age distribution,
-and more.
-
-**NB**: This command can also be invoked as `gomod analyze` for those who intuitively use American
-spelling.
 
 ## Example output
 
