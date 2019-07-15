@@ -22,7 +22,7 @@ jobs:
       go: 1.12.x
       script: ./ci/lint.sh
       env:
-        - GOLANGCI_VERSION="v1.16.0"
+        - GOLANGCI_VERSION="v1.17.1"
         - SHELLCHECK_VERSION="0.6.0"
 
     # Test on the latest stable Go version.
