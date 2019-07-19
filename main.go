@@ -154,8 +154,11 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 		Use:   "graph",
 		Short: "Visualise the dependency graph of a Go module.",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			if err := checkToolDependencies(cmdArgs.logger); err != nil {
-				return err
+			// Only require 'dot' tool if outputting an image file.
+			if cmdArgs.visual {
+				if err := checkToolDependencies(cmdArgs.logger); err != nil {
+					return err
+				}
 			}
 			return runGraphCmd(cmdArgs)
 		},
