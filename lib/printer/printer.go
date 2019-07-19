@@ -158,7 +158,10 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 }
 
 func printNodeToDot(config *PrintConfig, node *depgraph.Node, fileContent []string) []string {
-	nodeOptions := []string{}
+	nodeOptions := []string{
+		"shape=box",
+		"style=rounded",
+	}
 	if config.Annotate && len(node.SelectedVersion()) != 0 {
 		var replacement string
 		if node.Module.Replace != nil {
