@@ -14,11 +14,14 @@ if [[ -z ${GOLANGCI_VERSION-} ]]; then
 elif [[ -z ${SHELLCHECK_VERSION} ]]; then
 	echo "Please specify the 'shellcheck' version that should be used via the 'SHELLCHECK_VERSION' environment variable."
 	exit 1
+elif [[ -z ${MARKDOWNLINT_VERSION} ]]; then
+	echo "Please specify the 'markdownlint' version that should be used via the 'MARKDOWNLINT_VERSION' environment variable."
+	exit 1
 fi
 
 # Retrieve linters.
 ## golangci-lint
-curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | BINARY="golang-ci" bash -s -- -b "${GOPATH}/bin" "${GOLANGCI_VERSION}"
+curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | BINARY="golang-ci" bash -s -- -b "${GOPATH}/bin" "v${GOLANGCI_VERSION}"
 
 ## shellcheck
 curl -sfL "https://storage.googleapis.com/shellcheck/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" | tar -xJv
@@ -28,6 +31,9 @@ if ! grep --quiet "version: ${SHELLCHECK_VERSION}" <<<"${shellcheck_version_outp
 	echo "The installed shellcheck has a mismatched version."
 	exit 1
 fi
+
+## markdownlint
+gem install mdl -v "${MARKDOWNLINT_VERSION}"
 
 # shfmt
 go install mvdan.cc/sh/cmd/shfmt
@@ -56,6 +62,8 @@ if ((shell_failure == 1)); then
 fi
 
 shfmt -s -d .
+
+mdl
 
 # Check that dependencies are correctly being maintained.
 go mod tidy
