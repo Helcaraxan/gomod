@@ -19,14 +19,14 @@ var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
 // GetDepGraph should be called from within a Go module. It will return the dependency
 // graph for this module. The 'logger' parameter can be 'nil' which will result in no
 // output or logging information to be provided.
-func GetDepGraph(logger *logrus.Logger, quiet bool) (*DepGraph, error) {
+func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 	if logger == nil {
 		logger = logrus.New()
 		logger.SetOutput(ioutil.Discard)
 	}
 	logger.Debug("Creating dependency graph.")
 
-	mainModule, modules, err := getSelectedModules(logger, quiet)
+	mainModule, modules, err := getSelectedModules(logger)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func GetDepGraph(logger *logrus.Logger, quiet bool) (*DepGraph, error) {
 	graph := NewGraph(logger, mainModule)
 
 	logger.Debug("Retrieving dependency information via 'go mod graph'")
-	rawDeps, err := util.RunCommand(logger, quiet, "go", "mod", "graph")
+	rawDeps, _, err := util.RunCommand(logger, "go", "mod", "graph")
 	if err != nil {
 		return nil, err
 	}
@@ -57,9 +57,9 @@ func GetDepGraph(logger *logrus.Logger, quiet bool) (*DepGraph, error) {
 	return graph, nil
 }
 
-func getSelectedModules(logger *logrus.Logger, quiet bool) (*Module, map[string]*Module, error) {
+func getSelectedModules(logger *logrus.Logger) (*Module, map[string]*Module, error) {
 	logger.Debug("Retrieving module information via 'go list'")
-	raw, err := util.RunCommand(logger, quiet, "go", "list", "-json", "-m", "all")
+	raw, _, err := util.RunCommand(logger, "go", "list", "-json", "-m", "all")
 	if err != nil {
 		return nil, nil, err
 	}
