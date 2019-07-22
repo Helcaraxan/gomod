@@ -19,7 +19,6 @@ import (
 
 type commonArgs struct {
 	logger *logrus.Logger
-	quiet  bool
 }
 
 func main() {
@@ -27,7 +26,7 @@ func main() {
 		logger: logrus.New(),
 	}
 
-	var verbose bool
+	var verbose, quiet bool
 	rootCmd := &cobra.Command{
 		Use:   "gomod",
 		Short: "A tool to visualise and analyse a Go module's dependency graph.",
@@ -37,13 +36,15 @@ func main() {
 			}
 			if verbose {
 				commonArgs.logger.SetLevel(logrus.DebugLevel)
+			} else if quiet {
+				commonArgs.logger.SetLevel(logrus.ErrorLevel)
 			}
 			return nil
 		},
 		BashCompletionFunction: completion.GomodCustomFunc,
 	}
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.PersistentFlags().BoolVarP(&commonArgs.quiet, "quiet", "q", false, "Silence output from go tool invocations")
+	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Silence output from go tool invocations")
 
 	rootCmd.AddCommand(
 		initAnalyseCmd(commonArgs),
@@ -184,7 +185,7 @@ func runGraphCmd(args *graphArgs) error {
 		return errors.New("'shared' and 'dependencies' filters cannot be used simultaneously")
 	}
 
-	graph, err := depgraph.GetDepGraph(args.logger, args.quiet)
+	graph, err := depgraph.GetDepGraph(args.logger)
 	if err != nil {
 		return err
 	}
@@ -226,7 +227,7 @@ func initAnalyseCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runAnalyseCmd(args *analyseArgs) error {
-	graph, err := depgraph.GetDepGraph(args.logger, args.quiet)
+	graph, err := depgraph.GetDepGraph(args.logger)
 	if err != nil {
 		return err
 	}
@@ -260,7 +261,7 @@ func initRevealCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runRevealCmd(args *revealArgs) error {
-	graph, err := depgraph.GetDepGraph(args.logger, args.quiet)
+	graph, err := depgraph.GetDepGraph(args.logger)
 	if err != nil {
 		return err
 	}
