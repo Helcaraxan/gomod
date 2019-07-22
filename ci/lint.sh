@@ -7,35 +7,64 @@ if [[ "$(uname -s)" != "Linux" ]]; then
 	exit 1
 fi
 
-# Check linter versions are specified.
-if [[ -z ${GOLANGCI_VERSION-} ]]; then
-	echo "Please specify the 'golangci-lint' version that should be used via the 'GOLANGCI_VERSION' environment variable."
-	exit 1
-elif [[ -z ${SHELLCHECK_VERSION} ]]; then
-	echo "Please specify the 'shellcheck' version that should be used via the 'SHELLCHECK_VERSION' environment variable."
-	exit 1
+# Ensure linter versions are specified or set the default values.
+GOLANGCI_VERSION="${GOLANGCI_VERSION:-"1.17.1"}"
+SHELLCHECK_VERSION="${SHELLCHECK_VERSION:-"0.6.0"}"
+SHFMT_VERSION="${SHFMT_VERSION:-"2.6.4"}"
+MARKDOWNLINT_VERSION="${MARKDOWNLINT_VERSION:-"0.5.0"}"
+
+# Retrieve linters if necessary.
+## golangci-lint
+if [[ -z "$(command -v golangci-lint)" ]] || ! grep "${GOLANGCI_VERSION}" <<<"$(golangci-lint --version)"; then
+	echo "Installing golangci-lint@${GOLANGCI_VERSION}."
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | BINARY="golang-ci" bash -s -- -b "${GOPATH}/bin" "v${GOLANGCI_VERSION}"
+else
+	echo "Found installed golangci-lint@${GOLANGCI_VERSION}."
 fi
 
-# Retrieve linters.
-## golangci-lint
-curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | BINARY="golang-ci" bash -s -- -b "${GOPATH}/bin" "${GOLANGCI_VERSION}"
-
 ## shellcheck
-curl -sfL "https://storage.googleapis.com/shellcheck/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" | tar -xJv
-PATH="${PWD}/shellcheck-v${SHELLCHECK_VERSION}:${PATH}"
-shellcheck_version_output="$(shellcheck --version)"
-if ! grep --quiet "version: ${SHELLCHECK_VERSION}" <<<"${shellcheck_version_output}"; then
-	echo "The installed shellcheck has a mismatched version."
-	exit 1
+if [[ -z "$(command -v shellcheck)" ]] || ! grep "${SHELLCHECK_VERSION}" <<<"$(shellcheck --version)"; then
+	echo "Installing shellcheck@${SHELLCHECK_VERSION}."
+	curl -sfL "https://storage.googleapis.com/shellcheck/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" | tar -xJv
+	PATH="${PWD}/shellcheck-v${SHELLCHECK_VERSION}:${PATH}"
+else
+	echo "Found installed shellcheck@${SHELLCHECK_VERSION}."
 fi
 
 # shfmt
-go install mvdan.cc/sh/cmd/shfmt
-PATH="${GOPATH}/bin:${PATH}"
+if [[ -z "$(command -v shfmt)" ]] || ! grep "${SHFMT_VERSION}" <<<"$(shfmt -version)"; then
+	echo "Installing shfmt@${SHFMT_VERSION}."
+	go get -u "mvdan.cc/sh/cmd/shfmt@v${SHFMT_VERSION}"
+	PATH="${GOPATH}/bin:${PATH}"
+else
+	echo "Found installed shfmt@${SHFMT_VERSION}."
+fi
+
+## markdownlint
+if [[ -z "$(command -v mdl)" ]] || ! grep "${MARKDOWNLINT_VERSION}" <<<"$(mdl --version)"; then
+	echo "Installing mdl@${MARKDOWNLINT_VERSION}."
+	gem install mdl -v "${MARKDOWNLINT_VERSION}"
+	GEM_INSTALL_DIR="$(gem environment | grep -E -e "- INSTALLATION DIRECTORY" | sed -E 's/.* ([:print:]+)$/\1/')/bin"
+	PATH="${PATH}:${GEM_INSTALL_DIR}"
+else
+	echo "Found installed mdl@${MARKDOWNLINT_VERSION}."
+fi
 
 # Run linters.
+echo "Ensuring that generated Go code is being kept up to date."
+go generate ./...
+
+echo "Linting Go source code."
 golangci-lint run ./...
 
+echo "Ensuring that 'go.mod' and 'go.sum' are being kept up to date."
+go mod tidy
+git diff --exit-code --quiet || (
+	echo "Please run 'go mod tidy' to clean up the 'go.mod' and 'go.sum' files."
+	false
+)
+
+echo "Performing a static analysis of Bash scripts."
 shell_failure=0
 shell_vim_directives="# vim: set tabstop=4 shiftwidth=4 noexpandtab"
 while read -r shell_file; do
@@ -55,14 +84,8 @@ if ((shell_failure == 1)); then
 	exit 1
 fi
 
+echo "Checking the formatting of Bash scripts."
 shfmt -s -d .
 
-# Check that dependencies are correctly being maintained.
-go mod tidy
-git diff --exit-code --quiet || (
-	echo "Please run 'go mod tidy' to clean up the 'go.mod' and 'go.sum' files."
-	false
-)
-
-# Check that generated code is up-to-date.
-go generate ./...
+echo "Linting Markdown files."
+mdl .
