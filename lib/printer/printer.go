@@ -148,6 +148,9 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 	for _, node := range graph.Nodes() {
 		fileContent = printNodeToDot(config, node, fileContent)
 	}
+	for _, node := range graph.Nodes() {
+		fileContent = printEdgesToDot(config, node, fileContent)
+	}
 	fileContent = append(fileContent, "}")
 
 	if _, err = out.WriteString(strings.Join(fileContent, "\n") + "\n"); err != nil {
@@ -158,7 +161,10 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 }
 
 func printNodeToDot(config *PrintConfig, node *depgraph.Node, fileContent []string) []string {
-	nodeOptions := []string{}
+	nodeOptions := []string{
+		"shape=box",
+		"style=rounded",
+	}
 	if config.Annotate && len(node.SelectedVersion()) != 0 {
 		var replacement string
 		if node.Module.Replace != nil {
@@ -174,6 +180,10 @@ func printNodeToDot(config *PrintConfig, node *depgraph.Node, fileContent []stri
 	if len(nodeOptions) > 0 {
 		fileContent = append(fileContent, fmt.Sprintf("  \"%s\" [%s]", node.Name(), strings.Join(nodeOptions, ",")))
 	}
+	return fileContent
+}
+
+func printEdgesToDot(config *PrintConfig, node *depgraph.Node, fileContent []string) []string {
 	for _, dep := range node.Successors() {
 		var edgeOptions []string
 		if config.Annotate {

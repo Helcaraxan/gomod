@@ -4,6 +4,9 @@
 
 **High-level overview**
 
+- Generated `.dot` graphs are now using box nodes rather than the default ellipse style.
+- The presence of the `.dot` tool is now only required when specifying the `-V | --visual` flag to `gomod graph`.
+
 **Breaking changes**
 
 - The `lib/depgraph.GetDepGraph()` method no longer takes a boolean to indicate what output should be forwarded from the
