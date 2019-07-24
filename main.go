@@ -135,8 +135,9 @@ func runCompletionCommand(args *completionArgs) error {
 type graphArgs struct {
 	*commonArgs
 
-	visual       bool
-	annotate     bool
+	annotate bool
+	style    *printer.StyleOptions
+
 	force        bool
 	outputPath   string
 	outputFormat string
@@ -150,35 +151,42 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 		commonArgs: cArgs,
 	}
 
+	var visual bool
+	var style string
 	graphCmd := &cobra.Command{
 		Use:   "graph",
 		Short: "Visualise the dependency graph of a Go module.",
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			// Only require 'dot' tool if outputting an image file.
-			if cmdArgs.visual {
+			if visual || cmd.Flags().Changed("style") {
 				if err := checkToolDependencies(cmdArgs.logger); err != nil {
 					return err
 				}
+				cmdArgs.style = parseVisualConfig()
 			}
 			return runGraphCmd(cmdArgs)
 		},
 	}
 
 	// Flags controlling output.
-	graphCmd.Flags().BoolVarP(&cmdArgs.visual, "visual", "V", false, "Format the output as a PDF image")
 	graphCmd.Flags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the graph's nodes and edges with version information")
 	graphCmd.Flags().BoolVarP(&cmdArgs.force, "force", "f", false, "Overwrite any existing files")
 	graphCmd.Flags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "If set dump the output to this location")
-	graphCmd.Flags().StringVarP(&cmdArgs.outputFormat, "format", "F", "", "Output format for any image file (pdf, png, gif, ...)")
 
 	graphCmd.Flags().Lookup("output").Annotations = map[string][]string{cobra.BashCompFilenameExt: {"dot", "gif", "pdf", "png", "ps"}}
-	graphCmd.Flags().Lookup("format").Annotations = map[string][]string{cobra.BashCompCustom: {"__gomod_graph_format"}}
 
 	// Flags controlling graph filtering.
 	graphCmd.Flags().BoolVarP(&cmdArgs.shared, "shared", "s", false, "Filter out unshared dependencies (i.e. only required by one Go module)")
 	graphCmd.Flags().StringSliceVarP(&cmdArgs.dependencies, "dependencies", "d", nil, "Dependency for which to show the dependency graph")
 
 	graphCmd.Flags().Lookup("dependencies").Annotations = map[string][]string{cobra.BashCompCustom: {"__gomod_graph_dependencies"}}
+
+	// Flags controlling image generation.
+	graphCmd.Flags().BoolVarP(&visual, "visual", "V", false, "Produce an image of the graph instead of a '.dot' file.")
+	graphCmd.Flags().StringVar(&style, "style", "", "Set style options for producing a graph image. Implies '--visual'.")
+	graphCmd.Flags().StringVarP(&cmdArgs.outputFormat, "format", "F", "", "Output format for any image file (pdf, png, gif, ...)")
+
+	graphCmd.Flags().Lookup("format").Annotations = map[string][]string{cobra.BashCompCustom: {"__gomod_graph_format"}}
 
 	return graphCmd
 }
@@ -313,12 +321,16 @@ func checkGoModulePresence(logger *logrus.Logger) error {
 	return errors.New("missing go module")
 }
 
+func parseVisualConfig() *printer.StyleOptions {
+	return &printer.StyleOptions{}
+}
+
 func printResult(graph *depgraph.DepGraph, args *graphArgs) error {
 	return printer.Print(graph, &printer.PrintConfig{
 		Logger:       args.logger,
 		OutputPath:   args.outputPath,
 		Force:        args.force,
-		Visual:       args.visual,
+		Style:        args.style,
 		Annotate:     args.annotate,
 		OutputFormat: printer.StringToFormat[args.outputFormat],
 	})

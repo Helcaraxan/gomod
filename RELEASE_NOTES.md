@@ -5,19 +5,26 @@
 **High-level overview**
 
 - Generated `.dot` graphs are now using box nodes rather than the default ellipse style.
-- The presence of the `.dot` tool is now only required when specifying the `-V | --visual` flag to `gomod graph`.
+- The presence of the `.dot` tool is now only required when specifying the `-V | --visual` flag to
+  `gomod graph`.
+- Refactored way of specifying formatting options for image generation via `gomod graph` or the
+  underlying library functions.
 
 **Breaking changes**
 
-- The `lib/depgraph.GetDepGraph()` method no longer takes a boolean to indicate what output should be forwarded from the
-  invocations of underlying tools. Instead this is inferred from the level configured on the `logrus.Logger` instance
-  argument that it takes.
+- The `lib/depgraph.GetDepGraph()` method no longer takes a boolean to indicate what output should
+  be forwarded from the invocations of underlying tools. Instead this is inferred from the level
+  configured on the `logrus.Logger` instance argument that it takes.
 - Output behaviour for the invocation of underlying tools has slightly changed:
   - By default only their `stderr` will be forwarded to the terminal output.
-  - If the `-q | --quiet` flag is passed neither their `stderr`, not their `stdout` will be forwarded.
+  - If the `-q | --quiet` flag is passed neither their `stderr`, not their `stdout` will be
+    forwarded.
   - If the `-v | --verbose` flag is passed both `stderr` and `stdout` will be forwarded.
 
   In any case the full output of these invocations can be found in the debug logs.
+- The `Visual` field of the `printer.PrinterConfig` type has been replaced by `Style` which is a
+  pointer to a nested `printer.StyleOptions` type. The `printer.Print` method will generate an
+  image if and only if `Style` has a non-`nil` value.
 
 ## 0.3.1
 

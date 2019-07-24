@@ -1,8 +1,10 @@
 package printer
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,13 +48,14 @@ var (
 type PrintConfig struct {
 	// Logger that should be used to show progress while printing the DepGraph.
 	Logger *logrus.Logger
-	// Silence the output from underlying tool invocations.
-	Quiet bool
-	// Visual representation of the DepGraph. If true print out a PDF using
-	// GraphViz, if false print out the graph in DOT format.
-	Visual bool
+
 	// Annotate edges and nodes with their respective versions.
 	Annotate bool
+	// Options for generating a visual representation of the DepGraph. If the
+	// field is non-nil, print out an image file using GraphViz, if false print
+	// out the graph in DOT format.
+	Style *StyleOptions
+
 	// Force overwriting of pre-existing files at the specified OutputPath.
 	Force bool
 	// Path at which the printed version of the DepGraph should be stored. If
@@ -62,11 +65,14 @@ type PrintConfig struct {
 	OutputFormat Format
 }
 
+type StyleOptions struct {
+}
+
 // Print takes in a PrintConfig struct and dumps the content of this DepGraph
 // instance according to parameters.
 func Print(graph *depgraph.DepGraph, config *PrintConfig) error {
 	var printer func(*depgraph.DepGraph, *PrintConfig) error
-	if config.Visual {
+	if config.Style != nil {
 		printer = PrintToVisual
 	} else {
 		printer = PrintToDOT
@@ -76,40 +82,42 @@ func Print(graph *depgraph.DepGraph, config *PrintConfig) error {
 
 // PrintToVisual creates an image file at the specified target path that represents the dependency graph.
 func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
-	if config.OutputFormat == FormatUnknown && len(config.OutputPath) > 1 {
-		config.OutputFormat = StringToFormat[filepath.Ext(config.OutputPath)[1:]]
-	}
-	if config.OutputFormat == FormatUnknown {
-		config.Logger.Debug("Defaulting to PNG output format as none is set and it could not be deduced from the output filename.")
-		config.OutputFormat = FormatPNG
-	}
-
 	tempDir, err := ioutil.TempDir("", "depgraph")
 	if err != nil {
-		config.Logger.WithError(err).Error("Could not create temporary directory.")
+		config.Logger.WithError(err).Error("Could not create a temporary directory.")
 	}
+	defer func() {
+		config.Logger.Debugf("Cleaning up temporary output folder %q.", tempDir)
+		_ = os.RemoveAll(tempDir)
+	}()
 	config.Logger.Debugf("Using temporary output folder %q.", tempDir)
 
-	outputPath := config.OutputPath
-	if len(outputPath) == 0 {
-		outputPath = filepath.Join(tempDir, "out."+FormatToString[config.OutputFormat])
-		config.Logger.Warnf("Printing to temporary file %q.", outputPath)
+	if len(config.OutputPath) == 0 {
+		if config.OutputFormat == FormatUnknown {
+			config.OutputFormat = FormatPNG
+		}
+		config.OutputPath = fmt.Sprintf("graph." + FormatToString[config.OutputFormat])
 	} else {
-		defer func() {
-			config.Logger.Debugf("Cleaning up temporary output folder %q.", tempDir)
-			_ = os.RemoveAll(tempDir)
-		}()
+		if config.OutputFormat == FormatUnknown {
+			config.OutputFormat = StringToFormat[filepath.Ext(config.OutputPath)[1:]]
+		} else if filepath.Ext(config.OutputPath) != "."+FormatToString[config.OutputFormat] {
+			config.Logger.Errorf(
+				"The given output file's extension '%s' does not match the specified output format '%s'.",
+				filepath.Base(config.OutputPath),
+				FormatToString[config.OutputFormat],
+			)
+			return errors.New("mismatched output filename and specified output format")
+		}
+	}
+	if config.OutputFormat == FormatUnknown {
+		config.Logger.Error("Could not determine the output format from either the specified output path or format.")
 	}
 
-	if filepath.Ext(outputPath) != "."+FormatToString[config.OutputFormat] {
-		config.Logger.Warnf("Specified output path %q does not have a valid extension.", outputPath)
-		outputPath = strings.TrimSuffix(outputPath, filepath.Ext(outputPath)) + "." + FormatToString[config.OutputFormat]
-		config.Logger.Warnf("Will be writing to %q instead.", outputPath)
-	}
-
-	if err := util.PrepareOutputPath(config.Logger, outputPath, config.Force); err != nil {
+	out, err := util.PrepareOutputPath(config.Logger, config.OutputPath, config.Force)
+	if err != nil {
 		return err
 	}
+	_ = out.Close() // Will be written by the 'dot' tool.
 
 	dotPrintConfig := *config
 	dotPrintConfig.OutputPath = filepath.Join(tempDir, "out.dot")
@@ -117,8 +125,8 @@ func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
 		return err
 	}
 
-	config.Logger.Debugf("Generating %q.", outputPath)
-	_, _, err = util.RunCommand(config.Logger, "dot", "-T"+FormatToString[config.OutputFormat], "-o"+outputPath, dotPrintConfig.OutputPath)
+	config.Logger.Debugf("Generating %q.", config.OutputPath)
+	_, _, err = util.RunCommand(config.Logger, "dot", "-T"+FormatToString[config.OutputFormat], "-o"+config.OutputPath, dotPrintConfig.OutputPath)
 	return err
 }
 
@@ -126,13 +134,7 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 	var err error
 	out := os.Stdout
 	if len(config.OutputPath) > 0 {
-		if err = util.PrepareOutputPath(config.Logger, config.OutputPath, config.Force); err != nil {
-			return err
-		}
-
-		out, err = os.OpenFile(config.OutputPath, os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			config.Logger.WithError(err).Errorf("Could not create output file %q.", config.OutputPath)
+		if out, err = util.PrepareOutputPath(config.Logger, config.OutputPath, config.Force); err != nil {
 			return err
 		}
 		defer func() {
@@ -143,13 +145,14 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 		config.Logger.Debug("Writing DOT graph to terminal.")
 	}
 
-	var fileContent []string
-	fileContent = append(fileContent, "strict digraph {", "  ranksep=3")
-	for _, node := range graph.Nodes() {
-		fileContent = printNodeToDot(config, node, fileContent)
+	fileContent := []string{
+		"strict digraph {",
+		"  start=0", // Needed for placement determinism.
 	}
+
 	for _, node := range graph.Nodes() {
-		fileContent = printEdgesToDot(config, node, fileContent)
+		fileContent = append(fileContent, printNodeToDot(config, node))
+		fileContent = append(fileContent, printEdgesToDot(config, node)...)
 	}
 	fileContent = append(fileContent, "}")
 
@@ -160,10 +163,10 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 	return nil
 }
 
-func printNodeToDot(config *PrintConfig, node *depgraph.Node, fileContent []string) []string {
+func printNodeToDot(config *PrintConfig, node *depgraph.Node) string {
+	scaling := math.Log2(float64(len(node.Predecessors())+len(node.Successors()))) / 5
 	nodeOptions := []string{
-		"shape=box",
-		"style=rounded",
+		fmt.Sprintf("width=%.2f,height=%.2f", 5*scaling, scaling),
 	}
 	if config.Annotate && len(node.SelectedVersion()) != 0 {
 		var replacement string
@@ -177,24 +180,26 @@ func printNodeToDot(config *PrintConfig, node *depgraph.Node, fileContent []stri
 			node.SelectedVersion(),
 		))
 	}
+	dot := "  \"" + node.Name() + "\""
 	if len(nodeOptions) > 0 {
-		fileContent = append(fileContent, fmt.Sprintf("  \"%s\" [%s]", node.Name(), strings.Join(nodeOptions, ",")))
+		dot += " [" + strings.Join(nodeOptions, ",") + "]"
 	}
-	return fileContent
+	return dot
 }
 
-func printEdgesToDot(config *PrintConfig, node *depgraph.Node, fileContent []string) []string {
+func printEdgesToDot(config *PrintConfig, node *depgraph.Node) []string {
+	var dots []string
 	for _, dep := range node.Successors() {
 		var edgeOptions []string
 		if config.Annotate {
 			edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.RequiredVersion()))
 		}
-		fileContent = append(fileContent, fmt.Sprintf(
-			"  \"%s\" -> \"%s\"%s",
-			dep.Begin(),
-			dep.End(),
-			fmt.Sprintf(" [%s]", strings.Join(edgeOptions, ",")),
-		))
+
+		dot := "  \"" + node.Name() + "\" -> \"" + dep.End() + "\""
+		if len(edgeOptions) > 0 {
+			dot += " [" + strings.Join(edgeOptions, ",") + "]"
+		}
+		dots = append(dots, dot)
 	}
-	return fileContent
+	return dots
 }
