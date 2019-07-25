@@ -4,17 +4,28 @@
 
 **High-level overview**
 
-- Generated `.dot` graphs are now using box nodes rather than the default ellipse style.
 - The presence of the `.dot` tool is now only required when specifying the `-V | --visual` flag to
   `gomod graph`.
-- Refactored way of specifying formatting options for image generation via `gomod graph` or the
-  underlying library functions.
+- Support for node clustering in generated `.dot` files.
+
+**New features**
+
+- Generated `.dot` graphs are now using box nodes rather than the default ellipse style to reduce
+  the size of the generated image files and improve readability.
+- Specifying formatting options for image generation via `gomod graph` or the underlying library
+  functions is now done via a dedicated configuration type.
+- The `printer.PrintToDot` function can now generate improved layouts for dependency graphs via the
+  use of node clustering, tightly packing modules that share common reverse dependencies together.
+  This can result in significant improvements for larger depdendency graphs (_e.g. the image of the
+  full dependency graph for the [kubernetes](https://github.com/kubernetes/kubernetes) project is
+  reduced by a factor of 4_).
 
 **Breaking changes**
 
-- The `lib/depgraph.GetDepGraph()` method no longer takes a boolean to indicate what output should
-  be forwarded from the invocations of underlying tools. Instead this is inferred from the level
-  configured on the `logrus.Logger` instance argument that it takes.
+- The `depgraph.GetDepGraph()` method no longer takes a boolean to indicate what output should be
+  forwarded from the invocations of underlying tools. Instead this is inferred from the level
+  configured on the `logrus.Logger` instance argument that it takes. `logrus.WarnLevel` and below
+  are considered the same as `--quiet`, `logrus.DebugLevel` and above are equivalent to `--verbose`.
 - Output behaviour for the invocation of underlying tools has slightly changed:
   - By default only their `stderr` will be forwarded to the terminal output.
   - If the `-q | --quiet` flag is passed neither their `stderr`, not their `stdout` will be

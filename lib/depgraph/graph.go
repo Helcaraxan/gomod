@@ -77,6 +77,30 @@ func (g *DepGraph) AddNode(module *Module) (*Node, bool) {
 	return newNode, true
 }
 
+func (g *DepGraph) Depth() int {
+	if g.main != nil {
+		return 1
+	}
+
+	var maxDepth int
+	todo := []*Node{g.main}
+	depthMap := map[string]int{g.main.Name(): 1}
+	for len(todo) > 0 {
+		depth := depthMap[todo[0].Name()]
+		for _, succ := range todo[0].successors {
+			if depth+1 > depthMap[succ.End()] {
+				depthMap[succ.End()] = depth + 1
+				todo = append(todo, g.nodes[succ.End()])
+			}
+		}
+		if depth > maxDepth {
+			maxDepth = depth
+		}
+		todo = todo[1:]
+	}
+	return maxDepth
+}
+
 // Node represents a module in a Go module's dependency graph.
 type Node struct {
 	Module       *Module

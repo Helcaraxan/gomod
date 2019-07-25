@@ -66,7 +66,29 @@ type PrintConfig struct {
 }
 
 type StyleOptions struct {
+	// Scale nodes according to their number of dependencies of the module they
+	// represent and the number of modules depending on it.
+	ScaleNodes bool
+	// Level at which to cluster nodes in the printed graph. This can be very
+	// beneficial for larger dependency graphs that might be unreadable with the
+	// default settings.
+	Cluster ClusterLevel
 }
+
+// Level at which to performing clustering when generating the image of the
+// dependency graph.
+type ClusterLevel int
+
+const (
+	// No clustering. Each node is printed as is.
+	Off ClusterLevel = iota
+	// Cluster non-shared dependencies to reduce the complexity and size of the
+	// graph.
+	Shared
+	// Cluster non-shared dependencies as well as any group of node that all
+	// share the same predecessors in the graph.
+	Full
+)
 
 // Print takes in a PrintConfig struct and dumps the content of this DepGraph
 // instance according to parameters.
@@ -147,13 +169,18 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 
 	fileContent := []string{
 		"strict digraph {",
-		"  start=0", // Needed for placement determinism.
+	}
+	fileContent = append(fileContent, determineGlobalOptions(config, graph)...)
+
+	clusters := computeGraphClusters(config, graph)
+	for _, cluster := range clusters.clusterList {
+		fileContent = append(fileContent, printClusterToDot(config, cluster))
 	}
 
 	for _, node := range graph.Nodes() {
-		fileContent = append(fileContent, printNodeToDot(config, node))
-		fileContent = append(fileContent, printEdgesToDot(config, node)...)
+		fileContent = append(fileContent, printEdgesToDot(config, node, clusters)...)
 	}
+
 	fileContent = append(fileContent, "}")
 
 	if _, err = out.WriteString(strings.Join(fileContent, "\n") + "\n"); err != nil {
@@ -161,6 +188,82 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 		return fmt.Errorf("could not write to %q", out.Name())
 	}
 	return nil
+}
+
+func determineGlobalOptions(config *PrintConfig, graph *depgraph.DepGraph) []string {
+	globalOptions := []string{
+		"  node [shape=box,style=rounded]",
+		"  start=0", // Needed for placement determinism.
+	}
+	if config.Annotate {
+		globalOptions = append(globalOptions, "  concentrate=true")
+	} else {
+		// Unfortunately we cannot use the "concentrate" option with 'ortho' splines as it leads to segfaults on large graphs.
+		globalOptions = append(
+			globalOptions,
+			"  splines=ortho", // By far the most readable form of splines on larger graphs but incompatible with annotations.
+		)
+	}
+	if config.Style != nil {
+		if config.Style.Cluster > Off {
+			globalOptions = append(
+				globalOptions,
+				"  graph [style=rounded]",
+				"  compound=true", // Needed for edges targeted at subgraphs.
+			)
+		}
+		if config.Style.ScaleNodes {
+			rankSep := math.Log10(float64(len(graph.Nodes()))) - 1
+			if rankSep < 0.3 {
+				rankSep = 0.3
+			}
+			globalOptions = append(globalOptions, fmt.Sprintf("  ranksep=%.2f", rankSep))
+		}
+	}
+	return globalOptions
+}
+
+func printClusterToDot(config *PrintConfig, cluster *graphCluster) string {
+	if len(cluster.members) == 0 {
+		config.Logger.Warnf("Found an empty node cluster '%s' associated with '%s'.", cluster.name(), cluster.hash)
+		return ""
+	} else if len(cluster.members) == 1 {
+		return printNodeToDot(config, cluster.members[0])
+	}
+
+	dot := "  subgraph " + cluster.name() + "{\n"
+	for _, node := range cluster.members {
+		dot += "  " + printNodeToDot(config, node) + "\n"
+	}
+
+	// Print invisible nodes and edges that help node placement by forcing a grid layout.
+	dot += "    // The nodes and edges part of this subgraph defined below are only used to\n"
+	dot += "    // improve node placement but do not reflect actual dependencies.\n"
+	dot += "    node [style=invis]\n"
+	dot += "    edge [style=invis,minlen=1]\n"
+
+	rowSize := cluster.getWidth()
+	firstRowSize := len(cluster.members) % rowSize
+	firstRowOffset := (rowSize - firstRowSize) / 2
+	if firstRowSize > 0 {
+		for idx := 0; idx < firstRowOffset; idx++ {
+			dot += fmt.Sprintf("    \"%s_%d\"\n", cluster.name(), idx)
+			dot += fmt.Sprintf("    \"%s_%d\" -> \"%s\"\n", cluster.name(), idx, cluster.members[idx+firstRowSize].Name())
+		}
+		for idx := firstRowOffset + firstRowSize; idx < rowSize; idx++ {
+			dot += fmt.Sprintf("    \"%s_%d\"\n", cluster.name(), idx)
+			dot += fmt.Sprintf("    \"%s_%d\" -> \"%s\"\n", cluster.name(), idx, cluster.members[idx+firstRowSize].Name())
+		}
+	}
+	for idx := 0; idx < firstRowSize; idx++ {
+		dot += fmt.Sprintf("    \"%s\" -> \"%s\"\n", cluster.members[idx].Name(), cluster.members[idx+firstRowOffset+firstRowSize].Name())
+	}
+	for idx := firstRowSize; idx < len(cluster.members); idx++ {
+		if idx+rowSize < len(cluster.members) {
+			dot += fmt.Sprintf("   \"%s\" -> \"%s\"\n", cluster.members[idx].Name(), cluster.members[idx+rowSize].Name())
+		}
+	}
+	return dot + "  }"
 }
 
 func printNodeToDot(config *PrintConfig, node *depgraph.Node) string {
@@ -187,15 +290,33 @@ func printNodeToDot(config *PrintConfig, node *depgraph.Node) string {
 	return dot
 }
 
-func printEdgesToDot(config *PrintConfig, node *depgraph.Node) []string {
+func printEdgesToDot(config *PrintConfig, node *depgraph.Node, clusters *graphClusters) []string {
+	clustersReached := map[int]struct{}{}
+
 	var dots []string
 	for _, dep := range node.Successors() {
-		var edgeOptions []string
-		if config.Annotate {
+		cluster, ok := clusters.clusterMap[dep.End()]
+		if !ok {
+			config.Logger.Errorf("No cluster reference found for dependency '%s'.", dep.End())
+		}
+
+		if _, ok = clustersReached[cluster.id]; ok {
+			continue
+		}
+		clustersReached[cluster.id] = struct{}{}
+
+		target := dep.End()
+		edgeOptions := []string{
+			fmt.Sprintf("minlen=%d", clusters.getClusterDepthMap(dep.End())[node.Name()]),
+		}
+		if len(cluster.members) > 1 {
+			edgeOptions = append(edgeOptions, "lhead=\""+cluster.name()+"\"")
+			target = cluster.getRepresentative()
+		} else if config.Annotate { // We don't annotate an edge with version if it's leading to a cluster.
 			edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.RequiredVersion()))
 		}
 
-		dot := "  \"" + node.Name() + "\" -> \"" + dep.End() + "\""
+		dot := "  \"" + node.Name() + "\" -> \"" + target + "\""
 		if len(edgeOptions) > 0 {
 			dot += " [" + strings.Join(edgeOptions, ",") + "]"
 		}
