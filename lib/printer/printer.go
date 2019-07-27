@@ -241,6 +241,7 @@ func printClusterToDot(config *PrintConfig, cluster *graphCluster) string {
 	dot += "    // improve node placement but do not reflect actual dependencies.\n"
 	dot += "    node [style=invis]\n"
 	dot += "    edge [style=invis,minlen=1]\n"
+	dot += "    graph [color=blue]\n" //nolint:misspell
 
 	rowSize := cluster.getWidth()
 	firstRowSize := len(cluster.members) % rowSize
@@ -267,9 +268,13 @@ func printClusterToDot(config *PrintConfig, cluster *graphCluster) string {
 }
 
 func printNodeToDot(config *PrintConfig, node *depgraph.Node) string {
-	scaling := math.Log2(float64(len(node.Predecessors())+len(node.Successors()))) / 5
-	nodeOptions := []string{
-		fmt.Sprintf("width=%.2f,height=%.2f", 5*scaling, scaling),
+	var nodeOptions []string
+	if config.Style != nil && config.Style.ScaleNodes {
+		scaling := math.Log2(float64(len(node.Predecessors())+len(node.Successors()))) / 5
+		if scaling < 0.1 {
+			scaling = 0.1
+		}
+		nodeOptions = append(nodeOptions, fmt.Sprintf("width=%.2f,height=%.2f", 5*scaling, scaling))
 	}
 	if config.Annotate && len(node.SelectedVersion()) != 0 {
 		var replacement string
@@ -306,8 +311,9 @@ func printEdgesToDot(config *PrintConfig, node *depgraph.Node, clusters *graphCl
 		clustersReached[cluster.id] = struct{}{}
 
 		target := dep.End()
-		edgeOptions := []string{
-			fmt.Sprintf("minlen=%d", clusters.getClusterDepthMap(dep.End())[node.Name()]),
+		var edgeOptions []string
+		if minLength := clusters.getClusterDepthMap(dep.End())[node.Name()]; minLength > 1 {
+			edgeOptions = append(edgeOptions, fmt.Sprintf("minlen=%d", minLength))
 		}
 		if len(cluster.members) > 1 {
 			edgeOptions = append(edgeOptions, "lhead=\""+cluster.name()+"\"")

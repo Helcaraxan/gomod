@@ -1,4 +1,4 @@
-# `gomod` release notes
+# Release notes
 
 ## Next release
 
@@ -7,6 +7,7 @@
 - The presence of the `.dot` tool is now only required when specifying the `-V | --visual` flag to
   `gomod graph`.
 - Support for node clustering in generated `.dot` files.
+- More fine-grained control over graph generation via the new `--style` flag of `gomod graph`.
 
 **New features**
 
@@ -16,9 +17,9 @@
   functions is now done via a dedicated configuration type.
 - The `printer.PrintToDot` function can now generate improved layouts for dependency graphs via the
   use of node clustering, tightly packing modules that share common reverse dependencies together.
-  This can result in significant improvements for larger depdendency graphs (_e.g. the image of the
-  full dependency graph for the [kubernetes](https://github.com/kubernetes/kubernetes) project is
-  reduced by a factor of 4_).
+  This can result in significant improvements for larger depdendency graphs (_e.g. the PNG image of
+  the full dependency graph for the [kubernetes](https://github.com/kubernetes/kubernetes) project
+  has 42% less pixels and has a ~7x smaller binary size_).
 
 **Breaking changes**
 
