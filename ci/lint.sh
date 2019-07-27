@@ -44,7 +44,7 @@ fi
 if [[ -z "$(command -v mdl)" ]] || ! grep "${MARKDOWNLINT_VERSION}" <<<"$(mdl --version)"; then
 	echo "Installing mdl@${MARKDOWNLINT_VERSION}."
 	gem install mdl -v "${MARKDOWNLINT_VERSION}"
-	GEM_INSTALL_DIR="$(gem environment | grep -E -e "- INSTALLATION DIRECTORY" | sed -E 's/.* ([:print:]+)$/\1/')/bin"
+	GEM_INSTALL_DIR="$(gem environment | grep -E -e "- INSTALLATION DIRECTORY" | sed -E 's/.* ([[:print:]]+)$/\1/')/bin"
 	PATH="${PATH}:${GEM_INSTALL_DIR}"
 else
 	echo "Found installed mdl@${MARKDOWNLINT_VERSION}."

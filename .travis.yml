@@ -1,3 +1,10 @@
+dist: bionic
+
+addons:
+  apt:
+    packages:
+      - graphviz
+
 language: go
 go_import_path: github.com/Helcaraxan/gomod
 
