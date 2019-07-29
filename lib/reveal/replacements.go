@@ -187,7 +187,7 @@ func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replace
 		replacements.topLevel[replace.Original] = replace.Override
 	}
 
-	for _, node := range graph.Nodes() {
+	for _, node := range graph.Nodes().List() {
 		replaces, err = parseGoMod(logger, graph.Main().Module, replacements.topLevel, node.Module)
 		if err != nil {
 			return nil, err
