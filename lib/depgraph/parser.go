@@ -49,7 +49,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 			return nil, err
 		}
 	}
-	for _, node := range graph.nodes {
+	for _, node := range graph.nodes.List() {
 		if len(node.predecessors) == 0 && len(node.successors) == 0 {
 			graph.removeNode(node.Name())
 		}
@@ -94,16 +94,15 @@ func getSelectedModules(logger *logrus.Logger) (*Module, map[string]*Module, err
 }
 
 func (g *DepGraph) addDependency(rawDependency *rawDependency) error {
-	var ok bool
-	beginNode := g.Node(rawDependency.beginModule.Path)
-	if beginNode == nil {
+	beginNode, ok := g.Node(rawDependency.beginModule.Path)
+	if !ok {
 		if beginNode, ok = g.AddNode(rawDependency.beginModule); !ok {
 			return fmt.Errorf("could not create node based on %+v", beginNode.Module)
 		}
 		g.logger.Debugf("Created new node %q: %+v", rawDependency.beginModule.Path, beginNode)
 	}
-	endNode := g.Node(rawDependency.endModule.Path)
-	if endNode == nil {
+	endNode, ok := g.Node(rawDependency.endModule.Path)
+	if !ok {
 		if endNode, ok = g.AddNode(rawDependency.endModule); !ok {
 			return fmt.Errorf("could not create node based on %+v", beginNode.Module)
 		}

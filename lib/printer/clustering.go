@@ -17,7 +17,7 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.DepGraph) *graphC
 	}
 
 	hashToCluster := map[string]*graphCluster{}
-	for _, node := range graph.Nodes() {
+	for _, node := range graph.Nodes().List() {
 		clusterHash := computeClusterHash(config, node)
 		cluster := hashToCluster[clusterHash]
 		if cluster == nil {
@@ -82,7 +82,8 @@ func (c *graphClusters) getClusterDepthMap(nodeName string) map[string]int {
 func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 	depthMap := map[string]int{}
 
-	workStack := []*depgraph.Node{c.graph.Nodes()[nodeName]}
+	startNode, _ := c.graph.Nodes().Get(nodeName)
+	workStack := []*depgraph.Node{startNode}
 	workMap := map[string]int{nodeName: 0}
 	pathLength := 0
 	for len(workStack) > 0 {
@@ -101,7 +102,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 		currentDepth := depthMap[curr.Name()]
 		baseEdgeLength := c.clusterMap[curr.Name()].getHeight()
 		for _, pred := range curr.Predecessors() {
-			predNode := c.graph.Nodes()[pred.Begin()]
+			predNode, _ := c.graph.Nodes().Get(pred.Begin())
 			edgeLength := baseEdgeLength + c.clusterMap[curr.Name()].getDepCount()/20 // Give bonus space for larger numbers of edges.
 			if depthMap[pred.Begin()] >= currentDepth+edgeLength {
 				continue

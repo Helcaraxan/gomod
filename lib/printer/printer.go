@@ -177,7 +177,7 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 		fileContent = append(fileContent, printClusterToDot(config, cluster))
 	}
 
-	for _, node := range graph.Nodes() {
+	for _, node := range graph.Nodes().List() {
 		fileContent = append(fileContent, printEdgesToDot(config, node, clusters)...)
 	}
 
@@ -213,7 +213,7 @@ func determineGlobalOptions(config *PrintConfig, graph *depgraph.DepGraph) []str
 			)
 		}
 		if config.Style.ScaleNodes {
-			rankSep := math.Log10(float64(len(graph.Nodes()))) - 1
+			rankSep := math.Log10(float64(graph.Nodes().Len())) - 1
 			if rankSep < 0.3 {
 				rankSep = 0.3
 			}
