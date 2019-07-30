@@ -16,6 +16,8 @@ answer typical questions such as:
 - Why is dependency `github.com/foo/bar` used at version `1.12.0` and not at version `1.5.0` as I
   want it to be?
 
+_Release-notes for each version can be found [here](./RELEASE_NOTES.md)_
+
 ## Table of Contents
 
 - [Detailed features](#detailed-features)
@@ -48,7 +50,7 @@ example:
 - Annotate dependencies with the versions in which they are used and the versions constraint
   imposed by each edge of the graph.
 
-This functionality requires the [`dot` tool](https://www.graphviz.org/) which you will need to
+This functionality requires the [`dot`](https://www.graphviz.org/) tool which you will need to
 install separately. You can produce images in GIF, JPG, PDF, PNG and PS format.
 
 #### `gomod reveal`
@@ -126,16 +128,20 @@ fi
 
 ## Example output
 
+### Full dependency graph
+
+The entire dependency graph for the `gomod` codebase, using clustering to reduce the image size.
+![Full dependency graph](./images/full.jpg)
+
 ### Shared dependencies
 
-Graph with only shared dependencies for the [Matterbridge](https://github.com/42wim/matterbridge)
-project.
+Graph with only the shared dependencies for the `gomod` project.
 ![Shared dependencies graph](./images/shared-dependencies.jpg)
 
 ### Dependency chains
 
-Specific zoom on the dependency chains leading to the `github.com/stretchr/testify` module with
-version annotations.
+Specific zoom on the dependency chains leading to the `github.com/stretchr/testify` and
+`golang.org/x/sys` modules with version annotations.
 ![Annotated dependency chains for `github.com/stretchr/testify`](./images/dependency-chains.jpg)
 
 ### Hidden `replace`'s

@@ -1,3 +1,7 @@
 *~
 .idea/
 .vscode/
+
+# Build and test artefacts
+bin/
+c.out
