@@ -18,14 +18,14 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.DepGraph) *graphC
 
 	hashToCluster := map[string]*graphCluster{}
 	for _, node := range graph.Nodes().List() {
-		clusterHash := computeClusterHash(config, node)
+		clusterHash := computeClusterHash(config, node.Node)
 		cluster := hashToCluster[clusterHash]
 		if cluster == nil {
 			cluster = newGraphCluster(clusterHash)
 			hashToCluster[clusterHash] = cluster
 			graphClusters.clusterList = append(graphClusters.clusterList, cluster)
 		}
-		cluster.members = append(cluster.members, node)
+		cluster.members = append(cluster.members, node.Node)
 		graphClusters.clusterMap[node.Name()] = cluster
 	}
 
@@ -34,8 +34,8 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.DepGraph) *graphC
 	// is done by alphabetical order.
 	for _, cluster := range hashToCluster {
 		sort.Slice(cluster.members, func(i int, j int) bool {
-			hasDepsI := len(cluster.members[i].Successors()) > 0
-			hasDepsJ := len(cluster.members[j].Successors()) > 0
+			hasDepsI := cluster.members[i].Successors.Len() > 0
+			hasDepsJ := cluster.members[j].Successors.Len() > 0
 			if (hasDepsI && !hasDepsJ) || (!hasDepsI && hasDepsJ) {
 				return hasDepsJ
 			}
@@ -50,15 +50,14 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.DepGraph) *graphC
 
 func computeClusterHash(config *PrintConfig, node *depgraph.Node) string {
 	var hashElements []string
-	preds := node.Predecessors()
-	for _, dep := range preds {
-		hashElements = append(hashElements, nodeNameToHash(dep.Begin()))
+	for _, pred := range node.Predecessors.List() {
+		hashElements = append(hashElements, nodeNameToHash(pred.Name()))
 	}
 	sort.Strings(hashElements)
 	hash := strings.Join(hashElements, "_")
 
 	// Depending on the configuration we need to generate more or less unique cluster names.
-	if config.Style == nil || config.Style.Cluster == Off || (config.Style.Cluster == Shared && len(preds) > 1) {
+	if config.Style == nil || config.Style.Cluster == Off || (config.Style.Cluster == Shared && node.Predecessors.Len() > 1) {
 		hash += "_to_" + node.Name()
 	}
 	return hash
@@ -83,7 +82,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 	depthMap := map[string]int{}
 
 	startNode, _ := c.graph.Nodes().Get(nodeName)
-	workStack := []*depgraph.Node{startNode}
+	workStack := []*depgraph.Node{startNode.Node}
 	workMap := map[string]int{nodeName: 0}
 	pathLength := 0
 	for len(workStack) > 0 {
@@ -101,16 +100,16 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 
 		currentDepth := depthMap[curr.Name()]
 		baseEdgeLength := c.clusterMap[curr.Name()].getHeight()
-		for _, pred := range curr.Predecessors() {
-			predNode, _ := c.graph.Nodes().Get(pred.Begin())
+		for _, pred := range curr.Predecessors.List() {
+			predNode, _ := c.graph.Nodes().Get(pred.Name())
 			edgeLength := baseEdgeLength + c.clusterMap[curr.Name()].getDepCount()/20 // Give bonus space for larger numbers of edges.
-			if depthMap[pred.Begin()] >= currentDepth+edgeLength {
+			if depthMap[pred.Name()] >= currentDepth+edgeLength {
 				continue
 			}
-			depthMap[pred.Begin()] = currentDepth + edgeLength
-			if _, ok := workMap[pred.Begin()]; !ok { // Only allow one instance of a node in the queue.
-				workMap[pred.Begin()] = 0
-				workStack = append(workStack, predNode)
+			depthMap[pred.Name()] = currentDepth + edgeLength
+			if _, ok := workMap[pred.Name()]; !ok { // Only allow one instance of a node in the queue.
+				workMap[pred.Name()] = 0
+				workStack = append(workStack, predNode.Node)
 			}
 		}
 	}
@@ -184,10 +183,10 @@ func (c *graphCluster) getWidth() int {
 func (c *graphCluster) computeDepCount() int {
 	var depCount int
 	for idx := len(c.members) - 1; idx >= 0; idx-- {
-		if len(c.members[idx].Successors()) == 0 {
+		if c.members[idx].Successors.Len() == 0 {
 			break
 		}
-		depCount += len(c.members[idx].Successors())
+		depCount += c.members[idx].Successors.Len()
 	}
 	c.cachedDepCount = depCount
 	return depCount
@@ -195,7 +194,7 @@ func (c *graphCluster) computeDepCount() int {
 
 func (c *graphCluster) computeWidth() int {
 	membersWithDeps := 1
-	for membersWithDeps < len(c.members) && len(c.members[len(c.members)-1-membersWithDeps].Successors()) > 0 {
+	for membersWithDeps < len(c.members) && c.members[len(c.members)-1-membersWithDeps].Successors.Len() > 0 {
 		membersWithDeps++
 	}
 

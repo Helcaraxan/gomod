@@ -43,7 +43,7 @@ func Analyse(g *depgraph.DepGraph) *DepAnalysis {
 
 	for _, node := range g.Nodes().List() {
 		if node.Name() == g.Main().Name() {
-			directDependencyCount = len(node.Successors())
+			directDependencyCount = node.Successors.Len()
 		}
 		if timestamp := node.Timestamp(); timestamp != nil {
 			depAge := time.Since(*timestamp)
@@ -55,7 +55,7 @@ func Analyse(g *depgraph.DepGraph) *DepAnalysis {
 			ageInMonths := int(time.Since(*timestamp).Nanoseconds() / month.Nanoseconds())
 			distributionDepAge = insertIntoAgeDistribution(ageInMonths, distributionDepAge)
 		}
-		depArity := len(node.Predecessors())
+		depArity := node.Predecessors.Len()
 		if depArity > 0 {
 			totalReverseDependencies += float64(depArity)
 			countReverseDependencies++

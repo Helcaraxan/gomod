@@ -23,6 +23,9 @@
 
 **Breaking changes**
 
+- The `depgraph.DepGraph` and it's associated methods have been reworked to facilitate
+  reproducibility through determinism, meaning their signatures have changed. Both a `NodeReference`
+  and `NodeMap` type have been introduced.
 - The `depgraph.GetDepGraph()` method no longer takes a boolean to indicate what output should be
   forwarded from the invocations of underlying tools. Instead this is inferred from the level
   configured on the `logrus.Logger` instance argument that it takes. `logrus.WarnLevel` and below
