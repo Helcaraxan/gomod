@@ -1,9 +1,9 @@
 dist: bionic
+sudo: required
 
-addons:
-  apt:
-    packages:
-      - graphviz
+before_install:
+  # We can't use the APT add-on as it is currently not functional on the 'bionic' environment.
+  - sudo apt-get install -y graphviz
 
 language: go
 go_import_path: github.com/Helcaraxan/gomod

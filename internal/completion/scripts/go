@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vim: set tabstop=4 shiftwidth=4 noexpandtab
+# vim: set tabstop=4 shiftwidth=4 expandtab
 set -e -u -o pipefail
 
 # This script tests the correctness of the other scripts present in this folder.

@@ -1,0 +1,46 @@
+strict digraph {
+  node [shape=box,style=rounded]
+  start=0
+  splines=ortho
+  "github.com/Helcaraxan/gomod"
+  "github.com/stretchr/testify"
+  "golang.org/x/sys"
+  "github.com/konsorten/go-windows-terminal-sequences"
+  "github.com/sirupsen/logrus"
+  "github.com/spf13/cobra"
+  "github.com/davecgh/go-spew"
+  "github.com/pmezard/go-difflib"
+  "github.com/stretchr/objx"
+  "github.com/spf13/pflag"
+  "gopkg.in/yaml.v2"
+  "github.com/spf13/viper"
+  "github.com/hashicorp/hcl"
+  "github.com/spf13/cast"
+  "github.com/Helcaraxan/gomod" -> "github.com/konsorten/go-windows-terminal-sequences" [minlen=2]
+  "github.com/Helcaraxan/gomod" -> "github.com/sirupsen/logrus"
+  "github.com/Helcaraxan/gomod" -> "github.com/spf13/cobra"
+  "github.com/Helcaraxan/gomod" -> "github.com/stretchr/testify" [minlen=3]
+  "github.com/Helcaraxan/gomod" -> "golang.org/x/sys" [minlen=3]
+  "github.com/hashicorp/hcl" -> "github.com/davecgh/go-spew"
+  "github.com/sirupsen/logrus" -> "github.com/davecgh/go-spew" [minlen=2]
+  "github.com/sirupsen/logrus" -> "github.com/konsorten/go-windows-terminal-sequences"
+  "github.com/sirupsen/logrus" -> "github.com/pmezard/go-difflib" [minlen=2]
+  "github.com/sirupsen/logrus" -> "github.com/stretchr/objx" [minlen=2]
+  "github.com/sirupsen/logrus" -> "github.com/stretchr/testify"
+  "github.com/sirupsen/logrus" -> "golang.org/x/sys"
+  "github.com/spf13/cast" -> "github.com/davecgh/go-spew" [minlen=2]
+  "github.com/spf13/cast" -> "github.com/pmezard/go-difflib" [minlen=2]
+  "github.com/spf13/cast" -> "github.com/stretchr/testify"
+  "github.com/spf13/cobra" -> "github.com/spf13/pflag" [minlen=2]
+  "github.com/spf13/cobra" -> "github.com/spf13/viper"
+  "github.com/spf13/cobra" -> "gopkg.in/yaml.v2" [minlen=2]
+  "github.com/spf13/viper" -> "github.com/hashicorp/hcl"
+  "github.com/spf13/viper" -> "github.com/spf13/cast"
+  "github.com/spf13/viper" -> "github.com/spf13/pflag"
+  "github.com/spf13/viper" -> "github.com/stretchr/testify" [minlen=2]
+  "github.com/spf13/viper" -> "golang.org/x/sys"
+  "github.com/spf13/viper" -> "gopkg.in/yaml.v2"
+  "github.com/stretchr/testify" -> "github.com/davecgh/go-spew"
+  "github.com/stretchr/testify" -> "github.com/pmezard/go-difflib"
+  "github.com/stretchr/testify" -> "github.com/stretchr/objx"
+}

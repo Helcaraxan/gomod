@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# vim: set tabstop=4 shiftwidth=4 noexpandtab
+# vim: set tabstop=4 shiftwidth=4 expandtab
 set -e -u -o pipefail
+
+PROJECT_ROOT="$(dirname "${BASH_SOURCE[0]}")/.."
+cd "${PROJECT_ROOT}"
 
 # Run all the Go tests with the race detector and generate coverage.
 printf "\nRunning Go test...\n"
