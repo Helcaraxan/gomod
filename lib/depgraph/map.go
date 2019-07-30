@@ -2,15 +2,20 @@ package depgraph
 
 import "sort"
 
+type NodeReference struct {
+	*Node
+	VersionConstraint string
+}
+
 type NodeMap struct {
-	nodeList []*Node
-	nodeMap  map[string]*Node
+	nodeList []*NodeReference
+	nodeMap  map[string]*NodeReference
 }
 
 func NewNodeMap() *NodeMap {
 	return &NodeMap{
-		nodeList: []*Node{},
-		nodeMap:  map[string]*Node{},
+		nodeList: []*NodeReference{},
+		nodeMap:  map[string]*NodeReference{},
 	}
 }
 
@@ -20,8 +25,8 @@ func (m *NodeMap) Len() int {
 
 func (m *NodeMap) Copy() *NodeMap {
 	newMap := &NodeMap{
-		nodeMap:  map[string]*Node{},
-		nodeList: make([]*Node, len(m.nodeList)),
+		nodeMap:  map[string]*NodeReference{},
+		nodeList: make([]*NodeReference, len(m.nodeList)),
 	}
 	for _, node := range m.nodeMap {
 		newMap.nodeMap[node.Name()] = node
@@ -30,16 +35,16 @@ func (m *NodeMap) Copy() *NodeMap {
 	return newMap
 }
 
-func (m *NodeMap) Add(node *Node) {
-	if _, ok := m.nodeMap[node.Name()]; ok {
+func (m *NodeMap) Add(nodeReference *NodeReference) {
+	if _, ok := m.nodeMap[nodeReference.Name()]; ok {
 		return
 	}
 
-	m.nodeMap[node.Name()] = node
-	m.nodeList = append(m.nodeList, node)
+	m.nodeMap[nodeReference.Name()] = nodeReference
+	m.nodeList = append(m.nodeList, nodeReference)
 }
 
-func (m *NodeMap) Get(name string) (*Node, bool) {
+func (m *NodeMap) Get(name string) (*NodeReference, bool) {
 	node, ok := m.nodeMap[name]
 	return node, ok
 }
@@ -57,9 +62,9 @@ func (m *NodeMap) Delete(name string) {
 	}
 }
 
-func (m *NodeMap) List() []*Node {
+func (m *NodeMap) List() []*NodeReference {
 	sort.Slice(m.nodeList, func(i int, j int) bool { return m.nodeList[i].Name() < m.nodeList[j].Name() })
-	listCopy := make([]*Node, len(m.nodeList))
+	listCopy := make([]*NodeReference, len(m.nodeList))
 	copy(listCopy, m.nodeList)
 	return listCopy
 }

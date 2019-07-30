@@ -50,7 +50,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 		}
 	}
 	for _, node := range graph.nodes.List() {
-		if len(node.predecessors) == 0 && len(node.successors) == 0 {
+		if node.Predecessors.Len() == 0 && node.Successors.Len() == 0 {
 			graph.removeNode(node.Name())
 		}
 	}
@@ -117,14 +117,15 @@ func (g *DepGraph) addDependency(rawDependency *rawDependency) error {
 			rawDependency.endNodeName,
 		)
 	}
-	newDependency := &Dependency{
-		begin:   beginNode.Module.Path,
-		end:     endNode.Module.Path,
-		version: rawDependency.endVersion,
-	}
-	beginNode.successors = append(beginNode.successors, newDependency)
-	endNode.predecessors = append(endNode.predecessors, newDependency)
-	g.logger.Debugf("Created new dependency: %+v", newDependency)
+	beginNode.Successors.Add(&NodeReference{
+		Node:              endNode,
+		VersionConstraint: rawDependency.endVersion,
+	})
+	endNode.Predecessors.Add(&NodeReference{
+		Node:              beginNode,
+		VersionConstraint: rawDependency.endVersion,
+	})
+	g.logger.Debugf("Created new dependency from %q to %q with version %q.", beginNode.Name(), endNode.Name(), rawDependency.endVersion)
 	return nil
 }
 

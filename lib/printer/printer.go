@@ -177,8 +177,8 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 		fileContent = append(fileContent, printClusterToDot(config, cluster))
 	}
 
-	for _, node := range graph.Nodes().List() {
-		fileContent = append(fileContent, printEdgesToDot(config, node, clusters)...)
+	for _, nodeReference := range graph.Nodes().List() {
+		fileContent = append(fileContent, printEdgesToDot(config, nodeReference.Node, clusters)...)
 	}
 
 	fileContent = append(fileContent, "}")
@@ -270,7 +270,7 @@ func printClusterToDot(config *PrintConfig, cluster *graphCluster) string {
 func printNodeToDot(config *PrintConfig, node *depgraph.Node) string {
 	var nodeOptions []string
 	if config.Style != nil && config.Style.ScaleNodes {
-		scaling := math.Log2(float64(len(node.Predecessors())+len(node.Successors()))) / 5
+		scaling := math.Log2(float64(node.Predecessors.Len()+node.Successors.Len())) / 5
 		if scaling < 0.1 {
 			scaling = 0.1
 		}
@@ -299,10 +299,10 @@ func printEdgesToDot(config *PrintConfig, node *depgraph.Node, clusters *graphCl
 	clustersReached := map[int]struct{}{}
 
 	var dots []string
-	for _, dep := range node.Successors() {
-		cluster, ok := clusters.clusterMap[dep.End()]
+	for _, dep := range node.Successors.List() {
+		cluster, ok := clusters.clusterMap[dep.Name()]
 		if !ok {
-			config.Logger.Errorf("No cluster reference found for dependency '%s'.", dep.End())
+			config.Logger.Errorf("No cluster reference found for dependency '%s'.", dep.Name())
 		}
 
 		if _, ok = clustersReached[cluster.id]; ok {
@@ -310,16 +310,16 @@ func printEdgesToDot(config *PrintConfig, node *depgraph.Node, clusters *graphCl
 		}
 		clustersReached[cluster.id] = struct{}{}
 
-		target := dep.End()
+		target := dep.Name()
 		var edgeOptions []string
-		if minLength := clusters.getClusterDepthMap(dep.End())[node.Name()]; minLength > 1 {
+		if minLength := clusters.getClusterDepthMap(dep.Name())[node.Name()]; minLength > 1 {
 			edgeOptions = append(edgeOptions, fmt.Sprintf("minlen=%d", minLength))
 		}
 		if len(cluster.members) > 1 {
 			edgeOptions = append(edgeOptions, "lhead=\""+cluster.name()+"\"")
 			target = cluster.getRepresentative()
 		} else if config.Annotate { // We don't annotate an edge with version if it's leading to a cluster.
-			edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.RequiredVersion()))
+			edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.VersionConstraint))
 		}
 
 		dot := "  \"" + node.Name() + "\" -> \"" + target + "\""

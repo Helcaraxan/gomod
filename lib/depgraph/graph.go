@@ -55,7 +55,11 @@ func (g *DepGraph) Node(name string) (*Node, bool) {
 	if replaced, ok := g.replaces[name]; ok {
 		name = replaced
 	}
-	return g.nodes.Get(name)
+	nodeReference, ok := g.nodes.Get(name)
+	if !ok {
+		return nil, false
+	}
+	return nodeReference.Node, true
 }
 
 func (g *DepGraph) Nodes() *NodeMap {
@@ -66,15 +70,22 @@ func (g *DepGraph) AddNode(module *Module) (*Node, bool) {
 	if module == nil {
 		return nil, false
 	}
-	if node, ok := g.nodes.Get(module.Path); ok && node != nil {
-		return node, true
+	if nodeReference, ok := g.nodes.Get(module.Path); ok && nodeReference != nil {
+		return nodeReference.Node, true
 	}
-	newNode := &Node{Module: module}
-	g.nodes.Add(newNode)
+	newNodeReference := &NodeReference{
+		Node: &Node{
+			Module:       module,
+			Predecessors: NewNodeMap(),
+			Successors:   NewNodeMap(),
+		},
+		VersionConstraint: module.Version,
+	}
+	g.nodes.Add(newNodeReference)
 	if module.Replace != nil {
 		g.replaces[module.Replace.Path] = module.Path
 	}
-	return newNode, true
+	return newNodeReference.Node, true
 }
 
 func (g *DepGraph) Depth() int {
@@ -83,18 +94,18 @@ func (g *DepGraph) Depth() int {
 	}
 
 	var maxDepth int
-	todo := []*Node{g.main}
+	todo := []*Node{g.Main()}
 	depthMap := map[string]int{g.main.Name(): 1}
 	for len(todo) > 0 {
 		depth := depthMap[todo[0].Name()]
-		for _, succ := range todo[0].successors {
-			if depth+1 > depthMap[succ.End()] {
-				depthMap[succ.End()] = depth + 1
-				node, ok := g.nodes.Get(succ.End())
+		for _, succ := range todo[0].Successors.List() {
+			if depth+1 > depthMap[succ.Name()] {
+				depthMap[succ.Name()] = depth + 1
+				nodeReference, ok := g.nodes.Get(succ.Name())
 				if !ok {
-					g.logger.Errorf("Encountered an edge to an non-existent node '%s'.", succ.End())
+					g.logger.Errorf("Encountered an edge to an non-existent node '%s'.", succ.Name())
 				} else {
-					todo = append(todo, node)
+					todo = append(todo, nodeReference.Node)
 				}
 			}
 		}
@@ -109,8 +120,8 @@ func (g *DepGraph) Depth() int {
 // Node represents a module in a Go module's dependency graph.
 type Node struct {
 	Module       *Module
-	predecessors []*Dependency
-	successors   []*Dependency
+	Predecessors *NodeMap
+	Successors   *NodeMap
 }
 
 // Name of the module represented by this Node in the DepGraph instance.
@@ -134,51 +145,6 @@ func (n *Node) Timestamp() *time.Time {
 	return n.Module.Time
 }
 
-// Predecessors returns a slice with copies of all the incoming Dependencies for
-// this  Node. These Dependency copies can be interacted with without modifying
-// the underlying DepGraph.
-func (n *Node) Predecessors() []Dependency {
-	predecessors := make([]Dependency, 0, len(n.predecessors))
-	for _, predecessor := range n.predecessors {
-		predecessors = append(predecessors, *predecessor)
-	}
-	return predecessors
-}
-
-// Successors returns a slice with copies of all the outgoing Dependencies for
-// this  Node. These Dependency copies can be interacted with without modifying
-// the underlying DepGraph.
-func (n *Node) Successors() []Dependency {
-	successors := make([]Dependency, 0, len(n.successors))
-	for _, successor := range n.successors {
-		successors = append(successors, *successor)
-	}
-	return successors
-}
-
-// Dependency represents a dependency in a DepGraph instance.
-type Dependency struct {
-	begin   string
-	end     string
-	version string
-}
-
-// Begin returns the name of the Go module at which this Dependency originates.
-func (d *Dependency) Begin() string {
-	return d.begin
-}
-
-// End returns the name of the Go module which this Dependency requires.
-func (d *Dependency) End() string {
-	return d.end
-}
-
-// RequiredVersion is the minimal required version of the Go module which this
-// Dependency requires.
-func (d *Dependency) RequiredVersion() string {
-	return d.version
-}
-
 // DeepCopy returns a separate copy of the current dependency graph that can be
 // safely modified without affecting the original graph. The logger argument can
 // be nil in which case nothing will be logged.
@@ -193,14 +159,35 @@ func (g *DepGraph) DeepCopy() *DepGraph {
 	}
 
 	for _, node := range g.nodes.List() {
-		beginNode, _ := newGraph.Node(node.Name())
-		for _, successor := range node.successors {
-			endNode, _ := newGraph.Node(successor.End())
-			dependencyCopy := *successor
-			beginNode.successors = append(beginNode.successors, &dependencyCopy)
-			endNode.predecessors = append(endNode.predecessors, &dependencyCopy)
+		newNode, _ := newGraph.Node(node.Name())
+		for _, predecessor := range node.Predecessors.List() {
+			newPredecessor, ok := newGraph.Node(predecessor.Name())
+			if !ok {
+				g.logger.Warnf("Could not find node for '%s' listed in predecessors of '%s'.", predecessor.Name(), node.Name())
+				continue
+			}
+			newNode.Predecessors.Add(&NodeReference{
+				Node:              newPredecessor,
+				VersionConstraint: predecessor.VersionConstraint,
+			})
+		}
+		for _, successor := range node.Successors.List() {
+			newSuccessor, ok := newGraph.Node(successor.Name())
+			if !ok {
+				g.logger.Warnf("Could not find node for '%s' listed in successors of '%s'.", successor.Name(), node.Name())
+				continue
+			}
+			newNode.Successors.Add(&NodeReference{
+				Node:              newSuccessor,
+				VersionConstraint: successor.VersionConstraint,
+			})
 		}
 	}
+
+	for original, replacement := range g.replaces {
+		newGraph.replaces[original] = replacement
+	}
+
 	g.logger.Debug("Created a deep copy of graph.")
 	return newGraph
 }
