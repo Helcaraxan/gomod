@@ -1,10 +1,10 @@
-# Pull Request description template
+# Pull Request
 
-## PR checklist
+## Checklist
 
-_The higher the quality of your PR and its description, the sooner your changes are likely to get
-merged. In order to help yourself as well as the project maintainer please read the contribution
-guidelines [here](CONTRIBUTING.md)._
+<!-- The higher the quality of your PR and its description, the sooner your changes are likely to
+get merged. In order to help yourself as well as the project maintainer please read the contribution
+guideline -->
 
 - [ ] Changes are lint-free. You can check this by running `./ci/lint.sh` or by opening a draft PR
       to trigger the continuous integration pipeline.
