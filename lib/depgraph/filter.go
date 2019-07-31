@@ -20,8 +20,8 @@ func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
 // edges that prevent the use of the dependency at that given version due to the Go module's
 // minimal version selection.
 type DependencyFilter struct {
-	Dependency string
-	Version    string
+	Module  string
+	Version string
 }
 
 // SubGraph returns a copy of the dependency graph with all nodes that are part of dependency chains
@@ -48,37 +48,42 @@ func (g *DepGraph) SubGraph(filters []*DependencyFilter) *DepGraph {
 	return subGraph
 }
 
+func (f *DependencyFilter) matchesFilter(dependency *NodeReference) bool {
+	if f.Version == "" {
+		return true
+	}
+	return moduleMoreRecentThan(dependency.VersionConstraint, f.Version)
+}
+
 func (g *DepGraph) applyFilter(filter *DependencyFilter, keep map[string]struct{}) map[string]struct{} {
-	filterNode, ok := g.Node(filter.Dependency)
+	filterNode, ok := g.Node(filter.Module)
 	if !ok {
 		return nil
 	}
-	filter.Dependency = filterNode.Module.Path
 
-	keep[filter.Dependency] = struct{}{}
+	if keep == nil {
+		keep = map[string]struct{}{}
+	}
+	keep[filterNode.Name()] = struct{}{}
 
-	var todo []string
+	g.logger.Debugf("Marking subgraph for dependency %q.", filter.Module)
 	if filter.Version != "" {
-		g.logger.Debugf("Marking relevant subgraph for dependency %q at version %q.", filter.Dependency, filter.Version)
-		node, _ := g.Dependencies.Get(filter.Dependency)
-		for _, pred := range node.Predecessors.List() {
-			_, visited := keep[pred.Name()]
-			if moduleMoreRecentThan(pred.VersionConstraint, filter.Version) && pred.Name() != g.Main.Name() && !visited {
-				todo = append(todo, pred.Name())
-				keep[pred.Name()] = struct{}{}
-			}
+		g.logger.Debugf("Only considering dependencies preventing use of version %q.", filter.Version)
+	}
+	var todo []*NodeReference
+	for _, predecessor := range filterNode.Predecessors.List() {
+		if filter.matchesFilter(predecessor) {
+			todo = append(todo, predecessor)
+			keep[predecessor.Name()] = struct{}{}
 		}
-	} else {
-		g.logger.Debugf("Marking relevant subgraph for dependency %q.", filter.Dependency)
-		todo = []string{filter.Dependency}
 	}
 
 	for len(todo) > 0 {
-		node, _ := g.Dependencies.Get(todo[0])
-		for _, pred := range node.Predecessors.List() {
-			if _, ok := keep[pred.Name()]; !ok {
-				keep[pred.Name()] = struct{}{}
-				todo = append(todo, pred.Name())
+		node := todo[0]
+		for _, predecessor := range node.Predecessors.List() {
+			if _, ok := keep[predecessor.Name()]; !ok {
+				keep[predecessor.Name()] = struct{}{}
+				todo = append(todo, predecessor)
 			}
 		}
 		todo = todo[1:]
@@ -118,21 +123,11 @@ func (g *DepGraph) removeNode(name string) {
 	if !ok {
 		return
 	}
-	for _, edge := range node.Successors.List() {
-		g.removeEdge(node.Name(), edge.Name())
+	for _, successor := range node.Successors.List() {
+		successor.Predecessors.Delete(node.Name())
 	}
-	for _, edge := range node.Predecessors.List() {
-		g.removeEdge(edge.Name(), node.Name())
+	for _, predecessor := range node.Predecessors.List() {
+		predecessor.Successors.Delete(node.Name())
 	}
 	g.Dependencies.Delete(name)
-}
-
-func (g *DepGraph) removeEdge(start string, end string) {
-	g.logger.Debugf("Removing any edge between %q and %q.", start, end)
-	if startNode, startOk := g.Node(start); startOk {
-		startNode.Successors.Delete(end)
-	}
-	if endNode, endOk := g.Node(end); endOk {
-		endNode.Predecessors.Delete(start)
-	}
 }
