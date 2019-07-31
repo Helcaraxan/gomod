@@ -4,6 +4,14 @@
 
 **High-level overview**
 
+**New features**
+
+**Breaking changes**
+
+## 0.4.0
+
+**High-level overview**
+
 - The presence of the `.dot` tool is now only required when specifying the `-V | --visual` flag to
   `gomod graph`.
 - Support for node clustering in generated `.dot` files.
