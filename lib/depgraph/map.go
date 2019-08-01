@@ -3,7 +3,7 @@ package depgraph
 import "sort"
 
 type NodeReference struct {
-	*Node
+	*Dependency
 	VersionConstraint string
 }
 
