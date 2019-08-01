@@ -13,6 +13,7 @@
 - The `depgraph.DepGraph` type's `Node()` and `Main()` methods have been removed in favour of direct
   access to fields with the same names that are now exported and have the same types as the return
   values of the now removed methods.
+- The `depgraph.DependencyFilter` type's `Dependency` field has been renamed to `Module`.
 
 ## 0.4.0
 

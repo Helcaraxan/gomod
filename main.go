@@ -208,8 +208,8 @@ func runGraphCmd(args *graphArgs) error {
 		for _, dependency := range args.dependencies {
 			filter := strings.Split(dependency+"@", "@")
 			versionFilter = append(versionFilter, &depgraph.DependencyFilter{
-				Dependency: filter[0],
-				Version:    filter[1],
+				Module:  filter[0],
+				Version: filter[1],
 			})
 		}
 		graph = graph.SubGraph(versionFilter)
