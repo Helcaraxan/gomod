@@ -17,15 +17,15 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.DepGraph) *graphC
 	}
 
 	hashToCluster := map[string]*graphCluster{}
-	for _, node := range graph.Nodes().List() {
-		clusterHash := computeClusterHash(config, node.Node)
+	for _, node := range graph.Dependencies.List() {
+		clusterHash := computeClusterHash(config, node.Dependency)
 		cluster := hashToCluster[clusterHash]
 		if cluster == nil {
 			cluster = newGraphCluster(clusterHash)
 			hashToCluster[clusterHash] = cluster
 			graphClusters.clusterList = append(graphClusters.clusterList, cluster)
 		}
-		cluster.members = append(cluster.members, node.Node)
+		cluster.members = append(cluster.members, node.Dependency)
 		graphClusters.clusterMap[node.Name()] = cluster
 	}
 
@@ -48,7 +48,7 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.DepGraph) *graphC
 	return graphClusters
 }
 
-func computeClusterHash(config *PrintConfig, node *depgraph.Node) string {
+func computeClusterHash(config *PrintConfig, node *depgraph.Dependency) string {
 	var hashElements []string
 	for _, pred := range node.Predecessors.List() {
 		hashElements = append(hashElements, nodeNameToHash(pred.Name()))
@@ -81,8 +81,8 @@ func (c *graphClusters) getClusterDepthMap(nodeName string) map[string]int {
 func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 	depthMap := map[string]int{}
 
-	startNode, _ := c.graph.Nodes().Get(nodeName)
-	workStack := []*depgraph.Node{startNode.Node}
+	startNode, _ := c.graph.Dependencies.Get(nodeName)
+	workStack := []*depgraph.Dependency{startNode.Dependency}
 	workMap := map[string]int{nodeName: 0}
 	pathLength := 0
 	for len(workStack) > 0 {
@@ -101,7 +101,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 		currentDepth := depthMap[curr.Name()]
 		baseEdgeLength := c.clusterMap[curr.Name()].getHeight()
 		for _, pred := range curr.Predecessors.List() {
-			predNode, _ := c.graph.Nodes().Get(pred.Name())
+			predNode, _ := c.graph.Dependencies.Get(pred.Name())
 			edgeLength := baseEdgeLength + c.clusterMap[curr.Name()].getDepCount()/20 // Give bonus space for larger numbers of edges.
 			if depthMap[pred.Name()] >= currentDepth+edgeLength {
 				continue
@@ -109,7 +109,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 			depthMap[pred.Name()] = currentDepth + edgeLength
 			if _, ok := workMap[pred.Name()]; !ok { // Only allow one instance of a node in the queue.
 				workMap[pred.Name()] = 0
-				workStack = append(workStack, predNode.Node)
+				workStack = append(workStack, predNode.Dependency)
 			}
 		}
 	}
@@ -120,7 +120,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 type graphCluster struct {
 	id      int
 	hash    string
-	members []*depgraph.Node
+	members []*depgraph.Dependency
 
 	cachedDepCount int
 	cachedWidth    int

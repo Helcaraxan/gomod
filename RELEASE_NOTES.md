@@ -8,6 +8,12 @@
 
 **Breaking changes**
 
+- The `depgraph.Node` type has been renamed to `depgraph.Dependency` after the pre-existing type of
+  that name has been removed in the previous release.
+- The `depgraph.DepGraph` type's `Node()` and `Main()` methods have been removed in favour of direct
+  access to fields with the same names that are now exported and have the same types as the return
+  values of the now removed methods.
+
 ## 0.4.0
 
 **High-level overview**

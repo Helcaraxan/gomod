@@ -4,7 +4,7 @@ package depgraph
 // that are not part of a chain leading to a node with more than two predecessors.
 func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
 	g.logger.Debug("Pruning dependencies that are not shared between multiple modules.")
-	return g.prune(func(node *Node) bool {
+	return g.prune(func(node *Dependency) bool {
 		prune := node.Successors.Len() == 0 && node.Predecessors.Len() < 2
 		if prune {
 			g.logger.Debugf("Prune %+v.", node)
@@ -39,7 +39,7 @@ func (g *DepGraph) SubGraph(filters []*DependencyFilter) *DepGraph {
 
 	g.logger.Debug("Pruning the dependency graph of irrelevant nodes.")
 	subGraph := g.DeepCopy()
-	for _, node := range g.nodes.List() {
+	for _, node := range g.Dependencies.List() {
 		if _, ok := keep[node.Name()]; !ok {
 			g.logger.Debugf("Pruning %q.", node.Name())
 			subGraph.removeNode(node.Name())
@@ -60,10 +60,10 @@ func (g *DepGraph) applyFilter(filter *DependencyFilter, keep map[string]struct{
 	var todo []string
 	if filter.Version != "" {
 		g.logger.Debugf("Marking relevant subgraph for dependency %q at version %q.", filter.Dependency, filter.Version)
-		node, _ := g.nodes.Get(filter.Dependency)
+		node, _ := g.Dependencies.Get(filter.Dependency)
 		for _, pred := range node.Predecessors.List() {
 			_, visited := keep[pred.Name()]
-			if moduleMoreRecentThan(pred.VersionConstraint, filter.Version) && pred.Name() != g.Main().Name() && !visited {
+			if moduleMoreRecentThan(pred.VersionConstraint, filter.Version) && pred.Name() != g.Main.Name() && !visited {
 				todo = append(todo, pred.Name())
 				keep[pred.Name()] = struct{}{}
 			}
@@ -74,7 +74,7 @@ func (g *DepGraph) applyFilter(filter *DependencyFilter, keep map[string]struct{
 	}
 
 	for len(todo) > 0 {
-		node, _ := g.nodes.Get(todo[0])
+		node, _ := g.Dependencies.Get(todo[0])
 		for _, pred := range node.Predecessors.List() {
 			if _, ok := keep[pred.Name()]; !ok {
 				keep[pred.Name()] = struct{}{}
@@ -86,13 +86,13 @@ func (g *DepGraph) applyFilter(filter *DependencyFilter, keep map[string]struct{
 	return keep
 }
 
-func (g *DepGraph) prune(pruneFunc func(*Node) bool) *DepGraph {
+func (g *DepGraph) prune(pruneFunc func(*Dependency) bool) *DepGraph {
 	prunedGraph := g.DeepCopy()
 	var done bool
 	for !done {
 		done = true
-		for _, nodeReference := range prunedGraph.nodes.List() {
-			if pruneFunc(nodeReference.Node) {
+		for _, nodeReference := range prunedGraph.Dependencies.List() {
+			if pruneFunc(nodeReference.Dependency) {
 				done = false
 				prunedGraph.removeNode(nodeReference.Name())
 			}
@@ -114,7 +114,7 @@ func (g *DepGraph) removeNode(name string) {
 		}
 	}
 
-	node, ok := g.nodes.Get(name)
+	node, ok := g.Dependencies.Get(name)
 	if !ok {
 		return
 	}
@@ -124,7 +124,7 @@ func (g *DepGraph) removeNode(name string) {
 	for _, edge := range node.Predecessors.List() {
 		g.removeEdge(edge.Name(), node.Name())
 	}
-	g.nodes.Delete(name)
+	g.Dependencies.Delete(name)
 }
 
 func (g *DepGraph) removeEdge(start string, end string) {
