@@ -2,69 +2,69 @@ package depgraph
 
 import "sort"
 
-type NodeReference struct {
+type DependencyReference struct {
 	*Dependency
 	VersionConstraint string
 }
 
-type NodeMap struct {
-	nodeList []*NodeReference
-	nodeMap  map[string]*NodeReference
+type DependencyMap struct {
+	dependencyList []*DependencyReference
+	dependencyMap  map[string]*DependencyReference
 }
 
-func NewNodeMap() *NodeMap {
-	return &NodeMap{
-		nodeList: []*NodeReference{},
-		nodeMap:  map[string]*NodeReference{},
+func NewDependencyMap() *DependencyMap {
+	return &DependencyMap{
+		dependencyList: []*DependencyReference{},
+		dependencyMap:  map[string]*DependencyReference{},
 	}
 }
 
-func (m *NodeMap) Len() int {
-	return len(m.nodeMap)
+func (m *DependencyMap) Len() int {
+	return len(m.dependencyMap)
 }
 
-func (m *NodeMap) Copy() *NodeMap {
-	newMap := &NodeMap{
-		nodeMap:  map[string]*NodeReference{},
-		nodeList: make([]*NodeReference, len(m.nodeList)),
+func (m *DependencyMap) Copy() *DependencyMap {
+	newMap := &DependencyMap{
+		dependencyMap:  map[string]*DependencyReference{},
+		dependencyList: make([]*DependencyReference, len(m.dependencyList)),
 	}
-	for _, node := range m.nodeMap {
-		newMap.nodeMap[node.Name()] = node
+	for _, dependency := range m.dependencyMap {
+		newMap.dependencyMap[dependency.Name()] = dependency
 	}
-	copy(newMap.nodeList, m.nodeList)
+	copy(newMap.dependencyList, m.dependencyList)
 	return newMap
 }
 
-func (m *NodeMap) Add(nodeReference *NodeReference) {
-	if _, ok := m.nodeMap[nodeReference.Name()]; ok {
+func (m *DependencyMap) Add(dependencyReference *DependencyReference) {
+	if _, ok := m.dependencyMap[dependencyReference.Name()]; ok {
 		return
 	}
 
-	m.nodeMap[nodeReference.Name()] = nodeReference
-	m.nodeList = append(m.nodeList, nodeReference)
+	m.dependencyMap[dependencyReference.Name()] = dependencyReference
+	m.dependencyList = append(m.dependencyList, dependencyReference)
 }
 
-func (m *NodeMap) Get(name string) (*NodeReference, bool) {
-	node, ok := m.nodeMap[name]
-	return node, ok
+func (m *DependencyMap) Get(name string) (*DependencyReference, bool) {
+	dependency, ok := m.dependencyMap[name]
+	return dependency, ok
 }
 
-func (m *NodeMap) Delete(name string) {
-	if _, ok := m.nodeMap[name]; !ok {
+func (m *DependencyMap) Delete(name string) {
+	if _, ok := m.dependencyMap[name]; !ok {
 		return
 	}
-	delete(m.nodeMap, name)
-	for idx := range m.nodeList {
-		if m.nodeList[idx].Name() == name {
-			m.nodeList = append(m.nodeList[:idx], m.nodeList[idx+1:]...)
+	delete(m.dependencyMap, name)
+	for idx := range m.dependencyList {
+		if m.dependencyList[idx].Name() == name {
+			m.dependencyList = append(m.dependencyList[:idx], m.dependencyList[idx+1:]...)
 			break
 		}
 	}
 }
 
-func (m *NodeMap) List() []*NodeReference {
-	sort.Slice(m.nodeList, func(i int, j int) bool { return m.nodeList[i].Name() < m.nodeList[j].Name() })
-	listCopy := make([]*NodeReference, len(m.nodeList))
-	copy(listCopy, m.nodeList)
+func (m *DependencyMap) List() []*DependencyReference {
+	sort.Slice(m.dependencyList, func(i int, j int) bool { return m.dependencyList[i].Name() < m.dependencyList[j].Name() })
+	listCopy := make([]*DependencyReference, len(m.dependencyList))
+	copy(listCopy, m.dependencyList)
 	return listCopy
 }

@@ -8,82 +8,82 @@ import (
 )
 
 func TestMapNew(t *testing.T) {
-	newMap := NewNodeMap()
-	assert.NotNil(t, newMap.nodeMap)
-	assert.NotNil(t, newMap.nodeList)
+	newMap := NewDependencyMap()
+	assert.NotNil(t, newMap.dependencyMap)
+	assert.NotNil(t, newMap.dependencyList)
 }
 
 func TestMapCopy(t *testing.T) {
-	nodeA := &Dependency{Module: &Module{Path: "node_a"}}
-	nodeB := &Dependency{Module: &Module{Path: "node_b"}}
+	dependencyA := &Dependency{Module: &Module{Path: "dependency_a"}}
+	dependencyB := &Dependency{Module: &Module{Path: "dependency_b"}}
 
-	originalMap := NewNodeMap()
-	originalMap.Add(&NodeReference{Dependency: nodeA})
+	originalMap := NewDependencyMap()
+	originalMap.Add(&DependencyReference{Dependency: dependencyA})
 	copiedMap := originalMap.Copy()
-	originalMap.Add(&NodeReference{Dependency: nodeB})
+	originalMap.Add(&DependencyReference{Dependency: dependencyB})
 
-	_, okA := originalMap.Get("node_a")
-	_, okB := originalMap.Get("node_b")
+	_, okA := originalMap.Get("dependency_a")
+	_, okB := originalMap.Get("dependency_b")
 	assert.True(t, okA)
 	assert.True(t, okB)
 
-	_, okA = copiedMap.Get("node_a")
-	_, okB = copiedMap.Get("node_b")
+	_, okA = copiedMap.Get("dependency_a")
+	_, okB = copiedMap.Get("dependency_b")
 	assert.True(t, okA)
 	assert.False(t, okB)
 }
 
 func TestMapAdd(t *testing.T) {
-	nodeA := &Dependency{Module: &Module{Path: "node_a"}}
+	dependencyA := &Dependency{Module: &Module{Path: "dependency_a"}}
 
-	newMap := NewNodeMap()
-	newMap.Add(&NodeReference{Dependency: nodeA})
-	_, ok := newMap.Get("node_a")
+	newMap := NewDependencyMap()
+	newMap.Add(&DependencyReference{Dependency: dependencyA})
+	_, ok := newMap.Get("dependency_a")
 	assert.True(t, ok)
-	newMap.Add(&NodeReference{Dependency: nodeA})
-	_, ok = newMap.Get("node_a")
+	newMap.Add(&DependencyReference{Dependency: dependencyA})
+	_, ok = newMap.Get("dependency_a")
 	assert.True(t, ok)
 }
 
 func TestMapDelete(t *testing.T) {
-	nodeA := &Dependency{Module: &Module{Path: "node_a"}}
+	dependencyA := &Dependency{Module: &Module{Path: "dependency_a"}}
 
-	newMap := NewNodeMap()
+	newMap := NewDependencyMap()
 
-	newMap.Delete("node_a")
+	newMap.Delete("dependency_a")
 
-	newMap.Add(&NodeReference{Dependency: nodeA})
-	newMap.Delete("node_a")
-	assert.NotContains(t, newMap.List(), &Dependency{Module: &Module{Path: "node_a"}})
+	newMap.Add(&DependencyReference{Dependency: dependencyA})
+	newMap.Delete("dependency_a")
+	assert.NotContains(t, newMap.List(), &Dependency{Module: &Module{Path: "dependency_a"}})
 }
 
 func TestMapLen(t *testing.T) {
-	nodeA := &Dependency{Module: &Module{Path: "node_a"}}
-	nodeB := &Dependency{Module: &Module{Path: "node_b"}}
+	dependencyA := &Dependency{Module: &Module{Path: "dependency_a"}}
+	dependencyB := &Dependency{Module: &Module{Path: "dependency_b"}}
 
-	newMap := NewNodeMap()
+	newMap := NewDependencyMap()
 	assert.Equal(t, 0, newMap.Len())
 
-	newMap.Add(&NodeReference{Dependency: nodeA})
+	newMap.Add(&DependencyReference{Dependency: dependencyA})
 	assert.Equal(t, 1, newMap.Len())
 
-	newMap.Add(&NodeReference{Dependency: nodeA})
+	newMap.Add(&DependencyReference{Dependency: dependencyA})
 	assert.Equal(t, 1, newMap.Len())
 
-	newMap.Add(&NodeReference{Dependency: nodeB})
+	newMap.Add(&DependencyReference{Dependency: dependencyB})
 	assert.Equal(t, 2, newMap.Len())
 
-	newMap.Delete("node_a")
+	newMap.Delete("dependency_a")
 	assert.Equal(t, 1, newMap.Len())
 }
 
 func TestMapList(t *testing.T) {
-	nodeA := &Dependency{Module: &Module{Path: "node_a"}}
-	nodeB := &Dependency{Module: &Module{Path: "node_b"}}
+	dependencyA := &Dependency{Module: &Module{Path: "dependency_a"}}
+	dependencyB := &Dependency{Module: &Module{Path: "dependency_b"}}
 
-	newMap := NewNodeMap()
-	newMap.Add(&NodeReference{Dependency: nodeB})
-	newMap.Add(&NodeReference{Dependency: nodeA})
+	newMap := NewDependencyMap()
+	newMap.Add(&DependencyReference{Dependency: dependencyB})
+	newMap.Add(&DependencyReference{Dependency: dependencyA})
 
 	list := newMap.List()
 	isSorted := sort.SliceIsSorted(list, func(i int, j int) bool { return list[i].Name() < list[j].Name() })

@@ -49,9 +49,9 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 			return nil, err
 		}
 	}
-	for _, node := range graph.Dependencies.List() {
-		if node.Predecessors.Len() == 0 && node.Successors.Len() == 0 {
-			graph.removeNode(node.Name())
+	for _, dependency := range graph.Dependencies.List() {
+		if dependency.Predecessors.Len() == 0 && dependency.Successors.Len() == 0 {
+			graph.RemoveDependency(dependency.Name())
 		}
 	}
 	return graph, nil
@@ -94,48 +94,50 @@ func getSelectedModules(logger *logrus.Logger) (*Module, map[string]*Module, err
 }
 
 func (g *DepGraph) addDependency(rawDependency *rawDependency) error {
-	beginNode, ok := g.Node(rawDependency.beginModule.Path)
+	beginDependency, ok := g.GetDependency(rawDependency.beginModule.Path)
 	if !ok {
-		if beginNode, ok = g.AddNode(rawDependency.beginModule); !ok {
-			return fmt.Errorf("could not create node based on %+v", beginNode.Module)
+		if beginDependency = g.AddDependency(rawDependency.beginModule); beginDependency == nil {
+			return fmt.Errorf("could not create dependency based on %+v", rawDependency.beginModule)
 		}
-		g.logger.Debugf("Created new node %q: %+v", rawDependency.beginModule.Path, beginNode)
+		g.logger.Debugf("Created new dependency %q: %+v", rawDependency.beginModule.Path, beginDependency)
 	}
-	endNode, ok := g.Node(rawDependency.endModule.Path)
+	endDependency, ok := g.GetDependency(rawDependency.endModule.Path)
 	if !ok {
-		if endNode, ok = g.AddNode(rawDependency.endModule); !ok {
-			return fmt.Errorf("could not create node based on %+v", beginNode.Module)
+		if endDependency = g.AddDependency(rawDependency.endModule); endDependency == nil {
+			return fmt.Errorf("could not create dependency based on %+v", rawDependency.endModule)
 		}
-		g.logger.Debugf("Created new node %q: %+v", rawDependency.endModule.Path, endNode)
+		g.logger.Debugf("Created new dependency %q: %+v", rawDependency.endModule.Path, endDependency)
 	}
 
-	if len(beginNode.SelectedVersion()) != 0 && beginNode.Module.Replace == nil && beginNode.SelectedVersion() != rawDependency.beginVersion {
+	if len(beginDependency.SelectedVersion()) != 0 &&
+		beginDependency.Module.Replace == nil &&
+		beginDependency.SelectedVersion() != rawDependency.beginVersion {
 		g.logger.Warnf(
 			"Encountered unexpected version %q for dependency of %q on %q.",
 			rawDependency.beginVersion,
-			rawDependency.begineNodeName,
-			rawDependency.endNodeName,
+			rawDependency.begineName,
+			rawDependency.endName,
 		)
 	}
-	beginNode.Successors.Add(&NodeReference{
-		Dependency:        endNode,
+	beginDependency.Successors.Add(&DependencyReference{
+		Dependency:        endDependency,
 		VersionConstraint: rawDependency.endVersion,
 	})
-	endNode.Predecessors.Add(&NodeReference{
-		Dependency:        beginNode,
+	endDependency.Predecessors.Add(&DependencyReference{
+		Dependency:        beginDependency,
 		VersionConstraint: rawDependency.endVersion,
 	})
-	g.logger.Debugf("Created new dependency from %q to %q with version %q.", beginNode.Name(), endNode.Name(), rawDependency.endVersion)
+	g.logger.Debugf("Created new dependency from %q to %q with version %q.", beginDependency.Name(), endDependency.Name(), rawDependency.endVersion)
 	return nil
 }
 
 type rawDependency struct {
-	begineNodeName string
-	beginVersion   string
-	beginModule    *Module
-	endNodeName    string
-	endVersion     string
-	endModule      *Module
+	begineName   string
+	beginVersion string
+	beginModule  *Module
+	endName      string
+	endVersion   string
+	endModule    *Module
 }
 
 func (g *DepGraph) parseDependency(depString string, modules map[string]*Module) (*rawDependency, bool) {
@@ -145,24 +147,24 @@ func (g *DepGraph) parseDependency(depString string, modules map[string]*Module)
 		return nil, false
 	}
 
-	beginNodeName, beginVersion := depContent[1], depContent[2]
-	endNodeName, endVersion := depContent[3], depContent[4]
+	beginName, beginVersion := depContent[1], depContent[2]
+	endName, endVersion := depContent[3], depContent[4]
 
-	beginModule := modules[beginNodeName]
-	endModule := modules[endNodeName]
+	beginModule := modules[beginName]
+	endModule := modules[endName]
 	if beginModule == nil || endModule == nil {
-		g.logger.Warnf("Encountered a dependency edge starting or ending at an unknown module %q -> %q.", beginNodeName, endNodeName)
+		g.logger.Warnf("Encountered a dependency edge starting or ending at an unknown module %q -> %q.", beginName, endName)
 		return nil, false
 	} else if beginVersion != beginModule.Version {
-		g.logger.Debugf("Skipping edge from %q at %q to %q as we are not using that version.", beginNodeName, beginVersion, endNodeName)
+		g.logger.Debugf("Skipping edge from %q at %q to %q as we are not using that version.", beginName, beginVersion, endName)
 		return nil, false
 	}
 	return &rawDependency{
-		begineNodeName: beginNodeName,
-		beginVersion:   beginVersion,
-		beginModule:    beginModule,
-		endNodeName:    endNodeName,
-		endVersion:     endVersion,
-		endModule:      endModule,
+		begineName:   beginName,
+		beginVersion: beginVersion,
+		beginModule:  beginModule,
+		endName:      endName,
+		endVersion:   endVersion,
+		endModule:    endModule,
 	}, true
 }
