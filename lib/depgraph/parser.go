@@ -1,9 +1,6 @@
 package depgraph
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
@@ -12,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/Helcaraxan/gomod/lib/internal/util"
+	"github.com/Helcaraxan/gomod/lib/modules"
 )
 
 var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
@@ -26,7 +24,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 	}
 	logger.Debug("Creating dependency graph.")
 
-	mainModule, modules, err := getSelectedModules(logger)
+	mainModule, moduleInfo, err := modules.RetrieveModuleInformation(logger)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +39,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 
 	for _, depString := range strings.Split(strings.TrimSpace(string(rawDeps)), "\n") {
 		graph.logger.Debugf("Parsing dependency: %s", depString)
-		rawDep, ok := graph.parseDependency(depString, modules)
+		rawDep, ok := graph.parseDependency(depString, moduleInfo)
 		if !ok {
 			continue
 		}
@@ -55,42 +53,6 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 		}
 	}
 	return graph, nil
-}
-
-func getSelectedModules(logger *logrus.Logger) (*Module, map[string]*Module, error) {
-	logger.Debug("Retrieving module information via 'go list'")
-	raw, _, err := util.RunCommand(logger, "go", "list", "-json", "-m", "all")
-	if err != nil {
-		return nil, nil, err
-	}
-	raw = bytes.ReplaceAll(bytes.TrimSpace(raw), []byte("\n}\n"), []byte("\n},\n"))
-	raw = append([]byte("[\n"), raw...)
-	raw = append(raw, []byte("\n]")...)
-
-	var moduleList []*Module
-	if err = json.Unmarshal(raw, &moduleList); err != nil {
-		return nil, nil, fmt.Errorf("Unable to retrieve information from 'go list': %v", err)
-	}
-
-	var main *Module
-	modules := map[string]*Module{}
-	for idx, module := range moduleList {
-		if module.Error != nil {
-			logger.Warnf("Unable to retrieve information for module %q: %s", module.Path, module.Error.Err)
-		}
-
-		if module.Main {
-			main = module
-		}
-		modules[module.Path] = moduleList[idx]
-		if module.Replace != nil {
-			modules[module.Replace.Path] = moduleList[idx]
-		}
-	}
-	if main == nil || len(main.Path) == 0 {
-		return nil, nil, errors.New("could not determine main module")
-	}
-	return main, modules, nil
 }
 
 func (g *DepGraph) addDependency(rawDependency *rawDependency) error {
@@ -134,13 +96,13 @@ func (g *DepGraph) addDependency(rawDependency *rawDependency) error {
 type rawDependency struct {
 	begineName   string
 	beginVersion string
-	beginModule  *Module
+	beginModule  *modules.Module
 	endName      string
 	endVersion   string
-	endModule    *Module
+	endModule    *modules.Module
 }
 
-func (g *DepGraph) parseDependency(depString string, modules map[string]*Module) (*rawDependency, bool) {
+func (g *DepGraph) parseDependency(depString string, moduleMap map[string]*modules.Module) (*rawDependency, bool) {
 	depContent := depRE.FindStringSubmatch(depString)
 	if len(depContent) == 0 {
 		g.logger.Warnf("Skipping ill-formed line in 'go mod graph' output: %s", depString)
@@ -150,8 +112,8 @@ func (g *DepGraph) parseDependency(depString string, modules map[string]*Module)
 	beginName, beginVersion := depContent[1], depContent[2]
 	endName, endVersion := depContent[3], depContent[4]
 
-	beginModule := modules[beginName]
-	endModule := modules[endName]
+	beginModule := moduleMap[beginName]
+	endModule := moduleMap[endName]
 	if beginModule == nil || endModule == nil {
 		g.logger.Warnf("Encountered a dependency edge starting or ending at an unknown module %q -> %q.", beginName, endName)
 		return nil, false

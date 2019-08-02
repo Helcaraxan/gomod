@@ -5,25 +5,9 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/Helcaraxan/gomod/lib/modules"
 )
-
-// Module represents the data returned by 'go list -m --json' for a Go module.
-type Module struct {
-	Main    bool         // is this the main module?
-	Path    string       // module path
-	Replace *Module      // replaced by this module
-	Version string       // module version
-	Time    *time.Time   // time version was created
-	Update  *Module      // available update, if any (with -u)
-	GoMod   string       // the path to this module's go.mod file
-	Error   *ModuleError // error loading module
-}
-
-// ModuleError represents the data that is returned whenever Go tooling was unable to load a given
-// module's information.
-type ModuleError struct {
-	Err string // the error itself
-}
 
 // DepGraph represents a Go module's dependency graph.
 type DepGraph struct {
@@ -36,7 +20,7 @@ type DepGraph struct {
 
 // NewGraph returns a new DepGraph instance which will use the specified
 // logger for writing log output. If nil a null-logger will be used instead.
-func NewGraph(logger *logrus.Logger, main *Module) *DepGraph {
+func NewGraph(logger *logrus.Logger, main *modules.Module) *DepGraph {
 	if logger == nil {
 		logger = logrus.New()
 		logger.SetOutput(ioutil.Discard)
@@ -61,7 +45,7 @@ func (g *DepGraph) GetDependency(name string) (*Dependency, bool) {
 	return dependencyReference.Dependency, true
 }
 
-func (g *DepGraph) AddDependency(module *Module) *Dependency {
+func (g *DepGraph) AddDependency(module *modules.Module) *Dependency {
 	if module == nil {
 		return nil
 	} else if dependencyReference, ok := g.Dependencies.Get(module.Path); ok && dependencyReference != nil {
@@ -111,7 +95,7 @@ func (g *DepGraph) RemoveDependency(name string) {
 
 // Dependency represents a module in a Go module's dependency graph.
 type Dependency struct {
-	Module       *Module
+	Module       *modules.Module
 	Predecessors *DependencyMap
 	Successors   *DependencyMap
 }
