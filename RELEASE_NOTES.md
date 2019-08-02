@@ -4,15 +4,30 @@
 
 **High-level overview**
 
+- A significant number of types, methods and functions have been renamed in preparation for a
+  future `v1.0.0` release. These renames aim to create a more coherent interface for the
+  functionalities exposed by the `depgraph` package.
+
 **New features**
+
+- The `depgraph.DepGraph` type now exposes a `RemoveDependency` method allowing to remove a given
+  module including any edges starting or ending at this module.
 
 **Breaking changes**
 
-- The `depgraph.Node` type has been renamed to `depgraph.Dependency` after the pre-existing type of
-  that name has been removed in the previous release.
-- The `depgraph.DepGraph` type's `Node()` and `Main()` methods have been removed in favour of direct
-  access to fields with the same names that are now exported and have the same types as the return
-  values of the now removed methods.
+- Type renames:
+  - `depgraph.Node` has been renamed to `depgraph.Dependency` after the pre-existing type of that
+    name has been removed in the `v0.4.0` release.
+  - `depgraph.NodeReference` has been renamed to `depgraph.DependencyReference`.
+  - `depgraph.NodeMap` has been renamed to `depgraph.DependencyMap` and the associated
+    `NewNodeMap()` function has accordingly been renamed to `NewDependencyMap()`.
+- The `depgraph.DepGraph` type's methods have changed:
+  - `Main()` has been removed in favour of direct access to a field with the same name.
+  - `Nodes()` has been removed in favour of direct access to a field named `Dependencies`.
+  - `Node()` has been renamed to `GetDependency()`.
+  - `AddNode()` has been renamed to `AddDependency` and now only returns a `*Dependency` instead of
+    also a `bool`. The returned `value` is `nil` if the module passed as parameter could not be
+    added.
 - The `depgraph.DependencyFilter` type's `Dependency` field has been renamed to `Module`.
 
 ## 0.4.0

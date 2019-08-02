@@ -103,10 +103,10 @@ func init() {
 		Path:  "test/module",
 		GoMod: filepath.Join("testdata", "mainModule", "go.mod"),
 	})
-	testGraph.AddNode(moduleA)
-	testGraph.AddNode(moduleB)
-	testGraph.AddNode(moduleC)
-	testGraph.AddNode(moduleD)
+	testGraph.AddDependency(moduleA)
+	testGraph.AddDependency(moduleB)
+	testGraph.AddDependency(moduleC)
+	testGraph.AddDependency(moduleD)
 }
 
 func Test_ParseReplaces(t *testing.T) {
