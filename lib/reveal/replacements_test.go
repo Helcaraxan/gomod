@@ -10,11 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Helcaraxan/gomod/lib/depgraph"
+	"github.com/Helcaraxan/gomod/lib/modules"
 )
 
 var (
 	replaceA = Replacement{
-		Offender: &depgraph.Module{Path: "offender"},
+		Offender: &modules.Module{Path: "offender"},
 		Original: "originalA",
 		Override: "overrideA",
 		Version:  "v1.0.0",
@@ -36,13 +37,13 @@ var (
 		Override: "./overrideD",
 	}
 	replaceE = Replacement{
-		Offender: &depgraph.Module{Path: "offender-bis"},
+		Offender: &modules.Module{Path: "offender-bis"},
 		Original: "originalA",
 		Override: "overrideA-bis",
 		Version:  "v2.0.0",
 	}
 	replaceF = Replacement{
-		Offender: &depgraph.Module{Path: "offender-tertio"},
+		Offender: &modules.Module{Path: "offender-tertio"},
 		Original: "originalB",
 		Override: "overrideB-bis",
 		Version:  "v2.0.0",
@@ -66,25 +67,25 @@ var (
 		},
 	}
 
-	moduleA = &depgraph.Module{
+	moduleA = &modules.Module{
 		Main:    false,
 		Path:    "moduleA",
 		Version: "v1.0.0",
 		GoMod:   filepath.Join("testdata", "moduleA", "go.mod"),
 	}
-	moduleB = &depgraph.Module{
+	moduleB = &modules.Module{
 		Main:    false,
 		Path:    filepath.Join("testdata", "moduleB"),
 		Version: "v1.1.0",
 	}
-	moduleC = &depgraph.Module{
+	moduleC = &modules.Module{
 		Main:    false,
 		Path:    "moduleA",
 		Version: "v0.1.0",
 		Replace: moduleA,
 		GoMod:   "nowhere",
 	}
-	moduleD = &depgraph.Module{
+	moduleD = &modules.Module{
 		Main:    false,
 		Path:    "moduleD",
 		Version: "v0.0.1",
@@ -98,7 +99,7 @@ func init() {
 	logger := logrus.New()
 	logger.SetOutput(ioutil.Discard)
 
-	testGraph = depgraph.NewGraph(logger, &depgraph.Module{
+	testGraph = depgraph.NewGraph(logger, &modules.Module{
 		Main:  true,
 		Path:  "test/module",
 		GoMod: filepath.Join("testdata", "mainModule", "go.mod"),
@@ -114,12 +115,12 @@ func Test_ParseReplaces(t *testing.T) {
 
 	testcases := map[string]struct {
 		input    string
-		offender *depgraph.Module
+		offender *modules.Module
 		expected []Replacement
 	}{
 		"SingleReplace": {
 			input:    "replace originalA => overrideA v1.0.0",
-			offender: &depgraph.Module{Path: "offender"},
+			offender: &modules.Module{Path: "offender"},
 			expected: []Replacement{replaceA},
 		},
 		"MultiReplace": {
@@ -289,8 +290,8 @@ func Test_FindGoModFile(t *testing.T) {
 	logger.SetOutput(ioutil.Discard)
 
 	testcases := map[string]struct {
-		module         *depgraph.Module
-		expectedModule *depgraph.Module
+		module         *modules.Module
+		expectedModule *modules.Module
 		expectedPath   string
 	}{
 		"NoModule": {

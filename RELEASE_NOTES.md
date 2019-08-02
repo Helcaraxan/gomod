@@ -15,6 +15,9 @@
 
 **Breaking changes**
 
+- Package split: the `depgraph.Module` and `depgraph.ModuleError` types have been extracted to a
+  separate `lib/modules` package in preparation for future work that will expand the configurability
+  of information loading to support new features.
 - Type renames:
   - `depgraph.Node` has been renamed to `depgraph.Dependency` after the pre-existing type of that
     name has been removed in the `v0.4.0` release.

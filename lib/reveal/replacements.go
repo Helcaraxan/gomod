@@ -12,10 +12,11 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/Helcaraxan/gomod/lib/depgraph"
+	"github.com/Helcaraxan/gomod/lib/modules"
 )
 
 type Replacement struct {
-	Offender *depgraph.Module
+	Offender *modules.Module
 	Original string
 	Override string
 	Version  string
@@ -211,9 +212,9 @@ func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replace
 
 func parseGoMod(
 	logger *logrus.Logger,
-	topLevelModule *depgraph.Module,
+	topLevelModule *modules.Module,
 	topLevelReplaces map[string]string,
-	module *depgraph.Module,
+	module *modules.Module,
 ) ([]Replacement, error) {
 	module, goModPath := findGoModFile(logger, module)
 	if goModPath == "" {
@@ -245,7 +246,7 @@ func parseGoMod(
 	return replaces, nil
 }
 
-func findGoModFile(logger *logrus.Logger, module *depgraph.Module) (*depgraph.Module, string) {
+func findGoModFile(logger *logrus.Logger, module *modules.Module) (*modules.Module, string) {
 	if module == nil {
 		return nil, ""
 	} else if module.Replace != nil {
@@ -264,7 +265,7 @@ func findGoModFile(logger *logrus.Logger, module *depgraph.Module) (*depgraph.Mo
 	return module, ""
 }
 
-func parseGoModForReplacements(logger *logrus.Logger, module *depgraph.Module, goModContent string) []Replacement {
+func parseGoModForReplacements(logger *logrus.Logger, module *modules.Module, goModContent string) []Replacement {
 	var replacements []Replacement
 	for _, singleReplaceMatch := range singleReplaceRE.FindAllStringSubmatch(goModContent, -1) {
 		replacements = append(replacements, parseReplacements(logger, module, singleReplaceMatch[1])...)
@@ -275,7 +276,7 @@ func parseGoModForReplacements(logger *logrus.Logger, module *depgraph.Module, g
 	return replacements
 }
 
-func parseReplacements(logger *logrus.Logger, module *depgraph.Module, replaceString string) []Replacement {
+func parseReplacements(logger *logrus.Logger, module *modules.Module, replaceString string) []Replacement {
 	var replacements []Replacement
 	for _, replaceMatch := range replaceRE.FindAllStringSubmatch(replaceString, -1) {
 		replace := Replacement{
