@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# vim: set tabstop=4 shiftwidth=4 expandtab
+
+if [[ ! -f "test-output.txt" ]]; then
+	echo >&2 "Missing test-output.txt"
+	exit 1
+fi
+
+cat "test-output.txt"

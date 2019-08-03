@@ -14,15 +14,16 @@ import (
 
 // Module represents the data returned by 'go list -m --json' for a Go module.
 type Module struct {
-	Main     bool         // is this the main module?
-	Indirect bool         // is it an indirect dependency?
-	Path     string       // module path
-	Replace  *Module      // replaced by this module
-	Version  string       // module version
-	Time     *time.Time   // time version was created
-	Update   *Module      // available update, if any (with -u)
-	GoMod    string       // the path to this module's go.mod file
-	Error    *ModuleError // error loading module
+	Main      bool         // is this the main module?
+	Indirect  bool         // is it an indirect dependency?
+	Path      string       // module path
+	Replace   *Module      // replaced by this module
+	Version   string       // module version
+	Time      *time.Time   // time version was created
+	Updates   *Module      // available update, if any (with -u)
+	GoMod     string       // the path to this module's go.mod file
+	GoVersion string       // the Go version associated with the module
+	Error     *ModuleError // error loading module
 }
 
 // ModuleError represents the data that is returned whenever Go tooling was unable to load a given
@@ -31,9 +32,9 @@ type ModuleError struct {
 	Err string // the error itself
 }
 
-func RetrieveModuleInformation(logger *logrus.Logger) (*Module, map[string]*Module, error) {
+func RetrieveModuleInformation(logger *logrus.Logger, modulePath string) (*Module, map[string]*Module, error) {
 	logger.Debug("Retrieving module information via 'go list'")
-	raw, _, err := util.RunCommand(logger, "go", "list", "-json", "-m", "all")
+	raw, _, err := util.RunCommand(logger, modulePath, "go", "list", "-json", "-m", "all")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -48,17 +49,18 @@ func RetrieveModuleInformation(logger *logrus.Logger) (*Module, map[string]*Modu
 
 	var main *Module
 	modules := map[string]*Module{}
-	for idx, module := range moduleList {
+	for _, module := range moduleList {
 		if module.Error != nil {
 			logger.Warnf("Unable to retrieve information for module %q: %s", module.Path, module.Error.Err)
+			continue
 		}
 
 		if module.Main {
 			main = module
 		}
-		modules[module.Path] = moduleList[idx]
+		modules[module.Path] = module
 		if module.Replace != nil {
-			modules[module.Replace.Path] = moduleList[idx]
+			modules[module.Replace.Path] = module
 		}
 	}
 	if main == nil || len(main.Path) == 0 {

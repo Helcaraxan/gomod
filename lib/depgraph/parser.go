@@ -14,17 +14,17 @@ import (
 
 var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
 
-// GetDepGraph should be called from within a Go module. It will return the dependency
-// graph for this module. The 'logger' parameter can be 'nil' which will result in no
-// output or logging information to be provided.
-func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
+// GetDepGraph will return the dependency graph for the Go module that can be
+// found at the specified path. The 'logger' parameter can be 'nil' which will
+// result in no output or logging information being provided.
+func GetDepGraph(logger *logrus.Logger, path string) (*DepGraph, error) {
 	if logger == nil {
 		logger = logrus.New()
 		logger.SetOutput(ioutil.Discard)
 	}
 	logger.Debug("Creating dependency graph.")
 
-	mainModule, moduleInfo, err := modules.RetrieveModuleInformation(logger)
+	mainModule, moduleInfo, err := modules.RetrieveModuleInformation(logger, path)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func GetDepGraph(logger *logrus.Logger) (*DepGraph, error) {
 	graph := NewGraph(logger, mainModule)
 
 	logger.Debug("Retrieving dependency information via 'go mod graph'")
-	rawDeps, _, err := util.RunCommand(logger, "go", "mod", "graph")
+	rawDeps, _, err := util.RunCommand(logger, path, "go", "mod", "graph")
 	if err != nil {
 		return nil, err
 	}

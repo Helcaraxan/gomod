@@ -6,6 +6,7 @@ strict digraph {
   "github.com/stretchr/testify"
   "golang.org/x/sys"
   "github.com/konsorten/go-windows-terminal-sequences"
+  "gopkg.in/yaml.v2"
   "github.com/blang/semver"
   "github.com/kr/pretty"
   "github.com/sirupsen/logrus"
@@ -18,7 +19,6 @@ strict digraph {
   "github.com/pmezard/go-difflib"
   "github.com/stretchr/objx"
   "github.com/spf13/pflag"
-  "gopkg.in/yaml.v2"
   "github.com/BurntSushi/toml"
   "github.com/cpuguy83/go-md2man"
   "github.com/inconshreveable/mousetrap"
@@ -48,6 +48,7 @@ strict digraph {
   "github.com/Helcaraxan/gomod" -> "github.com/spf13/cobra"
   "github.com/Helcaraxan/gomod" -> "github.com/stretchr/testify" [minlen=4]
   "github.com/Helcaraxan/gomod" -> "golang.org/x/sys" [minlen=4]
+  "github.com/Helcaraxan/gomod" -> "gopkg.in/yaml.v2" [minlen=4]
   "github.com/Helcaraxan/gomod" -> "mvdan.cc/sh"
   "github.com/cpuguy83/go-md2man" -> "github.com/russross/blackfriday"
   "github.com/hashicorp/hcl" -> "github.com/davecgh/go-spew"
