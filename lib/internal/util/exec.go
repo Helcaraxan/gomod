@@ -6,16 +6,24 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 )
 
-func RunCommand(logger *logrus.Logger, cmd string, args ...string) (stdout []byte, stderr []byte, err error) {
+func RunCommand(logger *logrus.Logger, path string, cmd string, args ...string) (stdout []byte, stderr []byte, err error) {
+	if !filepath.IsAbs(path) {
+		if path, err = filepath.Abs(path); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	stdoutWriter := &bufferedTeeWriter{logger: logger}
 	stderrWriter := &bufferedTeeWriter{logger: logger}
 
 	execCmd := exec.Command(cmd, args...)
+	execCmd.Dir = path
 	execCmd.Stdout = stdoutWriter
 	execCmd.Stderr = stderrWriter
 

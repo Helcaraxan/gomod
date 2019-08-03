@@ -196,7 +196,7 @@ func runGraphCmd(args *graphArgs) error {
 		return errors.New("'shared' and 'dependencies' filters cannot be used simultaneously")
 	}
 
-	graph, err := depgraph.GetDepGraph(args.logger)
+	graph, err := depgraph.GetDepGraph(args.logger, "")
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func initAnalyseCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runAnalyseCmd(args *analyseArgs) error {
-	graph, err := depgraph.GetDepGraph(args.logger)
+	graph, err := depgraph.GetDepGraph(args.logger, "")
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func initRevealCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runRevealCmd(args *revealArgs) error {
-	graph, err := depgraph.GetDepGraph(args.logger)
+	graph, err := depgraph.GetDepGraph(args.logger, "")
 	if err != nil {
 		return err
 	}

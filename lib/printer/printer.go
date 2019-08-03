@@ -148,7 +148,7 @@ func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
 	}
 
 	config.Logger.Debugf("Generating %q.", config.OutputPath)
-	_, _, err = util.RunCommand(config.Logger, "dot", "-T"+FormatToString[config.OutputFormat], "-o"+config.OutputPath, dotPrintConfig.OutputPath)
+	_, _, err = util.RunCommand(config.Logger, "", "dot", "-T"+FormatToString[config.OutputFormat], "-o"+config.OutputPath, dotPrintConfig.OutputPath)
 	return err
 }
 

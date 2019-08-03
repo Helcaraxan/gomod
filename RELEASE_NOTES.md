@@ -32,6 +32,8 @@
     also a `bool`. The returned `value` is `nil` if the module passed as parameter could not be
     added.
 - The `depgraph.DependencyFilter` type's `Dependency` field has been renamed to `Module`.
+- The `depgraph.GetDepGraph()` function now also takes a relative or absolute path to the directory
+  where the targeted Go module lives.
 
 ## 0.4.0
 
