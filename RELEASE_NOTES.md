@@ -12,6 +12,7 @@
 
 - The `depgraph.DepGraph` type now exposes a `RemoveDependency` method allowing to remove a given
   module including any edges starting or ending at this module.
+- The new `lib/modules` package exposes methods to retrieve various levels of module information.
 
 **Breaking changes**
 

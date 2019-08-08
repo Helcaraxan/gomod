@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -32,9 +33,58 @@ type ModuleError struct {
 	Err string // the error itself
 }
 
-func RetrieveModuleInformation(logger *logrus.Logger, modulePath string) (*Module, map[string]*Module, error) {
+// Retrieve the Module information for all dependencies of the Go module found at the specified path.
+func GetDependencies(logger *logrus.Logger, moduleDir string) (*Module, map[string]*Module, error) {
+	return retrieveModuleInformation(logger, moduleDir, "all")
+}
+
+// Retrieve the Module information for all dependencies of the Go module found at the specified
+// path, including any potentially available updates. This requires internet connectivity in order
+// to return the results. Lack of connectivity should result in an error being returned but this is
+// not a hard guarantee.
+func GetDependenciesWithUpdates(logger *logrus.Logger, moduleDir string) (*Module, map[string]*Module, error) {
+	if err := connectivityCheck(); err != nil {
+		logger.WithError(err).Error("No connectivity.")
+		return nil, nil, err
+	}
+	return retrieveModuleInformation(logger, moduleDir, "all", "-versions", "-u")
+}
+
+// Retrieve the Module information for the specified target module which must be a dependency of the
+// Go module found at the specified path.
+func GetModule(logger *logrus.Logger, moduleDir string, targetModule string) (*Module, error) {
+	module, _, err := retrieveModuleInformation(logger, moduleDir, targetModule)
+	return module, err
+}
+
+// Retrieve the Module information for the specified target module which must be a dependency of the
+// Go module found at the specified path, including any potentially available updates. This requires
+// internet connectivity in order to return the results. Lack of connectivity should result in an
+// error being returned but this is not a hard guarantee.
+func GetModuleWithUpdate(logger *logrus.Logger, moduleDir string, targetModule string) (*Module, error) {
+	if err := connectivityCheck(); err != nil {
+		logger.WithError(err).Error("No connectivity.")
+		return nil, err
+	}
+	module, _, err := retrieveModuleInformation(logger, moduleDir, targetModule, "-versions", "-u")
+	return module, err
+}
+
+func retrieveModuleInformation(
+	logger *logrus.Logger,
+	moduleDir string,
+	targetModule string,
+	extraGoListArgs ...string,
+) (*Module, map[string]*Module, error) {
 	logger.Debug("Retrieving module information via 'go list'")
-	raw, _, err := util.RunCommand(logger, modulePath, "go", "list", "-json", "-m", "all")
+
+	goListArgs := append([]string{"list", "-json", "-m"}, extraGoListArgs...)
+	if targetModule == "" {
+		targetModule = "all"
+	}
+	goListArgs = append(goListArgs, targetModule)
+
+	raw, _, err := util.RunCommand(logger, moduleDir, "go", goListArgs...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,9 +113,20 @@ func RetrieveModuleInformation(logger *logrus.Logger, modulePath string) (*Modul
 			modules[module.Replace.Path] = module
 		}
 	}
-	if main == nil || len(main.Path) == 0 {
-		logger.Error("Unable to determine the module of the current codebase.")
-		return nil, nil, errors.New("could not determine main module")
+	if len(modules) == 0 {
+		return nil, nil, errors.New("unable to load any module information")
 	}
 	return main, modules, nil
+}
+
+var httpClient = &http.Client{Timeout: 5 * time.Second}
+
+func connectivityCheck() error {
+	resp, err := httpClient.Get("https://proxy.golang.org/")
+	if err != nil {
+		return fmt.Errorf("failed to ping https://proxy.golang.org/: %s", err.Error())
+	} else if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("ping to https://proxy.golang.org/ returned a non-200 status code")
+	}
+	return nil
 }
