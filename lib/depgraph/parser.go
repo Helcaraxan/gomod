@@ -24,7 +24,7 @@ func GetDepGraph(logger *logrus.Logger, path string) (*DepGraph, error) {
 	}
 	logger.Debug("Creating dependency graph.")
 
-	mainModule, moduleInfo, err := modules.RetrieveModuleInformation(logger, path)
+	mainModule, moduleInfo, err := modules.GetDependencies(logger, path)
 	if err != nil {
 		return nil, err
 	}

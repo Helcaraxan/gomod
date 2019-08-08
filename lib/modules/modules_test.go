@@ -1,7 +1,9 @@
 package modules
 
 import (
+	"errors"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +23,10 @@ type testcase struct {
 }
 
 func TestModuleInformationRetrieval(t *testing.T) {
+	savedClient := httpClient
+	defer func() { httpClient = savedClient }()
+	httpClient = &http.Client{Transport: &successfullRTT{}}
+
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
@@ -56,13 +62,67 @@ func TestModuleInformationRetrieval(t *testing.T) {
 				require.NoError(t, testErr)
 			}
 
-			main, modules, testErr := RetrieveModuleInformation(logrus.New(), testDir)
+			main, modules, testErr := GetDependencies(logrus.New(), testDir)
 			if test.ExpectedError {
 				assert.Error(t, testErr)
 			} else {
+				require.NoError(t, testErr)
 				assert.Equal(t, test.ExpectedMain, main)
 				assert.Equal(t, test.ExpectedModules, modules)
 			}
+
+			main, modules, testErr = GetDependenciesWithUpdates(logrus.New(), testDir)
+			if test.ExpectedError {
+				assert.Error(t, testErr)
+			} else {
+				require.NoError(t, testErr)
+				assert.Equal(t, test.ExpectedMain, main)
+				assert.Equal(t, test.ExpectedModules, modules)
+			}
+
+			if !test.ExpectedError {
+				main, testErr = GetModule(logrus.New(), testDir, test.ExpectedMain.Path)
+				require.NoError(t, testErr)
+				assert.Equal(t, test.ExpectedMain, main)
+
+				main, testErr = GetModuleWithUpdate(logrus.New(), testDir, test.ExpectedMain.Path)
+				require.NoError(t, testErr)
+				assert.Equal(t, test.ExpectedMain, main)
+
+			}
 		})
 	}
+}
+
+func TestLackOfConnectivity(t *testing.T) {
+	savedClient := httpClient
+	defer func() { httpClient = savedClient }()
+
+	for _, fakeRTT := range []http.RoundTripper{&disconnectedRTT{}, &erroneousRTT{}} {
+		httpClient = &http.Client{Transport: fakeRTT}
+
+		_, _, err := GetDependenciesWithUpdates(logrus.New(), "")
+		assert.Error(t, err)
+
+		_, err = GetModuleWithUpdate(logrus.New(), ".", "github.com/Helcaraxan/gomod")
+		assert.Error(t, err)
+	}
+}
+
+type successfullRTT struct{}
+
+func (f *successfullRTT) RoundTrip(_ *http.Request) (*http.Response, error) {
+	return &http.Response{StatusCode: http.StatusOK}, nil
+}
+
+type disconnectedRTT struct{}
+
+func (f *disconnectedRTT) RoundTrip(_ *http.Request) (*http.Response, error) {
+	return &http.Response{StatusCode: http.StatusGatewayTimeout}, nil
+}
+
+type erroneousRTT struct{}
+
+func (t *erroneousRTT) RoundTrip(_ *http.Request) (*http.Response, error) {
+	return nil, errors.New("broken transport")
 }
