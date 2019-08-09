@@ -4,7 +4,7 @@ strict digraph {
   concentrate=true
   "github.com/Helcaraxan/gomod"
   "github.com/stretchr/testify" [label=<github.com/stretchr/testify<br /><font point-size="10">v1.3.0</font>>]
-  "golang.org/x/sys" [label=<golang.org/x/sys<br /><font point-size="10">v0.0.0-20190618155005-516e3c20635f</font>>]
+  "golang.org/x/sys" [label=<golang.org/x/sys<br /><font point-size="10">v0.0.0-20190804053845-51ab0e2deafa</font>>]
   "github.com/sirupsen/logrus" [label=<github.com/sirupsen/logrus<br /><font point-size="10">v1.4.2</font>>]
   "github.com/spf13/cobra" [label=<github.com/spf13/cobra<br /><font point-size="10">v0.0.5</font>>]
   "github.com/spf13/viper" [label=<github.com/spf13/viper<br /><font point-size="10">v1.3.2</font>>]
@@ -12,7 +12,7 @@ strict digraph {
   "github.com/Helcaraxan/gomod" -> "github.com/sirupsen/logrus" [label=<<font point-size="10">v1.4.2</font>>]
   "github.com/Helcaraxan/gomod" -> "github.com/spf13/cobra" [label=<<font point-size="10">v0.0.5</font>>]
   "github.com/Helcaraxan/gomod" -> "github.com/stretchr/testify" [minlen=3,label=<<font point-size="10">v1.3.0</font>>]
-  "github.com/Helcaraxan/gomod" -> "golang.org/x/sys" [minlen=3,label=<<font point-size="10">v0.0.0-20190618155005-516e3c20635f</font>>]
+  "github.com/Helcaraxan/gomod" -> "golang.org/x/sys" [minlen=3,label=<<font point-size="10">v0.0.0-20190804053845-51ab0e2deafa</font>>]
   "github.com/sirupsen/logrus" -> "github.com/stretchr/testify" [label=<<font point-size="10">v1.2.2</font>>]
   "github.com/sirupsen/logrus" -> "golang.org/x/sys" [label=<<font point-size="10">v0.0.0-20190422165155-953cdadca894</font>>]
   "github.com/spf13/cast" -> "github.com/stretchr/testify" [label=<<font point-size="10">v1.2.2</font>>]
