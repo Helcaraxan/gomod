@@ -7,6 +7,7 @@ strict digraph {
   "golang.org/x/sys"
   "github.com/konsorten/go-windows-terminal-sequences"
   "gopkg.in/yaml.v2"
+  "gopkg.in/check.v1"
   "github.com/sirupsen/logrus"
   "github.com/spf13/cobra"
   "github.com/davecgh/go-spew"
@@ -21,6 +22,7 @@ strict digraph {
   "github.com/Helcaraxan/gomod" -> "github.com/spf13/cobra"
   "github.com/Helcaraxan/gomod" -> "github.com/stretchr/testify" [minlen=3]
   "github.com/Helcaraxan/gomod" -> "golang.org/x/sys" [minlen=3]
+  "github.com/Helcaraxan/gomod" -> "gopkg.in/check.v1" [minlen=4]
   "github.com/Helcaraxan/gomod" -> "gopkg.in/yaml.v2" [minlen=3]
   "github.com/hashicorp/hcl" -> "github.com/davecgh/go-spew"
   "github.com/sirupsen/logrus" -> "github.com/davecgh/go-spew" [minlen=2]
@@ -44,4 +46,5 @@ strict digraph {
   "github.com/stretchr/testify" -> "github.com/davecgh/go-spew"
   "github.com/stretchr/testify" -> "github.com/pmezard/go-difflib"
   "github.com/stretchr/testify" -> "github.com/stretchr/objx"
+  "gopkg.in/yaml.v2" -> "gopkg.in/check.v1"
 }
