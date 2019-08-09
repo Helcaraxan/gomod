@@ -99,7 +99,7 @@ func init() {
 	logger := logrus.New()
 	logger.SetOutput(ioutil.Discard)
 
-	testGraph = depgraph.NewGraph(logger, &modules.Module{
+	testGraph = depgraph.NewGraph(logger, "", &modules.Module{
 		Main:  true,
 		Path:  "test/module",
 		GoMod: filepath.Join("testdata", "mainModule", "go.mod"),

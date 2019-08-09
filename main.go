@@ -242,7 +242,10 @@ func runAnalyseCmd(args *analyseArgs) error {
 	if err != nil {
 		return err
 	}
-	analysisResult := analysis.Analyse(graph)
+	analysisResult, err := analysis.Analyse(args.logger, graph)
+	if err != nil {
+		return err
+	}
 	return analysisResult.Print(os.Stdout)
 }
 

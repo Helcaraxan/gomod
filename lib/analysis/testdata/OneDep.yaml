@@ -1,0 +1,97 @@
+now: "2019-01-01T00:01:00Z"
+go_list_output: |
+  {
+    "Path": "test",
+    "Main": true
+  }
+  {
+    "Path": "dep",
+    "Time": "2019-01-01T00:00:00Z",
+    "Version": "v1.0.0",
+    "Update": {
+      "Path": "dep",
+      "Time": "2019-01-01T00:00:30Z",
+      "Version": "v1.1.0"
+    }
+  }
+go_graph_output: |
+  test dep@v1.0.0
+dep_analysis:
+  module: "test"
+  direct_dependencies: 1
+  indirect_dependencies: 0
+  mean_age: 60000000000
+  max_age: 60000000000
+  age_per_month:
+    - 1
+  available_updates: 1
+  mean_backlog: 30000000000
+  max_backlog: 30000000000
+  backlog_per_month:
+    - 1
+  mean_reverse_deps: 1
+  max_reverse_deps: 1
+  reverse_deps_distribution:
+    - 0
+    - 1
+print_output: |+
+  -- Analysis for 'test' --
+  Dependency counts:
+  - Direct dependencies:   1
+  - Indirect dependencies: 0
+  
+  Age statistics:
+  - Mean age of dependencies: 0 month(s) 0 day(s)
+  - Maximum dependency age:   0 month(s) 0 day(s)
+  - Age distribution per month:
+  
+   100.00 % |#
+            |#
+            |#
+            |#
+            |#
+            |#
+            |#
+            |#
+            |#
+            |#
+     0.00 % |_
+             0 1
+  
+  Update backlog statistics:
+  - Number of available updates:            1
+  - Mean update backlog of dependencies:    0 month(s) 0 day(s)
+  - Maximum update backlog of dependencies: 0 month(s) 0 day(s)
+  - Update backlog distribution per month:
+  
+   100.00 % |#
+            |#
+            |#
+            |#
+            |#
+            |#
+            |#
+            |#
+            |#
+            |#
+     0.00 % |_
+             0 1
+  
+  Reverse dependency statistics:
+  - Mean number of reverse dependencies:    1.00
+  - Maximum number of reverse dependencies: 1
+  - Reverse dependency count distribution:
+  
+   100.00 % |  #
+            |  #
+            |  #
+            |  #
+            |  #
+            |  #
+            |  #
+            |  #
+            |  #
+            |  #
+     0.00 % |___
+             0 2
+

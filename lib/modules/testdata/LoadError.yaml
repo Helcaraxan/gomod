@@ -1,7 +1,7 @@
-error: true
 go_list_output: |
     {
         "Error": {
             "Err": "could not load module"
         }
     }
+error: true

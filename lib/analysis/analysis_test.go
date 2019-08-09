@@ -1,9 +1,19 @@
 package analysis
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/Helcaraxan/gomod/lib/depgraph"
+	"github.com/Helcaraxan/gomod/lib/internal/testutil"
 )
 
 func Test_DistributionCountToPercentage(t *testing.T) {
@@ -46,4 +56,61 @@ func Test_RotateDistributionLines(t *testing.T) {
 		"|____",
 	}
 	assert.Equal(t, expected, rotateDistributionLines(input, 5), "Should have gotten the expected output")
+}
+
+type testcase struct {
+	CurrentTime *time.Time `yaml:"now"`
+	ListOutput  string     `yaml:"go_list_output"`
+	GraphOutput string     `yaml:"go_graph_output"`
+
+	ExpectedDepAnalysis *DepAnalysis `yaml:"dep_analysis"`
+	ExpectedPrintOutput string       `yaml:"print_output"`
+}
+
+func (c *testcase) GoDriverError() bool   { return false }
+func (c *testcase) GoListOutput() string  { return c.ListOutput }
+func (c *testcase) GoGraphOutput() string { return c.GraphOutput }
+
+func TestAnalysis(t *testing.T) {
+	cwd, setupErr := os.Getwd()
+	require.NoError(t, setupErr)
+
+	// Prepend the testdata directory to the path so we use the fake "go" script.
+	setupErr = os.Setenv("PATH", filepath.Join(cwd, "..", "internal", "testutil")+":"+os.Getenv("PATH"))
+	require.NoError(t, setupErr)
+
+	files, setupErr := ioutil.ReadDir(filepath.Join(cwd, "testdata"))
+	require.NoError(t, setupErr)
+
+	for idx := range files {
+		file := files[idx]
+		if file.IsDir() || filepath.Ext(file.Name()) != ".yaml" {
+			continue
+		}
+
+		testname := strings.TrimSuffix(file.Name(), ".yaml")
+		t.Run(testname, func(t *testing.T) {
+			testDefinition := &testcase{}
+			testDir, cleanup := testutil.SetupTestModule(t, filepath.Join(cwd, "testdata", file.Name()), testDefinition)
+			defer cleanup()
+
+			if testDefinition.CurrentTime != nil {
+				testCurrentTimeInjection = testDefinition.CurrentTime
+				defer func() { testCurrentTimeInjection = nil }()
+			}
+
+			logger := logrus.New()
+			graph, err := depgraph.GetDepGraph(logger, testDir)
+			require.NoError(t, err)
+
+			analysis, err := Analyse(logger, graph)
+			require.NoError(t, err)
+			assert.Equal(t, testDefinition.ExpectedDepAnalysis, analysis)
+
+			output := &strings.Builder{}
+			err = analysis.Print(output)
+			require.NoError(t, err)
+			assert.Equal(t, testDefinition.ExpectedPrintOutput, output.String())
+		})
+	}
 }

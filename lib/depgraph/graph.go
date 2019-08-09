@@ -11,6 +11,8 @@ import (
 
 // DepGraph represents a Go module's dependency graph.
 type DepGraph struct {
+	Path string
+
 	Main         *Dependency
 	Dependencies *DependencyMap
 
@@ -20,12 +22,13 @@ type DepGraph struct {
 
 // NewGraph returns a new DepGraph instance which will use the specified
 // logger for writing log output. If nil a null-logger will be used instead.
-func NewGraph(logger *logrus.Logger, main *modules.Module) *DepGraph {
+func NewGraph(logger *logrus.Logger, path string, main *modules.Module) *DepGraph {
 	if logger == nil {
 		logger = logrus.New()
 		logger.SetOutput(ioutil.Discard)
 	}
 	newGraph := &DepGraph{
+		Path:         path,
 		Dependencies: NewDependencyMap(),
 		logger:       logger,
 		replaces:     map[string]string{},
@@ -128,7 +131,7 @@ func (n *Dependency) Timestamp() *time.Time {
 func (g *DepGraph) DeepCopy() *DepGraph {
 	g.logger.Debugf("Deep-copying dependency graph for %q.", g.Main.Name())
 
-	newGraph := NewGraph(g.logger, g.Main.Module)
+	newGraph := NewGraph(g.logger, g.Path, g.Main.Module)
 	for _, dependency := range g.Dependencies.List() {
 		if module := newGraph.AddDependency(dependency.Module); module == nil {
 			g.logger.Errorf("Encountered an empty dependency for %q.", module.Name())
