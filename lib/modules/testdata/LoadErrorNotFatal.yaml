@@ -1,14 +1,3 @@
-main:
-    path: "github.com/Helcaraxan/gomod"
-    main: true
-    dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
-    gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
-modules:
-    "github.com/Helcaraxan/gomod":
-        path: "github.com/Helcaraxan/gomod"
-        main: true
-        dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
-        gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
 go_list_output: |
     {
         "Path": "github.com/Helcaraxan/gomod",
@@ -21,3 +10,14 @@ go_list_output: |
             "Err": "could not load module"
         }
     }
+main:
+    path: "github.com/Helcaraxan/gomod"
+    main: true
+    dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
+    gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
+modules:
+    "github.com/Helcaraxan/gomod":
+        path: "github.com/Helcaraxan/gomod"
+        main: true
+        dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
+        gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"

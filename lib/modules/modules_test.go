@@ -12,15 +12,22 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
+
+	"github.com/Helcaraxan/gomod/lib/internal/testutil"
 )
 
 type testcase struct {
+	DriverError bool   `yaml:"driver_error"`
+	ListOutput  string `yaml:"go_list_output"`
+
 	ExpectedError   bool               `yaml:"error"`
 	ExpectedMain    *Module            `yaml:"main"`
 	ExpectedModules map[string]*Module `yaml:"modules"`
-	Output          string             `yaml:"go_list_output"`
 }
+
+func (c *testcase) GoDriverError() bool   { return c.DriverError }
+func (c *testcase) GoListOutput() string  { return c.ListOutput }
+func (c *testcase) GoGraphOutput() string { return "" }
 
 func TestModuleInformationRetrieval(t *testing.T) {
 	savedClient := httpClient
@@ -31,7 +38,7 @@ func TestModuleInformationRetrieval(t *testing.T) {
 	require.NoError(t, err)
 
 	// Prepend the testdata directory to the path so we use the fake "go" script.
-	err = os.Setenv("PATH", filepath.Join(cwd, "testdata")+":"+os.Getenv("PATH"))
+	err = os.Setenv("PATH", filepath.Join(cwd, "..", "internal", "testutil")+":"+os.Getenv("PATH"))
 	require.NoError(t, err)
 
 	files, err := ioutil.ReadDir(filepath.Join(cwd, "testdata"))
@@ -45,50 +52,36 @@ func TestModuleInformationRetrieval(t *testing.T) {
 
 		testname := strings.TrimSuffix(file.Name(), ".yaml")
 		t.Run(testname, func(t *testing.T) {
-			testDir, testErr := ioutil.TempDir("", "gomod-module-loading")
-			require.NoError(t, testErr)
-			defer func() {
-				assert.NoError(t, os.RemoveAll(testDir))
-			}()
-
-			raw, testErr := ioutil.ReadFile(filepath.Join(cwd, "testdata", file.Name()))
-			require.NoError(t, testErr)
-
-			test := &testcase{}
-			require.NoError(t, yaml.Unmarshal(raw, test))
-
-			if test.Output != "" {
-				testErr = ioutil.WriteFile(filepath.Join(testDir, "test-output.txt"), []byte(test.Output), 0400)
-				require.NoError(t, testErr)
-			}
+			testDefinition := &testcase{}
+			testDir, cleanup := testutil.SetupTestModule(t, filepath.Join(cwd, "testdata", file.Name()), testDefinition)
+			defer cleanup()
 
 			main, modules, testErr := GetDependencies(logrus.New(), testDir)
-			if test.ExpectedError {
+			if testDefinition.ExpectedError {
 				assert.Error(t, testErr)
 			} else {
 				require.NoError(t, testErr)
-				assert.Equal(t, test.ExpectedMain, main)
-				assert.Equal(t, test.ExpectedModules, modules)
+				assert.Equal(t, testDefinition.ExpectedMain, main)
+				assert.Equal(t, testDefinition.ExpectedModules, modules)
 			}
 
 			main, modules, testErr = GetDependenciesWithUpdates(logrus.New(), testDir)
-			if test.ExpectedError {
+			if testDefinition.ExpectedError {
 				assert.Error(t, testErr)
 			} else {
 				require.NoError(t, testErr)
-				assert.Equal(t, test.ExpectedMain, main)
-				assert.Equal(t, test.ExpectedModules, modules)
+				assert.Equal(t, testDefinition.ExpectedMain, main)
+				assert.Equal(t, testDefinition.ExpectedModules, modules)
 			}
 
-			if !test.ExpectedError {
-				main, testErr = GetModule(logrus.New(), testDir, test.ExpectedMain.Path)
+			if !testDefinition.ExpectedError {
+				main, testErr = GetModule(logrus.New(), testDir, testDefinition.ExpectedMain.Path)
 				require.NoError(t, testErr)
-				assert.Equal(t, test.ExpectedMain, main)
+				assert.Equal(t, testDefinition.ExpectedMain, main)
 
-				main, testErr = GetModuleWithUpdate(logrus.New(), testDir, test.ExpectedMain.Path)
+				main, testErr = GetModuleWithUpdate(logrus.New(), testDir, testDefinition.ExpectedMain.Path)
 				require.NoError(t, testErr)
-				assert.Equal(t, test.ExpectedMain, main)
-
+				assert.Equal(t, testDefinition.ExpectedMain, main)
 			}
 		})
 	}

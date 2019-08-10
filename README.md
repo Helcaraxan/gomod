@@ -146,6 +146,10 @@ Specific zoom on the dependency chains leading to the `github.com/stretchr/testi
 
 ### Hidden `replace`'s
 
+Revealing hidden replaces in the [Matterbridge](https://github.com/42wim/matterbridge) dependency
+graph. One is accounted for, the other is not. This can be the cause of unexpected errors when
+building the project.
+
 ```text
  -> gomod reveal
 'github.com/Rhymen/go-whatsapp' is replaced:
@@ -161,49 +165,58 @@ Specific zoom on the dependency chains leading to the `github.com/stretchr/testi
 
 ### Dependency statistics
 
-Statistical analysis of the [Matterbridge](https://github.com/42wim/matterbridge) dependency graph.
+Statistical analysis of the `gomod` dependency graph.
 
 ```text
  -> gomod analyse
--- Analysis for 'github.com/42wim/matterbridge' --
+-- Analysis for 'github.com/Helcaraxan/gomod' --
 Dependency counts:
-- Direct dependencies:   69
-- Indirect dependencies: 51
+- Direct dependencies:   9
+- Indirect dependencies: 29
 
 Age statistics:
-- Mean age of dependencies: 14 month(s) 15 day(s)
-- Maximum dependency age:   82 month(s) 19 day(s)
+- Mean age of dependencies: 16 month(s) 3 day(s)
+- Maximum dependency age:   58 month(s) 16 day(s)
 - Age distribution per month:
 
-  16.67 % |        #
-          |        #
-          |        #
-          |        #
-          |    #   #
-          |#   #   #
-          |#   #   #
-          |#   #   #
-          |#   # _ #
-          |#   # # #
-          |#   # # #
-          |#   # # #
-          |#   # # #
-          |#   # # # # #   #
-          |# _ # # # # #   #
-          |# # # # # # #   #
-          |# # # # # # # # #     #
-          |# # # # # # # # #     #   # #
-          |# # # # # # # # #     # # # #     #     # #
-          |# # # # # # # # #   # # # # #   # # # # # # #     # #   #           #             #
-   0.00 % |___________________________________________________________________________________
-           0                                                                                84
+  21.05 % |          #
+          |          #
+          |          #
+          |          #
+          |          #
+          |    #   # #   #   #
+          |    #   # #   #   #
+          |    #   # #   #   #
+          |  # # # # #   #   #     #
+          |# # # # # #   # # # #   #       #   #     #         #     #
+   0.00 % |___________________________________________________________
+           0                                                        60
+
+Update backlog statistics:
+- Number of available updates:            14
+- Mean update backlog of dependencies:    10 month(s) 4 day(s)
+- Maximum update backlog of dependencies: 18 month(s) 26 day(s)
+- Update backlog distribution per month:
+
+  21.43 % |            #
+          |            #
+          |            #
+          |  _         #                       _
+          |  #         #                       #
+          |  #         #                       #
+          |  #         #                       #
+          |  # #       # #     # #     #   # # #
+          |  # #       # #     # #     #   # # #
+          |  # #       # #     # #     #   # # #
+   0.00 % |_____________________________________
+           0                                  19
 
 Reverse dependency statistics:
-- Mean number of reverse dependencies:    1.40
-- Maximum number of reverse dependencies: 9
+- Mean number of reverse dependencies:    1.39
+- Maximum number of reverse dependencies: 4
 - Reverse dependency count distribution:
 
-  83.33 % |  #
+  78.95 % |  #
           |  #
           |  #
           |  #
@@ -212,7 +225,7 @@ Reverse dependency statistics:
           |  #
           |  #
           |  #
-          |  # _
-   0.00 % |___________________
-           0                10
+          |  # # # _
+   0.00 % |_________
+           0       5
 ```

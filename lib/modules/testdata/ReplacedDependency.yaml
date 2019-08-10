@@ -1,3 +1,19 @@
+go_list_output: |
+    {
+        "Path": "github.com/Helcaraxan/gomod",
+        "Main": true,
+        "Dir": "/Users/duco/go/src/github.com/Helcaraxan/gomod",
+        "GoMod": "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
+    }
+    {
+        "Path": "github.com/foo/bar",
+        "Replace": {
+            "Path": "../test_bar",
+            "GoMod": "/foo/test_bar/go.mod"
+        },
+        "Dir": "/foo/bar",
+        "GoMod": "/foo/bar/go.mod"
+    }
 main:
     path: "github.com/Helcaraxan/gomod"
     main: true
@@ -23,19 +39,3 @@ modules:
             gomod: "/foo/test_bar/go.mod"
         dir: "foo/bar"
         gomod: "/foo/bar/go.mod"
-go_list_output: |
-    {
-        "Path": "github.com/Helcaraxan/gomod",
-        "Main": true,
-        "Dir": "/Users/duco/go/src/github.com/Helcaraxan/gomod",
-        "GoMod": "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
-    }
-    {
-        "Path": "github.com/foo/bar",
-        "Replace": {
-            "Path": "../test_bar",
-            "GoMod": "/foo/test_bar/go.mod"
-        },
-        "Dir": "/foo/bar",
-        "GoMod": "/foo/bar/go.mod"
-    }

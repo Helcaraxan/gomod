@@ -13,6 +13,9 @@
 - The `depgraph.DepGraph` type now exposes a `RemoveDependency` method allowing to remove a given
   module including any edges starting or ending at this module.
 - The new `lib/modules` package exposes methods to retrieve various levels of module information.
+- The `depgraph.DepAnalysis` type now also contains information about the update backlog time of
+  a module's dependencies. This reflects the timespan between the timestamp of the used version of a
+  dependency and the timestamp of the newest available update.
 
 **Breaking changes**
 
@@ -33,6 +36,7 @@
     also a `bool`. The returned `value` is `nil` if the module passed as parameter could not be
     added.
 - The `depgraph.DependencyFilter` type's `Dependency` field has been renamed to `Module`.
+- The `depgraph.NewDepGraph()` function now also takes the path where the contained module lives.
 - The `depgraph.GetDepGraph()` function now also takes a relative or absolute path to the directory
   where the targeted Go module lives.
 

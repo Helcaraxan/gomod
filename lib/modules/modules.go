@@ -21,7 +21,7 @@ type Module struct {
 	Replace   *Module      // replaced by this module
 	Version   string       // module version
 	Time      *time.Time   // time version was created
-	Updates   *Module      // available update, if any (with -u)
+	Update    *Module      // available update, if any (with -u)
 	GoMod     string       // the path to this module's go.mod file
 	GoVersion string       // the Go version associated with the module
 	Error     *ModuleError // error loading module

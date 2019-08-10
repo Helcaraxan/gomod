@@ -6,83 +6,132 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/Helcaraxan/gomod/lib/depgraph"
+	"github.com/Helcaraxan/gomod/lib/modules"
 )
 
 type DepAnalysis struct {
-	Module string
+	Module string `yaml:"module"`
 
-	DirectDependencyCount   int
-	IndirectDependencyCount int
+	DirectDependencyCount   int `yaml:"direct_dependencies"`
+	IndirectDependencyCount int `yaml:"indirect_dependencies"`
 
-	MeanDepAge              time.Duration
-	MaxDepAge               time.Duration
-	DepAgeMonthDistribution []int
+	MeanDepAge              time.Duration `yaml:"mean_age"`
+	MaxDepAge               time.Duration `yaml:"max_age"`
+	DepAgeMonthDistribution []int         `yaml:"age_per_month"`
 
-	MeanReverseDependencyCount    float64
-	MaxReverseDependencyCount     int
-	ReverseDependencyDistribution []int
+	AvailableUpdates               int           `yaml:"available_updates"`
+	MeanUpdateBacklog              time.Duration `yaml:"mean_backlog"`
+	MaxUpdateBacklog               time.Duration `yaml:"max_backlog"`
+	UpdateBacklogMonthDistribution []int         `yaml:"backlog_per_month"`
+
+	MeanReverseDependencyCount    float64 `yaml:"mean_reverse_deps"`
+	MaxReverseDependencyCount     int     `yaml:"max_reverse_deps"`
+	ReverseDependencyDistribution []int   `yaml:"reverse_deps_distribution"`
 }
 
-func Analyse(g *depgraph.DepGraph) *DepAnalysis {
+var testCurrentTimeInjection *time.Time
+
+func Analyse(logger *logrus.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) {
+	_, moduleMap, err := modules.GetDependenciesWithUpdates(logger, g.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &analysis{
+		logger:    logger,
+		graph:     g,
+		moduleMap: moduleMap,
+	}
+
+	for _, dependency := range g.Dependencies.List() {
+		result.processDependency(dependency)
+	}
+
+	meanDepAge, maxDepAge, depAgeDistribution := result.depAges.compute()
+	meanBacklog, maxBacklog, backlogDistribution := result.updateBacklogs.compute()
+	meanArity, maxArity, arityDistribution := result.reverseDependencies.compute()
+	return &DepAnalysis{
+		Module:                         g.Main.Name(),
+		DirectDependencyCount:          result.directDependencies,
+		IndirectDependencyCount:        result.indirectDependencies,
+		MeanDepAge:                     time.Duration(meanDepAge),
+		MaxDepAge:                      time.Duration(maxDepAge),
+		DepAgeMonthDistribution:        depAgeDistribution,
+		AvailableUpdates:               result.updateBacklogs.count(),
+		MeanUpdateBacklog:              time.Duration(meanBacklog),
+		MaxUpdateBacklog:               time.Duration(maxBacklog),
+		UpdateBacklogMonthDistribution: backlogDistribution,
+		MeanReverseDependencyCount:     meanArity,
+		MaxReverseDependencyCount:      int(maxArity),
+		ReverseDependencyDistribution:  arityDistribution,
+	}, nil
+}
+
+type analysis struct {
+	logger    *logrus.Logger
+	graph     *depgraph.DepGraph
+	moduleMap map[string]*modules.Module
+
+	directDependencies   int
+	indirectDependencies int
+	depAges              meanMaxDistribution
+	updateBacklogs       meanMaxDistribution
+	reverseDependencies  meanMaxDistribution
+}
+
+func (r *analysis) processDependency(dependency *depgraph.DependencyReference) {
 	const month = 30 * 24 * time.Hour
 
-	var (
-		directDependencyCount int
-
-		maxDepAge          time.Duration
-		totalDepAge        float64
-		countDepAge        float64
-		distributionDepAge []int
-
-		maxReverseDependencies             int
-		totalReverseDependencies           float64
-		countReverseDependencies           float64
-		distributionReverseDependencyCount []int
-	)
-
-	for _, node := range g.Dependencies.List() {
-		if node.Name() == g.Main.Name() {
-			directDependencyCount = node.Successors.Len()
-		}
-		if timestamp := node.Timestamp(); timestamp != nil {
-			depAge := time.Since(*timestamp)
-			totalDepAge += float64(depAge.Nanoseconds())
-			countDepAge++
-			if depAge > maxDepAge {
-				maxDepAge = depAge
-			}
-			ageInMonths := int(time.Since(*timestamp).Nanoseconds() / month.Nanoseconds())
-			distributionDepAge = insertIntoAgeDistribution(ageInMonths, distributionDepAge)
-		}
-		depArity := node.Predecessors.Len()
-		if depArity > 0 {
-			totalReverseDependencies += float64(depArity)
-			countReverseDependencies++
-			if depArity > maxReverseDependencies {
-				maxReverseDependencies = depArity
-			}
-			distributionReverseDependencyCount = insertIntoAgeDistribution(depArity, distributionReverseDependencyCount)
-		}
+	if dependency.Name() == r.graph.Main.Name() {
+		r.directDependencies = dependency.Successors.Len()
+		return
 	}
 
-	return &DepAnalysis{
-		Module:                        g.Main.Name(),
-		DirectDependencyCount:         directDependencyCount,
-		IndirectDependencyCount:       g.Dependencies.Len() - directDependencyCount - 1,
-		MeanDepAge:                    time.Duration(int64(totalDepAge / countDepAge)),
-		MaxDepAge:                     maxDepAge,
-		DepAgeMonthDistribution:       distributionDepAge,
-		MeanReverseDependencyCount:    totalReverseDependencies / countReverseDependencies,
-		MaxReverseDependencyCount:     maxReverseDependencies,
-		ReverseDependencyDistribution: distributionReverseDependencyCount,
+	if _, ok := r.graph.Main.Successors.Get(dependency.Name()); !ok {
+		r.indirectDependencies++
+	}
+	if depArity := dependency.Predecessors.Len(); depArity > 0 {
+		r.reverseDependencies.insert(int64(depArity), depArity)
+	}
+
+	if timestamp := dependency.Timestamp(); timestamp == nil {
+		r.logger.Warnf("No timestamp associated with '%s'.", dependency.Name())
+		return
+	}
+
+	depAge := time.Since(*dependency.Timestamp())
+	if testCurrentTimeInjection != nil { // Needed for deterministic tests.
+		depAge = testCurrentTimeInjection.Sub(*dependency.Timestamp())
+	}
+	r.depAges.insert(int64(depAge), int(depAge.Nanoseconds()/month.Nanoseconds()))
+
+	if module := r.moduleMap[dependency.Name()]; module != nil && module.Update != nil && module.Update.Time != nil {
+		r.logger.Debugf("Update available for %q to %s.", dependency.Name(), module.Update.Version)
+		if module.Update.Time.After(*dependency.Timestamp()) {
+			updateBacklog := module.Update.Time.Sub(*dependency.Timestamp())
+			r.updateBacklogs.insert(int64(updateBacklog), int(updateBacklog.Nanoseconds()/month.Nanoseconds()))
+		} else {
+			r.logger.Warnf("Available update for '%s' is older than the version currently in use.", dependency.Name())
+		}
 	}
 }
 
-func (a *DepAnalysis) Print(f io.Writer) error {
-	_, err := fmt.Fprintf(
-		f,
-		`-- Analysis for '%s' --
+const (
+	noBacklog = `Update backlog statistics:
+- No available updates. Congratulations you are entirely up-to-date!`
+
+	backlogTemplate = `Update backlog statistics:
+- Number of available updates:            %d
+- Mean update backlog of dependencies:    %s
+- Maximum update backlog of dependencies: %s
+- Update backlog distribution per month:
+
+%s`
+
+	reportTemplate = `-- Analysis for '%s' --
 Dependency counts:
 - Direct dependencies:   %d
 - Indirect dependencies: %d
@@ -94,6 +143,8 @@ Age statistics:
 
 %s
 
+%s
+
 Reverse dependency statistics:
 - Mean number of reverse dependencies:    %.2f
 - Maximum number of reverse dependencies: %d
@@ -101,18 +152,65 @@ Reverse dependency statistics:
 
 %s
 
-`,
+`
+)
+
+func (a *DepAnalysis) Print(f io.Writer) error {
+	updateContent := noBacklog
+	if a.AvailableUpdates > 0 {
+		updateContent = fmt.Sprintf(
+			backlogTemplate,
+			a.AvailableUpdates,
+			humanDuration(a.MeanUpdateBacklog),
+			humanDuration(a.MaxUpdateBacklog),
+			printedDistribution(a.UpdateBacklogMonthDistribution, 10),
+		)
+	}
+
+	_, err := fmt.Fprintf(
+		f,
+		reportTemplate,
 		a.Module,
 		a.DirectDependencyCount,
 		a.IndirectDependencyCount,
 		humanDuration(a.MeanDepAge),
 		humanDuration(a.MaxDepAge),
-		printedDistribution(a.DepAgeMonthDistribution, 20),
+		printedDistribution(a.DepAgeMonthDistribution, 10),
+		updateContent,
 		a.MeanReverseDependencyCount,
 		a.MaxReverseDependencyCount,
 		printedDistribution(a.ReverseDependencyDistribution, 10),
 	)
 	return err
+}
+
+type meanMaxDistribution struct {
+	mean         float64
+	max          int64
+	distribution []int
+	valCount     int
+}
+
+func (d *meanMaxDistribution) insert(val int64, distributionIdx int) {
+	d.mean += float64(val)
+	d.valCount++
+
+	if val > d.max {
+		d.max = val
+	}
+	d.distribution = insertIntoDistribution(distributionIdx, d.distribution)
+}
+
+func (d *meanMaxDistribution) count() int {
+	return d.valCount
+}
+
+func (d *meanMaxDistribution) compute() (float64, int64, []int) {
+	mean := 0.0
+	if d.valCount > 0 && d.mean/float64(d.valCount) > 0 {
+		mean = d.mean / float64(d.valCount)
+	}
+	return mean, d.max, d.distribution
 }
 
 func humanDuration(d time.Duration) string {
@@ -122,7 +220,7 @@ func humanDuration(d time.Duration) string {
 	return fmt.Sprintf("%d month(s) %d day(s)", months, days)
 }
 
-func insertIntoAgeDistribution(idx int, v []int) []int {
+func insertIntoDistribution(idx int, v []int) []int {
 	if idx+1 > len(v) {
 		if idx+1 < cap(v) {
 			v = v[:idx+1]
@@ -162,6 +260,10 @@ func distributionCountToPercentage(d []int, groupingFactor int) []float64 {
 }
 
 func distributionToLines(distribution []float64, displayHeight int) []string {
+	if len(distribution) == 0 {
+		return []string{""}
+	}
+
 	var maxColumnValue float64
 	for _, columnValue := range distribution {
 		if columnValue > maxColumnValue {
@@ -233,6 +335,8 @@ func printedDistribution(distribution []int, displayHeight int) string {
 	groupingFactor := len(distribution) / maxColumns
 	if len(distribution)%maxColumns > 0 {
 		groupingFactor++
+	} else if groupingFactor == 0 {
+		groupingFactor = 1
 	}
 
 	pDistribution := distributionCountToPercentage(distribution, groupingFactor)
