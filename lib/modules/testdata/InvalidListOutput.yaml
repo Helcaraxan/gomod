@@ -1,3 +1,5 @@
+---
+
 go_list_output: |
     This is no JSON
 error: true

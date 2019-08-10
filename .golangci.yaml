@@ -1,3 +1,5 @@
+---
+
 # For full documentation of the configuration options please
 # see: https://github.com/golangci/golangci-lint#config-file.
 
@@ -117,7 +119,7 @@ linters-settings:
     locale: UK
   nakedret:
     # make an issue if func has more lines of code than this setting and it has naked returns; default is 30
-    max-func-lines: 0 # Warn on all naked returns.
+    max-func-lines: 0  # Warn on all naked returns.
 
 
 # rules to deal with reported isues
