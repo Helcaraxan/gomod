@@ -12,9 +12,10 @@ cd "${PROJECT_ROOT}"
 
 # Ensure linter versions are specified or set the default values.
 GOLANGCI_VERSION="${GOLANGCI_VERSION:-"1.17.1"}"
+MARKDOWNLINT_VERSION="${MARKDOWNLINT_VERSION:-"0.5.0"}"
 SHELLCHECK_VERSION="${SHELLCHECK_VERSION:-"0.6.0"}"
 SHFMT_VERSION="${SHFMT_VERSION:-"2.6.4"}"
-MARKDOWNLINT_VERSION="${MARKDOWNLINT_VERSION:-"0.5.0"}"
+YAMLLINT_VERSION="${YAMLLINT_VERSION:-"1.10.0"}"
 
 # Retrieve linters if necessary.
 mkdir -p "${PWD}/bin"
@@ -55,6 +56,16 @@ else
 	echo "Found installed mdl@${MARKDOWNLINT_VERSION}."
 fi
 
+## yamllint
+if [[ -z "$(command -v yamllint)" ]]; then
+	echo "Could not find yamllint@${YAMLLINT_VERSION}. Please install it manually."
+	exit 1
+elif ! grep "${YAMLLINT_VERSION}" <<<"$(yamllint --version)"; then
+	echo "WARNING - yamllint found at non-default version '$(yamllint --version)'. Results might differ."
+else
+	echo "Found installed yamllint@${YAMLLINT_VERSION}."
+fi
+
 # Run linters.
 echo "Ensuring that generated Go code is being kept up to date."
 go generate ./...
@@ -75,6 +86,9 @@ git diff --cached --exit-code --quiet ./images/*.dot || (
 	echo "Please run './ci/gen.sh' to update generated documents and images."
 	false
 )
+
+echo "Linting YAML files."
+yamllint --strict --config-file=./.yamllint.yaml .
 
 echo "Linting Go source code."
 golangci-lint run ./...
