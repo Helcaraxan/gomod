@@ -37,6 +37,7 @@ dep_analysis:
   age_per_month:
     - 1
   available_updates: 1
+  available_updates_direct: 1
   mean_backlog: 30000000000
   max_backlog: 30000000000
   backlog_per_month:
@@ -71,7 +72,7 @@ print_output: |+
              0 1
   
   Update backlog statistics:
-  - Number of available updates:            1
+  - Number of dependencies with an update:  1 (of which 1 is direct)
   - Mean update backlog of dependencies:    0 month(s) 0 day(s)
   - Maximum update backlog of dependencies: 0 month(s) 0 day(s)
   - Update backlog distribution per month:

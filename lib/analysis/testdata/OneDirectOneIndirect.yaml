@@ -7,40 +7,52 @@ go_list_output: |
     "Main": true
   }
   {
-    "Path": "dep",
+    "Path": "dep1",
     "Time": "2019-01-01T00:00:00Z",
     "Version": "v1.0.0",
     "Update": {
-      "Path": "dep",
+      "Path": "dep1",
       "Time": "2019-01-01T00:00:30Z",
       "Version": "v1.1.0"
     }
   }
+  {
+    "Path": "dep2",
+    "Time": "2019-01-01T00:00:30Z",
+    "Version": "v0.1.0",
+    "Update": {
+      "Path": "dep2",
+      "Time": "2019-01-01T00:00:40Z",
+      "Version": "v0.2.0"
+    }
+  }
 go_graph_output: |
-  test dep@v1.0.0
+  test dep1@v1.0.0
+  dep1@v1.0.0 dep2@v0.1.0
 dep_analysis:
   module: "test"
   direct_dependencies: 1
-  indirect_dependencies: 0
-  mean_age: 60000000000
+  indirect_dependencies: 1
+  mean_age: 45000000000
   max_age: 60000000000
   age_per_month:
-    - 1
-  available_updates: 1
-  mean_backlog: 30000000000
+    - 2
+  available_updates: 2
+  available_updates_direct: 1
+  mean_backlog: 20000000000
   max_backlog: 30000000000
   backlog_per_month:
-    - 1
+    - 2
   mean_reverse_deps: 1
   max_reverse_deps: 1
   reverse_deps_distribution:
     - 0
-    - 1
+    - 2
 print_output: |+
   -- Analysis for 'test' --
   Dependency counts:
   - Direct dependencies:   1
-  - Indirect dependencies: 0
+  - Indirect dependencies: 1
   
   Age statistics:
   - Mean age of dependencies: 0 month(s) 0 day(s)
@@ -61,7 +73,7 @@ print_output: |+
              0 1
   
   Update backlog statistics:
-  - Number of available updates:            1
+  - Number of dependencies with an update:  2 (of which 1 is direct)
   - Mean update backlog of dependencies:    0 month(s) 0 day(s)
   - Maximum update backlog of dependencies: 0 month(s) 0 day(s)
   - Update backlog distribution per month:

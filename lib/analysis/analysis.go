@@ -23,6 +23,7 @@ type DepAnalysis struct {
 	DepAgeMonthDistribution []int         `yaml:"age_per_month"`
 
 	AvailableUpdates               int           `yaml:"available_updates"`
+	AvailableUpdatesDirect         int           `yaml:"available_updates_direct"`
 	MeanUpdateBacklog              time.Duration `yaml:"mean_backlog"`
 	MaxUpdateBacklog               time.Duration `yaml:"max_backlog"`
 	UpdateBacklogMonthDistribution []int         `yaml:"backlog_per_month"`
@@ -61,6 +62,7 @@ func Analyse(logger *logrus.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) 
 		MaxDepAge:                      time.Duration(maxDepAge),
 		DepAgeMonthDistribution:        depAgeDistribution,
 		AvailableUpdates:               result.updateBacklogs.count(),
+		AvailableUpdatesDirect:         result.updatableDirectDependencies,
 		MeanUpdateBacklog:              time.Duration(meanBacklog),
 		MaxUpdateBacklog:               time.Duration(maxBacklog),
 		UpdateBacklogMonthDistribution: backlogDistribution,
@@ -75,22 +77,26 @@ type analysis struct {
 	graph     *depgraph.DepGraph
 	moduleMap map[string]*modules.Module
 
-	directDependencies   int
-	indirectDependencies int
-	depAges              meanMaxDistribution
-	updateBacklogs       meanMaxDistribution
-	reverseDependencies  meanMaxDistribution
+	directDependencies          int
+	indirectDependencies        int
+	updatableDirectDependencies int
+	depAges                     meanMaxDistribution
+	updateBacklogs              meanMaxDistribution
+	reverseDependencies         meanMaxDistribution
 }
 
 func (r *analysis) processDependency(dependency *depgraph.DependencyReference) {
 	const month = 30 * 24 * time.Hour
+	var isDirect int
 
 	if dependency.Name() == r.graph.Main.Name() {
-		r.directDependencies = dependency.Successors.Len()
 		return
 	}
 
-	if _, ok := r.graph.Main.Successors.Get(dependency.Name()); !ok {
+	if _, ok := r.graph.Main.Successors.Get(dependency.Name()); ok {
+		r.directDependencies++
+		isDirect = 1
+	} else {
 		r.indirectDependencies++
 	}
 	if depArity := dependency.Predecessors.Len(); depArity > 0 {
@@ -113,6 +119,7 @@ func (r *analysis) processDependency(dependency *depgraph.DependencyReference) {
 		if module.Update.Time.After(*dependency.Timestamp()) {
 			updateBacklog := module.Update.Time.Sub(*dependency.Timestamp())
 			r.updateBacklogs.insert(int64(updateBacklog), int(updateBacklog.Nanoseconds()/month.Nanoseconds()))
+			r.updatableDirectDependencies += isDirect
 		} else {
 			r.logger.Warnf("Available update for '%s' is older than the version currently in use.", dependency.Name())
 		}
@@ -124,7 +131,7 @@ const (
 - No available updates. Congratulations you are entirely up-to-date!`
 
 	backlogTemplate = `Update backlog statistics:
-- Number of available updates:            %d
+- Number of dependencies with an update:  %d (of which %s direct)
 - Mean update backlog of dependencies:    %s
 - Maximum update backlog of dependencies: %s
 - Update backlog distribution per month:
@@ -158,9 +165,14 @@ Reverse dependency statistics:
 func (a *DepAnalysis) Print(f io.Writer) error {
 	updateContent := noBacklog
 	if a.AvailableUpdates > 0 {
+		directUpdates := "1 is"
+		if a.AvailableUpdatesDirect == 0 || a.AvailableUpdatesDirect > 1 {
+			directUpdates = fmt.Sprintf("%d are", a.AvailableUpdatesDirect)
+		}
 		updateContent = fmt.Sprintf(
 			backlogTemplate,
 			a.AvailableUpdates,
+			directUpdates,
 			humanDuration(a.MeanUpdateBacklog),
 			humanDuration(a.MaxUpdateBacklog),
 			printedDistribution(a.UpdateBacklogMonthDistribution, 10),

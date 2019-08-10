@@ -171,40 +171,40 @@ Statistical analysis of the `gomod` dependency graph.
  -> gomod analyse
 -- Analysis for 'github.com/Helcaraxan/gomod' --
 Dependency counts:
-- Direct dependencies:   9
-- Indirect dependencies: 29
+- Direct dependencies:   10
+- Indirect dependencies: 28
 
 Age statistics:
-- Mean age of dependencies: 16 month(s) 3 day(s)
-- Maximum dependency age:   58 month(s) 16 day(s)
+- Mean age of dependencies: 15 month(s) 18 day(s)
+- Maximum dependency age:   58 month(s) 17 day(s)
 - Age distribution per month:
 
-  21.05 % |          #
+  18.42 % |          #
           |          #
           |          #
           |          #
-          |          #
+          |    _   _ #   _   _
           |    #   # #   #   #
           |    #   # #   #   #
-          |    #   # #   #   #
-          |  # # # # #   #   #     #
-          |# # # # # #   # # # #   #       #   #     #         #     #
+          |  _ # _ # # _ #   #     _
+          |  # # # # # # #   #     #
+          |# # # # # # # # # # #   #           #     #         #     #
    0.00 % |___________________________________________________________
            0                                                        60
 
 Update backlog statistics:
-- Number of available updates:            14
+- Number of dependencies with an update:  12 (of which 0 are direct)
 - Mean update backlog of dependencies:    10 month(s) 4 day(s)
-- Maximum update backlog of dependencies: 18 month(s) 26 day(s)
+- Maximum update backlog of dependencies: 18 month(s) 4 day(s)
 - Update backlog distribution per month:
 
-  21.43 % |            #
+  25.00 % |            #
           |            #
           |            #
-          |  _         #                       _
-          |  #         #                       #
-          |  #         #                       #
-          |  #         #                       #
+          |            #
+          |            #
+          |            #
+          |            #
           |  # #       # #     # #     #   # # #
           |  # #       # #     # #     #   # # #
           |  # #       # #     # #     #   # # #
@@ -212,11 +212,11 @@ Update backlog statistics:
            0                                  19
 
 Reverse dependency statistics:
-- Mean number of reverse dependencies:    1.39
+- Mean number of reverse dependencies:    1.42
 - Maximum number of reverse dependencies: 4
 - Reverse dependency count distribution:
 
-  78.95 % |  #
+  76.32 % |  #
           |  #
           |  #
           |  #
