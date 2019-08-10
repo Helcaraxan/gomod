@@ -4,6 +4,14 @@
 
 **High-level overview**
 
+**New features**
+
+**Breaking changes**
+
+## 0.5.0
+
+**High-level overview**
+
 - A significant number of types, methods and functions have been renamed in preparation for a
   future `v1.0.0` release. These renames aim to create a more coherent interface for the
   functionalities exposed by the `depgraph` package.
