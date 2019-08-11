@@ -45,8 +45,8 @@ Create a graphical representations of your dependency graph with the possibility
 noise, add annotations and focus on the pieces of the graph that are of interest to you. You can for
 example:
 
-- Only show dependencies that are required by more than one package.
-- Only show the dependency chains that lead to one or more specified packages.
+- Only show dependencies that are required by more than one module.
+- Only show the dependency chains that lead to one or more specified modules.
 - Annotate dependencies with the versions in which they are used and the versions constraint
   imposed by each edge of the graph.
 
