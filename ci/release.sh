@@ -126,3 +126,5 @@ done
 
 echo ""
 echo "The ${RELEASE_VERSION} release was successfully created."
+
+rm -f "${RELEASE_ASSETS[@]}"
