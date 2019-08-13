@@ -4,9 +4,26 @@
 
 **High-level overview**
 
+- Dependency graph filtering has been moved to be a well-defined feature with appropriate support
+  and logic in its own package.
+
 **New features**
 
+- The new `filters.ArbitraryDependencies` implements a filter that removes an arbitrary set of
+  nodes.
+- The new `depgraph.Transform` interface type allows for developers using `gomod` as a library to
+  make use of external custom filters. This is supported via the new `DepGraph.Transform` method
+  that takes the interface type as argument.
+
 **Breaking changes**
+
+- The filter functionalities previously provided in the `depgraph` package have been moved out to a
+  separate `filters` package.
+  - `filters.TargetDependencies` implements the logic of the now removed `DepGraph.SubGraph()`
+    method.
+  - `filters.NonSharedDependencies` implements the logic of the now removed
+    `DepGraph.PruneUnsharedDeps()` method. In addition the filter now also allows for the
+    specification of dependencies to skip during the pruning.
 
 ## 0.5.0
 

@@ -20,6 +20,16 @@ type DepGraph struct {
 	replaces map[string]string
 }
 
+// Transform can be used to transform a DepGraph instance. The particular transformation will depend
+// on the underlying implementation but it can range from dependency pruning, to adding graph
+// annotations, to edge manipulation.
+type Transform interface {
+	// Apply returns a, potentially, modified copy of the input DepGraph instance. The actual
+	// modifications depend on the underlying type and implementation of the particular
+	// GraphTransform.
+	Apply(*logrus.Logger, *DepGraph) *DepGraph
+}
+
 // NewGraph returns a new DepGraph instance which will use the specified
 // logger for writing log output. If nil a null-logger will be used instead.
 func NewGraph(logger *logrus.Logger, path string, main *modules.Module) *DepGraph {
@@ -71,7 +81,7 @@ func (g *DepGraph) AddDependency(module *modules.Module) *Dependency {
 }
 
 func (g *DepGraph) RemoveDependency(name string) {
-	g.logger.Debugf("Removing node with name %q.", name)
+	g.logger.Debugf("Removing dependency with name %q.", name)
 	if replaced, ok := g.replaces[name]; ok {
 		delete(g.replaces, name)
 		name = replaced
@@ -94,36 +104,6 @@ func (g *DepGraph) RemoveDependency(name string) {
 		predecessor.Successors.Delete(node.Name())
 	}
 	g.Dependencies.Delete(name)
-}
-
-// Dependency represents a module in a Go module's dependency graph.
-type Dependency struct {
-	Module       *modules.Module
-	Predecessors *DependencyMap
-	Successors   *DependencyMap
-}
-
-// Name of the module represented by this Dependency in the DepGraph instance.
-func (n *Dependency) Name() string {
-	return n.Module.Path
-}
-
-// SelectedVersion corresponds to the version of the dependency represented by
-// this Dependency which was selected for use.
-func (n *Dependency) SelectedVersion() string {
-	if n.Module.Replace != nil {
-		return n.Module.Replace.Version
-	}
-	return n.Module.Version
-}
-
-// Timestamp returns the time corresponding to the creation of the version at
-// which this dependency is used.
-func (n *Dependency) Timestamp() *time.Time {
-	if n.Module.Replace != nil {
-		return n.Module.Replace.Time
-	}
-	return n.Module.Time
 }
 
 // DeepCopy returns a separate copy of the current dependency graph that can be
@@ -170,4 +150,42 @@ func (g *DepGraph) DeepCopy() *DepGraph {
 
 	g.logger.Debug("Created a deep copy of graph.")
 	return newGraph
+}
+
+func (g *DepGraph) Transform(transformations ...Transform) *DepGraph {
+	graph := g
+	for _, transformation := range transformations {
+		graph = transformation.Apply(g.logger, graph)
+	}
+	return graph
+}
+
+// Dependency represents a module in a Go module's dependency graph.
+type Dependency struct {
+	Module       *modules.Module
+	Predecessors *DependencyMap
+	Successors   *DependencyMap
+}
+
+// Name of the module represented by this Dependency in the DepGraph instance.
+func (n *Dependency) Name() string {
+	return n.Module.Path
+}
+
+// SelectedVersion corresponds to the version of the dependency represented by
+// this Dependency which was selected for use.
+func (n *Dependency) SelectedVersion() string {
+	if n.Module.Replace != nil {
+		return n.Module.Replace.Version
+	}
+	return n.Module.Version
+}
+
+// Timestamp returns the time corresponding to the creation of the version at
+// which this dependency is used.
+func (n *Dependency) Timestamp() *time.Time {
+	if n.Module.Replace != nil {
+		return n.Module.Replace.Time
+	}
+	return n.Module.Time
 }
