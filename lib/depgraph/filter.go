@@ -1,5 +1,7 @@
 package depgraph
 
+import "github.com/blang/semver"
+
 // PruneUnsharedDeps returns a copy of the dependency graph with all dependencies removed
 // that are not part of a chain leading to a dependency with more than two predecessors.
 func (g *DepGraph) PruneUnsharedDeps() *DepGraph {
@@ -52,7 +54,9 @@ func (f *DependencyFilter) matchesFilter(dependency *DependencyReference) bool {
 	if f.Version == "" {
 		return true
 	}
-	return moduleMoreRecentThan(dependency.VersionConstraint, f.Version)
+	constraint := semver.MustParse(dependency.VersionConstraint)
+	version := semver.MustParse(f.Version)
+	return constraint.GT(version)
 }
 
 func (g *DepGraph) applyFilter(filter *DependencyFilter, keep map[string]struct{}) map[string]struct{} {
