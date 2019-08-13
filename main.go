@@ -14,6 +14,7 @@ import (
 	"github.com/Helcaraxan/gomod/internal/parsers"
 	"github.com/Helcaraxan/gomod/lib/analysis"
 	"github.com/Helcaraxan/gomod/lib/depgraph"
+	"github.com/Helcaraxan/gomod/lib/depgraph/filters"
 	"github.com/Helcaraxan/gomod/lib/printer"
 	"github.com/Helcaraxan/gomod/lib/reveal"
 )
@@ -201,20 +202,22 @@ func runGraphCmd(args *graphArgs) error {
 		return err
 	}
 
-	if args.shared {
-		graph = graph.PruneUnsharedDeps()
-	} else {
-		var versionFilter []*depgraph.DependencyFilter
+	var transformations []depgraph.Transform
+	if len(args.dependencies) > 1 {
+		filter := &filters.TargetDependencies{}
 		for _, dependency := range args.dependencies {
-			filter := strings.Split(dependency+"@", "@")
-			versionFilter = append(versionFilter, &depgraph.DependencyFilter{
-				Module:  filter[0],
-				Version: filter[1],
+			specification := strings.Split(dependency+"@", "@")
+			filter.Targets = append(filter.Targets, &struct{ Module, Version string }{
+				Module:  specification[0],
+				Version: specification[1],
 			})
 		}
-		graph = graph.SubGraph(versionFilter)
+		transformations = append(transformations, filter)
 	}
-	return printResult(graph, args)
+	if args.shared {
+		transformations = append(transformations, &filters.NonSharedDependencies{})
+	}
+	return printResult(graph.Transform(transformations...), args)
 }
 
 type analyseArgs struct {
