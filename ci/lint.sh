@@ -74,19 +74,6 @@ git diff --exit-code --quiet || (
 	false
 )
 
-# Verify that the generated images are up-to-date.
-echo "Checking that generated images are up-to-date..."
-./ci/gen.sh
-git add .
-git diff --cached --exit-code --quiet ./images/*.dot || (
-	# We 'git diff' only against the text files and not the images as the 'dot'
-	# tool sadly does not provide cross-platform deterministic generation even
-	# when setting the starting seed in the graph's definition.
-	git diff --cached ./images/*.dot
-	echo "Please run './ci/gen.sh' to update generated documents and images."
-	false
-)
-
 echo "Linting YAML files."
 yamllint --strict --config-file=./.yamllint.yaml .
 
