@@ -2,4 +2,4 @@
 
 package tools
 
-import _ "mvdan.cc/sh/cmd/shfmt"
+import _ "mvdan.cc/sh/v3/cmd/shfmt"

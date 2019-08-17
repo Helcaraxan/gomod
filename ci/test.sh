@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vim: set tabstop=4 shiftwidth=4 expandtab
+# vim: set tabstop=2 shiftwidth=2 expandtab
 set -e -u -o pipefail
 
 PROJECT_ROOT="$(dirname "${BASH_SOURCE[0]}")/.."
