@@ -1,5 +1,7 @@
 module github.com/Helcaraxan/gomod
 
+go 1.14
+
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
