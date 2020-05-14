@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 	"github.com/Helcaraxan/gomod/lib/modules"
@@ -30,7 +30,7 @@ type Replacements struct {
 	originToReplace map[string][]Replacement
 }
 
-func (r *Replacements) Print(logger *logrus.Logger, writer io.Writer, offenders []string, targets []string) error {
+func (r *Replacements) Print(log *zap.Logger, writer io.Writer, offenders []string, targets []string) error {
 	filtered := r.FilterOnOffendingModule(offenders).FilterOnReplacedModule(targets)
 
 	var (
@@ -173,14 +173,14 @@ var (
 	replaceRE       = regexp.MustCompile("([^\\s]+) => ([^\\s]+)(?: (v[^\\s]+))?")
 )
 
-func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replacements, error) {
+func FindReplacements(log *zap.Logger, graph *depgraph.DepGraph) (*Replacements, error) {
 	replacements := &Replacements{
 		main:            graph.Main.Name(),
 		topLevel:        map[string]string{},
 		originToReplace: map[string][]Replacement{},
 	}
 
-	replaces, err := parseGoMod(logger, graph.Main.Module, replacements.topLevel, graph.Main.Module)
+	replaces, err := parseGoMod(log, graph.Main.Module, replacements.topLevel, graph.Main.Module)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replace
 	}
 
 	for _, node := range graph.Dependencies.List() {
-		replaces, err = parseGoMod(logger, graph.Main.Module, replacements.topLevel, node.Module)
+		replaces, err = parseGoMod(log, graph.Main.Module, replacements.topLevel, node.Module)
 		if err != nil {
 			return nil, err
 		}
@@ -211,29 +211,29 @@ func FindReplacements(logger *logrus.Logger, graph *depgraph.DepGraph) (*Replace
 }
 
 func parseGoMod(
-	logger *logrus.Logger,
+	log *zap.Logger,
 	topLevelModule *modules.Module,
 	topLevelReplaces map[string]string,
 	module *modules.Module,
 ) ([]Replacement, error) {
-	module, goModPath := findGoModFile(logger, module)
+	module, goModPath := findGoModFile(log, module)
 	if goModPath == "" {
-		logger.Debugf("Skipping %q as no go.mod file was found.", module.Path)
+		log.Debug("Skipping dependency as no go.mod file was found.", zap.String("dependency", module.Path))
 		return nil, nil
 	}
 
-	logger.Debugf("Parsing go.mod for %q at %q.", module.Path, goModPath)
+	log.Debug("Parsing go.mod.", zap.String("self", module.Path), zap.String("path", goModPath))
 	rawGoMod, err := ioutil.ReadFile(goModPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read your module's go.mod file %q", goModPath)
 	}
 
-	replaces := parseGoModForReplacements(logger, module, string(rawGoMod))
+	replaces := parseGoModForReplacements(log, module, string(rawGoMod))
 	if module.Path == topLevelModule.Path {
-		logger.Debugf(
-			"Auto-dependency on %q detected at version %q. Filtering already known top-level dependencies.",
-			topLevelModule.Path,
-			module.Version,
+		log.Debug(
+			"Auto-dependency detected at version. Filtering already known top-level dependencies.",
+			zap.String("self", topLevelModule.Path),
+			zap.String("version", module.Version),
 		)
 		var filteredReplaces []Replacement
 		for _, replace := range replaces {
@@ -246,11 +246,11 @@ func parseGoMod(
 	return replaces, nil
 }
 
-func findGoModFile(logger *logrus.Logger, module *modules.Module) (*modules.Module, string) {
+func findGoModFile(log *zap.Logger, module *modules.Module) (*modules.Module, string) {
 	if module == nil {
 		return nil, ""
 	} else if module.Replace != nil {
-		logger.Debugf("Following top-level replace for %q to %q", module.Path, module.Replace.Path)
+		log.Debug("Following top-level replace.", zap.String("source", module.Path), zap.String("target", module.Replace.Path))
 		module = module.Replace
 	}
 
@@ -259,24 +259,24 @@ func findGoModFile(logger *logrus.Logger, module *modules.Module) (*modules.Modu
 	}
 	defaultPath := filepath.Join(module.Path, "go.mod")
 	if _, err := os.Stat(defaultPath); err == nil {
-		logger.Debugf("Found go.mod file at default path %q.", defaultPath)
+		log.Debug("Found go.mod file at default path.", zap.String("path", defaultPath))
 		return module, defaultPath
 	}
 	return module, ""
 }
 
-func parseGoModForReplacements(logger *logrus.Logger, module *modules.Module, goModContent string) []Replacement {
+func parseGoModForReplacements(log *zap.Logger, module *modules.Module, goModContent string) []Replacement {
 	var replacements []Replacement
 	for _, singleReplaceMatch := range singleReplaceRE.FindAllStringSubmatch(goModContent, -1) {
-		replacements = append(replacements, parseReplacements(logger, module, singleReplaceMatch[1])...)
+		replacements = append(replacements, parseReplacements(log, module, singleReplaceMatch[1])...)
 	}
 	for _, multiReplaceMatch := range multiReplaceRE.FindAllStringSubmatch(goModContent, -1) {
-		replacements = append(replacements, parseReplacements(logger, module, multiReplaceMatch[1])...)
+		replacements = append(replacements, parseReplacements(log, module, multiReplaceMatch[1])...)
 	}
 	return replacements
 }
 
-func parseReplacements(logger *logrus.Logger, module *modules.Module, replaceString string) []Replacement {
+func parseReplacements(log *zap.Logger, module *modules.Module, replaceString string) []Replacement {
 	var replacements []Replacement
 	for _, replaceMatch := range replaceRE.FindAllStringSubmatch(replaceString, -1) {
 		replace := Replacement{
@@ -285,11 +285,11 @@ func parseReplacements(logger *logrus.Logger, module *modules.Module, replaceStr
 			Override: replaceMatch[2],
 			Version:  replaceMatch[3],
 		}
-		logger.Debugf(
-			"Found hidden replace of %q by %q in dependency %q.",
-			replace.Original,
-			replace.Override,
-			replace.Offender.Path,
+		log.Debug(
+			"Found hidden replace.",
+			zap.String("source", replace.Original),
+			zap.String("target", replace.Override),
+			zap.String("location", replace.Offender.Path),
 		)
 		replacements = append(replacements, replace)
 	}

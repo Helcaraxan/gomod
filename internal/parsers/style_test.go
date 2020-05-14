@@ -1,12 +1,15 @@
 package parsers
 
 import (
+	"os"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/lib/printer"
 )
 
@@ -112,10 +115,11 @@ func TestVisualConfig(t *testing.T) {
 		},
 	}
 
-	for name, testcase := range testcases {
+	for name := range testcases {
+		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
-			logger := logrus.New()
-			config, err := ParseVisualConfig(logger, testcase.optionValue)
+			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zap.DebugLevel))
+			config, err := ParseVisualConfig(log, testcase.optionValue)
 			if testcase.expectedError {
 				assert.Error(t, err)
 			} else {

@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/lib/printer"
 )
 
@@ -60,7 +62,7 @@ func TestGraphGeneration(t *testing.T) {
 		require.NoError(t, os.RemoveAll(tempDir))
 	}()
 
-	cArgs := &commonArgs{logger: logrus.New()}
+	cArgs := &commonArgs{log: zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zapcore.DebugLevel))}
 
 	for name, testcase := range testcases {
 		t.Run(name, func(t *testing.T) {

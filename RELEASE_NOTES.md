@@ -24,6 +24,9 @@
   - `filters.NonSharedDependencies` implements the logic of the now removed
     `DepGraph.PruneUnsharedDeps()` method. In addition the filter now also allows for the
     specification of dependencies to skip during the pruning.
+- The logging functionality is now provided by `go.uber.org/zap` instead of
+  `github.com/sirupsen/logrus`.
+- The `Logger` field in the `printer.PrintConfig` struct type has been renamed to `Log`.
 
 ## 0.5.0
 

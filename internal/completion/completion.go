@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 //go:generate go run ./gen/gen.go . completion ./scripts/gomod_custom_func.sh
@@ -25,9 +25,9 @@ var shellToString = map[ShellType]string{
 	ZSH:        "zsh",
 }
 
-func GenerateCompletionScript(logger *logrus.Logger, rootCmd *cobra.Command, shell ShellType, writer io.Writer) error {
+func GenerateCompletionScript(logger *zap.Logger, rootCmd *cobra.Command, shell ShellType, writer io.Writer) error {
 	if fileWriter, ok := writer.(*os.File); ok {
-		logger.Debugf("Writing shell completion script for %s to '%s'.", shellToString[shell], fileWriter.Name())
+		logger.Debug("Writing shell completion script.", zap.String("shell-type", shellToString[shell]), zap.String("target-file", fileWriter.Name()))
 	}
 
 	var err error

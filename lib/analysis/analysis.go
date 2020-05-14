@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 	"github.com/Helcaraxan/gomod/lib/modules"
@@ -35,14 +35,14 @@ type DepAnalysis struct {
 
 var testCurrentTimeInjection *time.Time
 
-func Analyse(logger *logrus.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) {
-	_, moduleMap, err := modules.GetDependenciesWithUpdates(logger, g.Path)
+func Analyse(log *zap.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) {
+	_, moduleMap, err := modules.GetDependenciesWithUpdates(log, g.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	result := &analysis{
-		logger:    logger,
+		log:       log,
 		graph:     g,
 		moduleMap: moduleMap,
 	}
@@ -73,7 +73,7 @@ func Analyse(logger *logrus.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) 
 }
 
 type analysis struct {
-	logger    *logrus.Logger
+	log       *zap.Logger
 	graph     *depgraph.DepGraph
 	moduleMap map[string]*modules.Module
 
@@ -104,7 +104,7 @@ func (r *analysis) processDependency(dependency *depgraph.DependencyReference) {
 	}
 
 	if timestamp := dependency.Timestamp(); timestamp == nil {
-		r.logger.Warnf("No timestamp associated with '%s'.", dependency.Name())
+		r.log.Warn("No associated timestamp was found.", zap.String("dependency", dependency.Name()))
 		return
 	}
 
@@ -115,13 +115,13 @@ func (r *analysis) processDependency(dependency *depgraph.DependencyReference) {
 	r.depAges.insert(int64(depAge), int(depAge.Nanoseconds()/month.Nanoseconds()))
 
 	if module := r.moduleMap[dependency.Name()]; module != nil && module.Update != nil && module.Update.Time != nil {
-		r.logger.Debugf("Update available for %q to %s.", dependency.Name(), module.Update.Version)
+		r.log.Debug("Update available.", zap.String("dependency", dependency.Name()), zap.String("version", module.Update.Version))
 		if module.Update.Time.After(*dependency.Timestamp()) {
 			updateBacklog := module.Update.Time.Sub(*dependency.Timestamp())
 			r.updateBacklogs.insert(int64(updateBacklog), int(updateBacklog.Nanoseconds()/month.Nanoseconds()))
 			r.updatableDirectDependencies += isDirect
 		} else {
-			r.logger.Warnf("Available update for '%s' is older than the version currently in use.", dependency.Name())
+			r.log.Warn("Available update is older than the version currently in use.", zap.String("dependency", dependency.Name()))
 		}
 	}
 }

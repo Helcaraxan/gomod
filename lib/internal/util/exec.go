@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
-func RunCommand(logger *logrus.Logger, path string, cmd string, args ...string) (stdout []byte, stderr []byte, err error) {
+func RunCommand(log *zap.Logger, path string, cmd string, args ...string) (stdout []byte, stderr []byte, err error) {
 	if !filepath.IsAbs(path) {
 		if path, err = filepath.Abs(path); err != nil {
 			return nil, nil, err
@@ -27,19 +27,19 @@ func RunCommand(logger *logrus.Logger, path string, cmd string, args ...string) 
 	execCmd.Stdout = stdoutBuffer
 	execCmd.Stderr = stderrBuffer
 
-	if logger.GetLevel() >= logrus.DebugLevel {
+	if log.Core().Enabled(zap.DebugLevel) {
 		execCmd.Stdout = io.MultiWriter(execCmd.Stdout, os.Stdout)
 	}
-	if logger.GetLevel() >= logrus.WarnLevel {
+	if log.Core().Enabled(zap.WarnLevel) {
 		execCmd.Stderr = io.MultiWriter(execCmd.Stderr, os.Stderr)
 	}
 
-	logger.Debugf("Running command '%s %s'.", execCmd.Path, strings.Join(execCmd.Args, " "))
+	log = log.With(zap.Strings("args", append([]string{execCmd.Path}, execCmd.Args...)))
+	log.Debug("Running command.")
 	err = execCmd.Run()
-	logger.Debugf("Content of stdout was: %s", stdoutBuffer.Bytes())
-	logger.Debugf("Content of stderr was: %s", stderrBuffer.Bytes())
+	log.Debug("Finished running.", zap.ByteString("stdout", stdoutBuffer.Bytes()), zap.ByteString("stderr", stderrBuffer.Bytes()))
 	if err != nil {
-		logger.WithError(err).Errorf("'%s %s' exited with an error", execCmd.Path, strings.Join(execCmd.Args, " "))
+		log.Error("Command exited with an error.", zap.Error(err))
 		return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), fmt.Errorf("failed to run '%s %s: %s", cmd, strings.Join(args, " "), err)
 	}
 	return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), nil

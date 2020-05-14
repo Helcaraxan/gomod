@@ -1,14 +1,16 @@
 package reveal
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 	"github.com/Helcaraxan/gomod/lib/modules"
 )
@@ -96,10 +98,9 @@ var (
 var testGraph *depgraph.DepGraph
 
 func init() {
-	logger := logrus.New()
-	logger.SetOutput(ioutil.Discard)
+	log := zap.NewNop()
 
-	testGraph = depgraph.NewGraph(logger, "", &modules.Module{
+	testGraph = depgraph.NewGraph(log, "", &modules.Module{
 		Main:  true,
 		Path:  "test/module",
 		GoMod: filepath.Join("testdata", "mainModule", "go.mod"),
@@ -111,7 +112,7 @@ func init() {
 }
 
 func Test_ParseReplaces(t *testing.T) {
-	logger := logrus.New()
+	log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zap.DebugLevel))
 
 	testcases := map[string]struct {
 		input    string
@@ -186,15 +187,14 @@ replace (
 
 	for name, test := range testcases {
 		t.Run(name, func(t *testing.T) {
-			output := parseGoModForReplacements(logger, test.offender, test.input)
+			output := parseGoModForReplacements(log, test.offender, test.input)
 			assert.Equal(t, test.expected, output)
 		})
 	}
 }
 
 func Test_FindReplacements(t *testing.T) {
-	logger := logrus.New()
-	logger.SetOutput(ioutil.Discard)
+	log := zap.NewNop()
 
 	expectedReplacements := &Replacements{
 		main:     "test/module",
@@ -211,7 +211,7 @@ func Test_FindReplacements(t *testing.T) {
 		},
 	}
 
-	replacements, err := FindReplacements(logger, testGraph)
+	replacements, err := FindReplacements(log, testGraph)
 	assert.NoError(t, err, "Should not error while searching for replacements.")
 	assert.Equal(t, expectedReplacements, replacements, "Should find the expected replacement information.")
 }
@@ -277,17 +277,15 @@ func Test_PrintReplacements(t *testing.T) {
 [✓] Match with a top-level replace in 'test-module'
 `
 
-	logger := logrus.New()
-	logger.SetOutput(ioutil.Discard)
+	log := zap.NewNop()
 
 	writer := &strings.Builder{}
-	testReplacements.Print(logger, writer, nil, nil)
+	testReplacements.Print(log, writer, nil, nil)
 	assert.Equal(t, expectedOutput, writer.String(), "Should print the expected output.")
 }
 
 func Test_FindGoModFile(t *testing.T) {
-	logger := logrus.New()
-	logger.SetOutput(ioutil.Discard)
+	log := zap.NewNop()
 
 	testcases := map[string]struct {
 		module         *modules.Module
@@ -321,11 +319,12 @@ func Test_FindGoModFile(t *testing.T) {
 		},
 	}
 
-	for name, tc := range testcases {
+	for name := range testcases {
+		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
-			module, goModPath := findGoModFile(logger, tc.module)
-			assert.Equal(t, tc.expectedModule, module, "Should have determined the used module correctly.")
-			assert.Equal(t, tc.expectedPath, goModPath, "Should have determined the correct go.mod path.")
+			module, goModPath := findGoModFile(log, testcase.module)
+			assert.Equal(t, testcase.expectedModule, module, "Should have determined the used module correctly.")
+			assert.Equal(t, testcase.expectedPath, goModPath, "Should have determined the correct go.mod path.")
 		})
 	}
 }

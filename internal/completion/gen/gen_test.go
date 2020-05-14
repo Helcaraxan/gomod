@@ -7,13 +7,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
+	"github.com/Helcaraxan/gomod/internal/logger"
 )
 
 func Test_GetFilename(t *testing.T) {
-	logrus.SetOutput(ioutil.Discard)
+	oldLog := log
+	defer func() { log = oldLog }()
+	log = zap.NewNop()
 
 	testcases := map[string]struct {
 		outputDir string
@@ -42,7 +47,8 @@ func Test_GetFilename(t *testing.T) {
 		},
 	}
 
-	for name, testcase := range testcases {
+	for name := range testcases {
+		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
 			actual := getFilename(testcase.outputDir, testcase.inputPath)
 			assert.Equal(t, testcase.expected, actual, "Should have returned the expected output path.")
@@ -51,7 +57,9 @@ func Test_GetFilename(t *testing.T) {
 }
 
 func Test_GetVariable(t *testing.T) {
-	logrus.SetOutput(ioutil.Discard)
+	oldLog := log
+	defer func() { log = oldLog }()
+	log = zap.NewNop()
 
 	testcases := map[string]struct {
 		inputPath string
@@ -71,7 +79,8 @@ func Test_GetVariable(t *testing.T) {
 		},
 	}
 
-	for name, testcase := range testcases {
+	for name := range testcases {
+		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
 			actual := getVariableName(testcase.inputPath)
 			assert.Equal(t, testcase.expected, actual, "Should have returned the expected output path.")
@@ -80,8 +89,10 @@ func Test_GetVariable(t *testing.T) {
 }
 
 func TestGen_SkipsNonShell(t *testing.T) {
-	logWriter := &strings.Builder{}
-	logrus.SetOutput(logWriter)
+	oldLog := log
+	defer func() { log = oldLog }()
+	logWriter := &syncStringBuffer{}
+	log = zap.New(zapcore.NewCore(logger.NewGoModEncoder(), logWriter, zap.DebugLevel))
 
 	err := processFile("foo", "bar", "my-go-file.go")
 	assert.NoError(t, err, "Should not error when processing file with no .sh extension.")
@@ -89,7 +100,9 @@ func TestGen_SkipsNonShell(t *testing.T) {
 }
 
 func TestGen(t *testing.T) {
-	logrus.SetOutput(ioutil.Discard)
+	oldLog := log
+	defer func() { log = oldLog }()
+	log = zap.NewNop()
 
 	outputDir, err := ioutil.TempDir("", "bash-gen")
 	require.NoError(t, err, "Must be able to create a temporary output directory.")
@@ -112,3 +125,9 @@ func TestGen(t *testing.T) {
 	require.NoErrorf(t, err, "Must be able to read the generated file at %q.", actualPath)
 	assert.Equal(t, string(expected), string(actual), "Should have generated the expected file at %q.", actualPath)
 }
+
+type syncStringBuffer struct {
+	strings.Builder
+}
+
+func (b *syncStringBuffer) Sync() error { return nil }

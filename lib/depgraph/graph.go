@@ -1,10 +1,9 @@
 package depgraph
 
 import (
-	"io/ioutil"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/modules"
 )
@@ -16,7 +15,7 @@ type DepGraph struct {
 	Main         *Dependency
 	Dependencies *DependencyMap
 
-	logger   *logrus.Logger
+	log      *zap.Logger
 	replaces map[string]string
 }
 
@@ -27,20 +26,19 @@ type Transform interface {
 	// Apply returns a, potentially, modified copy of the input DepGraph instance. The actual
 	// modifications depend on the underlying type and implementation of the particular
 	// GraphTransform.
-	Apply(*logrus.Logger, *DepGraph) *DepGraph
+	Apply(*zap.Logger, *DepGraph) *DepGraph
 }
 
 // NewGraph returns a new DepGraph instance which will use the specified
 // logger for writing log output. If nil a null-logger will be used instead.
-func NewGraph(logger *logrus.Logger, path string, main *modules.Module) *DepGraph {
-	if logger == nil {
-		logger = logrus.New()
-		logger.SetOutput(ioutil.Discard)
+func NewGraph(log *zap.Logger, path string, main *modules.Module) *DepGraph {
+	if log == nil {
+		log = zap.NewNop()
 	}
 	newGraph := &DepGraph{
 		Path:         path,
 		Dependencies: NewDependencyMap(),
-		logger:       logger,
+		log:          log,
 		replaces:     map[string]string{},
 	}
 	newGraph.Main = newGraph.AddDependency(main)
@@ -81,7 +79,7 @@ func (g *DepGraph) AddDependency(module *modules.Module) *Dependency {
 }
 
 func (g *DepGraph) RemoveDependency(name string) {
-	g.logger.Debugf("Removing dependency with name %q.", name)
+	g.log.Debug("Removing dependency.", zap.String("dependency", name))
 	if replaced, ok := g.replaces[name]; ok {
 		delete(g.replaces, name)
 		name = replaced
@@ -109,12 +107,12 @@ func (g *DepGraph) RemoveDependency(name string) {
 // DeepCopy returns a separate copy of the current dependency graph that can be
 // safely modified without affecting the original graph.
 func (g *DepGraph) DeepCopy() *DepGraph {
-	g.logger.Debugf("Deep-copying dependency graph for %q.", g.Main.Name())
+	g.log.Debug("Deep-copying dependency graph.", zap.String("module", g.Main.Name()))
 
-	newGraph := NewGraph(g.logger, g.Path, g.Main.Module)
+	newGraph := NewGraph(g.log, g.Path, g.Main.Module)
 	for _, dependency := range g.Dependencies.List() {
 		if module := newGraph.AddDependency(dependency.Module); module == nil {
-			g.logger.Errorf("Encountered an empty dependency for %q.", module.Name())
+			g.log.Error("Encountered an empty dependency.", zap.String("dependency", module.Name()))
 		}
 	}
 
@@ -123,7 +121,11 @@ func (g *DepGraph) DeepCopy() *DepGraph {
 		for _, predecessor := range dependency.Predecessors.List() {
 			newPredecessor, ok := newGraph.GetDependency(predecessor.Name())
 			if !ok {
-				g.logger.Warnf("Could not find information for '%s' listed in predecessors of '%s'.", predecessor.Name(), dependency.Name())
+				g.log.Warn(
+					"Could not find information for predecessor.",
+					zap.String("predecessor", predecessor.Name()),
+					zap.String("dependency", dependency.Name()),
+				)
 				continue
 			}
 			newDependency.Predecessors.Add(&DependencyReference{
@@ -134,7 +136,11 @@ func (g *DepGraph) DeepCopy() *DepGraph {
 		for _, successor := range dependency.Successors.List() {
 			newSuccessor, ok := newGraph.GetDependency(successor.Name())
 			if !ok {
-				g.logger.Warnf("Could not find information for '%s' listed in successors of '%s'.", successor.Name(), dependency.Name())
+				g.log.Warn(
+					"Could not find information for successor.",
+					zap.String("successor", successor.Name()),
+					zap.String("dependency", dependency.Name()),
+				)
 				continue
 			}
 			newDependency.Successors.Add(&DependencyReference{
@@ -148,14 +154,14 @@ func (g *DepGraph) DeepCopy() *DepGraph {
 		newGraph.replaces[original] = replacement
 	}
 
-	g.logger.Debug("Created a deep copy of graph.")
+	g.log.Debug("Created a deep copy of graph.")
 	return newGraph
 }
 
 func (g *DepGraph) Transform(transformations ...Transform) *DepGraph {
 	graph := g
 	for _, transformation := range transformations {
-		graph = transformation.Apply(g.logger, graph)
+		graph = transformation.Apply(g.log, graph)
 	}
 	return graph
 }
