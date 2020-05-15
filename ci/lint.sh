@@ -7,19 +7,19 @@ if [[ "$(uname -s)" != "Linux" ]]; then
 	exit 1
 fi
 
-PROJECT_ROOT="$(dirname "${BASH_SOURCE[0]}")/.."
+readonly PROJECT_ROOT="$(dirname "${BASH_SOURCE[0]}")/.."
 cd "${PROJECT_ROOT}"
 
 # Ensure linter versions are specified or set the default values.
-GOLANGCI_VERSION="${GOLANGCI_VERSION:-"1.17.1"}"
-MARKDOWNLINT_VERSION="${MARKDOWNLINT_VERSION:-"0.5.0"}"
-SHELLCHECK_VERSION="${SHELLCHECK_VERSION:-"0.7.0"}"
-SHFMT_VERSION="${SHFMT_VERSION:-"2.6.4"}"
-YAMLLINT_VERSION="${YAMLLINT_VERSION:-"1.10.0"}"
+readonly GOLANGCI_VERSION="${GOLANGCI_VERSION:-"1.17.1"}"
+readonly MARKDOWNLINT_VERSION="${MARKDOWNLINT_VERSION:-"0.5.0"}"
+readonly SHELLCHECK_VERSION="${SHELLCHECK_VERSION:-"0.7.0"}"
+readonly SHFMT_VERSION="${SHFMT_VERSION:-"2.6.4"}"
+readonly YAMLLINT_VERSION="${YAMLLINT_VERSION:-"1.10.0"}"
 
 # Retrieve linters if necessary.
 mkdir -p "${PWD}/bin"
-PATH="${PATH}:${PWD}/bin"
+export PATH="${PWD}/bin:${PATH}"
 
 ## golangci-lint
 if [[ -z "$(command -v golangci-lint)" ]] || ! grep "${GOLANGCI_VERSION}" <<<"$(golangci-lint --version)"; then
@@ -49,19 +49,17 @@ fi
 ## markdownlint
 if [[ -z "$(command -v mdl)" ]] || ! grep "${MARKDOWNLINT_VERSION}" <<<"$(mdl --version)"; then
 	echo "Installing mdl@${MARKDOWNLINT_VERSION}."
-	gem install mdl -v "${MARKDOWNLINT_VERSION}"
-	GEM_INSTALL_DIR="$(gem environment | grep -E -e "- INSTALLATION DIRECTORY" | sed -E 's/.* ([[:print:]]+)$/\1/')/bin"
-	PATH="${PATH}:${GEM_INSTALL_DIR}"
+	mkdir -p "${HOME}/.ruby"
+	export GEM_HOME="${HOME}/.ruby"
+	gem install mdl "--version=${MARKDOWNLINT_VERSION}" --bindir=./bin
 else
 	echo "Found installed mdl@${MARKDOWNLINT_VERSION}."
 fi
 
 ## yamllint
-if [[ -z "$(command -v yamllint)" ]]; then
-	echo "Could not find yamllint@${YAMLLINT_VERSION}. Please install it manually."
-	exit 1
-elif ! grep "${YAMLLINT_VERSION}" <<<"$(yamllint --version)"; then
-	echo "WARNING - yamllint found at non-default version '$(yamllint --version)'. Results might differ."
+if [[ -z "$(command -v yamllint)" ]] || ! grep "${YAMLLINT_VERSION}" <<<"$(yamllint --version)"; then
+	echo "Installing yamllint@${YAMLLINT_VERSION}."
+	pip install "yamllint==${YAMLLINT_VERSION}"
 else
 	echo "Found installed yamllint@${YAMLLINT_VERSION}."
 fi
@@ -87,21 +85,19 @@ git diff --exit-code --quiet || (
 	false
 )
 
-echo "Performing a static analysis of Bash scripts."
-shell_failure=0
-shell_vim_directives="# vim: set tabstop=4 shiftwidth=4 expandtab"
-while read -r shell_file; do
-	echo "Linting ${shell_file}"
+echo "Linting Bash scripts."
+declare -a shell_files
+read -r -a shell_files <<<"$(shfmt -f .)"
+shellcheck --shell=bash --severity=style "${shell_files[@]}"
 
-	pushd "$(dirname "${shell_file}")"
-	shell_file="$(basename "${shell_file}")"
-	shellcheck --check-sourced --external-sources --shell=bash --severity=style "${shell_file}" || shell_failure=1
+shell_failure=0
+readonly shell_vim_directives="# vim: set tabstop=4 shiftwidth=4 expandtab"
+for shell_file in "${shell_files[@]}"; do
 	if ! grep -q "^${shell_vim_directives}$" "${shell_file}"; then
 		echo "'${shell_file}' is missing the compulsory VIm directives: ${shell_vim_directives}"
 		shell_failure=1
 	fi
-	popd
-done <<<"$(shfmt -f .)"
+done
 if ((shell_failure == 1)); then
 	echo "Errors were detected while linting shell scripts."
 	exit 1

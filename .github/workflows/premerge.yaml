@@ -1,0 +1,51 @@
+---
+name: Premerge
+
+on:  # yamllint disable rule:truthy
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lint:
+    name: Lint
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Install Python
+        uses: actions/setup-python@v1
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - name: Run linters
+        run: ./ci/lint.sh
+
+  test:
+    name: Test
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Install required tools
+        run: sudo apt-get install -y graphviz
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - name: Test & publish code-coverage
+        uses: paambaati/codeclimate-action@v2.6.0
+        env:
+          CC_TEST_REPORTER_ID: ef07ead9fa11867e3688cde45f90e10ba0fddc35793f2003bbf2140a10904e0e
+        with:
+          coverageCommand: ./ci/test.sh
