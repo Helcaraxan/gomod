@@ -22,14 +22,14 @@ dep_analysis:
   module: "test"
   direct_dependencies: 1
   indirect_dependencies: 0
-  mean_age: 60000000000
-  max_age: 60000000000
+  mean_age: 60000000000ns
+  max_age: 60000000000ns
   age_per_month:
     - 1
   available_updates: 1
   available_updates_direct: 1
-  mean_backlog: 30000000000
-  max_backlog: 30000000000
+  mean_backlog: 30000000000ns
+  max_backlog: 30000000000ns
   backlog_per_month:
     - 1
   mean_reverse_deps: 1

@@ -32,14 +32,14 @@ go_graph_output: |
 dep_analysis:
   module: "test"
   direct_dependencies: 2
-  mean_age: 45000000000
-  max_age: 60000000000
+  mean_age: 45000000000ns
+  max_age: 60000000000ns
   age_per_month:
     - 2
   available_updates: 2
   available_updates_direct: 2
-  mean_backlog: 20000000000
-  max_backlog: 30000000000
+  mean_backlog: 20000000000ns
+  max_backlog: 30000000000ns
   backlog_per_month:
     - 2
   mean_reverse_deps: 1
