@@ -64,7 +64,8 @@ func TestGraphGeneration(t *testing.T) {
 
 	cArgs := &commonArgs{log: zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zapcore.DebugLevel))}
 
-	for name, testcase := range testcases {
+	for name := range testcases {
+		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
 			// Test the dot generation.
 			dotArgs := *testcase.dotArgs

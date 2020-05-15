@@ -32,7 +32,8 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.DepGraph) *graphC
 	// Ensure determinism by sorting the modules in each cluster. The order that is used puts
 	// nodes with no dependencies first and those with at least one last, the rest of the ordering
 	// is done by alphabetical order.
-	for _, cluster := range hashToCluster {
+	for hash := range hashToCluster {
+		cluster := hashToCluster[hash]
 		sort.Slice(cluster.members, func(i int, j int) bool {
 			hasDepsI := cluster.members[i].Successors.Len() > 0
 			hasDepsJ := cluster.members[j].Successors.Len() > 0

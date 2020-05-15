@@ -3,7 +3,7 @@ strict digraph {
   start=0
   concentrate=true
   "github.com/Helcaraxan/gomod"
-  "golang.org/x/sys" [label=<golang.org/x/sys<br /><font point-size="10">v0.0.0-20200513112337-417ce2331b5c</font>>]
+  "golang.org/x/sys" [label=<golang.org/x/sys<br /><font point-size="10">v0.0.0-20200515095857-1151b9dac4a9</font>>]
   "github.com/stretchr/testify" [label=<github.com/stretchr/testify<br /><font point-size="10">v1.5.1</font>>]
   "go.uber.org/zap" [label=<go.uber.org/zap<br /><font point-size="10">v1.15.0</font>>]
   "github.com/spf13/cobra" [label=<github.com/spf13/cobra<br /><font point-size="10">v1.0.0</font>>]
@@ -31,7 +31,7 @@ strict digraph {
   "github.com/Helcaraxan/gomod" -> "github.com/spf13/cobra" [label=<<font point-size="10">v1.0.0</font>>]
   "github.com/Helcaraxan/gomod" -> "github.com/stretchr/testify" [minlen=4,label=<<font point-size="10">v1.5.1</font>>]
   "github.com/Helcaraxan/gomod" -> "go.uber.org/zap" [minlen=3,label=<<font point-size="10">v1.15.0</font>>]
-  "github.com/Helcaraxan/gomod" -> "golang.org/x/sys" [minlen=6,label=<<font point-size="10">v0.0.0-20200513112337-417ce2331b5c</font>>]
+  "github.com/Helcaraxan/gomod" -> "golang.org/x/sys" [minlen=6,label=<<font point-size="10">v0.0.0-20200515095857-1151b9dac4a9</font>>]
   "github.com/Helcaraxan/gomod" -> "mvdan.cc/sh/v3" [label=<<font point-size="10">v3.1.1</font>>]
   "github.com/gogo/protobuf" -> "github.com/kisielk/errcheck" [label=<<font point-size="10">v1.1.0</font>>]
   "github.com/grpc-ecosystem/grpc-gateway" -> "golang.org/x/net" [minlen=2,label=<<font point-size="10">v0.0.0-20181220203305-927f97764cc3</font>>]

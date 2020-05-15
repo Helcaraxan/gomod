@@ -168,9 +168,9 @@ func (r *Replacements) printModuleReplacements(original string) (string, bool) {
 }
 
 var (
-	singleReplaceRE = regexp.MustCompile("replace ([^\n]+)")
-	multiReplaceRE  = regexp.MustCompile("replace \\(([^)]+)\\)")
-	replaceRE       = regexp.MustCompile("([^\\s]+) => ([^\\s]+)(?: (v[^\\s]+))?")
+	singleReplaceRE = regexp.MustCompile(`replace ([^\n]+)`)
+	multiReplaceRE  = regexp.MustCompile(`replace \(([^)]+)\)`)
+	replaceRE       = regexp.MustCompile(`([^\s]+) => ([^\s]+)(?: (v[^\s]+))?`)
 )
 
 func FindReplacements(log *zap.Logger, graph *depgraph.DepGraph) (*Replacements, error) {

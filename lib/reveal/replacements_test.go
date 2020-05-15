@@ -185,10 +185,11 @@ replace (
 		},
 	}
 
-	for name, test := range testcases {
+	for name := range testcases {
+		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
-			output := parseGoModForReplacements(log, test.offender, test.input)
-			assert.Equal(t, test.expected, output)
+			output := parseGoModForReplacements(log, testcase.offender, testcase.input)
+			assert.Equal(t, testcase.expected, output)
 		})
 	}
 }

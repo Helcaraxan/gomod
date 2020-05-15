@@ -276,7 +276,7 @@ func printNodeToDot(config *PrintConfig, node *depgraph.Dependency) string {
 		}
 		nodeOptions = append(nodeOptions, fmt.Sprintf("width=%.2f,height=%.2f", 5*scaling, scaling))
 	}
-	if config.Annotate && len(node.SelectedVersion()) != 0 {
+	if config.Annotate && node.SelectedVersion() != "" {
 		var replacement string
 		if node.Module.Replace != nil {
 			replacement = node.Module.Replace.Path + "<br />"

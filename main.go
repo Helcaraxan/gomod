@@ -208,18 +208,22 @@ func runGraphCmd(args *graphArgs) error {
 	}
 
 	var transformations []depgraph.Transform
-	if len(args.dependencies) > 1 {
+	if len(args.dependencies) > 0 {
+		args.log.Debug("Configuring filters for dependencies.", zap.Strings("args", args.dependencies))
 		filter := &filters.TargetDependencies{}
 		for _, dependency := range args.dependencies {
 			specification := strings.Split(dependency+"@", "@")
-			filter.Targets = append(filter.Targets, &struct{ Module, Version string }{
+			target := &struct{ Module, Version string }{
 				Module:  specification[0],
 				Version: specification[1],
-			})
+			}
+			args.log.Debug("Adding filter for dependency.", zap.Any("dependency", target))
+			filter.Targets = append(filter.Targets, target)
 		}
 		transformations = append(transformations, filter)
 	}
 	if args.shared {
+		args.log.Debug("Adding filter for non-shared dependencies.")
 		transformations = append(transformations, &filters.NonSharedDependencies{})
 	}
 	return printResult(graph.Transform(transformations...), args)
