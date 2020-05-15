@@ -1,7 +1,7 @@
 # Go Modules clarified
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://travis-ci.com/Helcaraxan/gomod.svg?branch=master)](https://travis-ci.com/Helcaraxan/gomod)
+[![Build Status](https://github.com/Helcaraxan/gomod/workflows/Premerge/badge.svg)](https://github.com/Helcaraxan/gomod/actions?query=workflow%3APremerge)
 [![Maintainability](https://api.codeclimate.com/v1/badges/42f5920cf5c46650945b/maintainability)](https://codeclimate.com/github/Helcaraxan/gomod/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/42f5920cf5c46650945b/test_coverage)](https://codeclimate.com/github/Helcaraxan/gomod/test_coverage)
 
