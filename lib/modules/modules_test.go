@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/internal/testutil"
 )
@@ -30,6 +30,8 @@ func (c *testcase) GoListOutput() string  { return c.ListOutput }
 func (c *testcase) GoGraphOutput() string { return "" }
 
 func TestModuleInformationRetrieval(t *testing.T) {
+	log := zap.NewNop()
+
 	savedClient := httpClient
 	defer func() { httpClient = savedClient }()
 	httpClient = &http.Client{Transport: &successfullRTT{}}
@@ -56,7 +58,7 @@ func TestModuleInformationRetrieval(t *testing.T) {
 			testDir, cleanup := testutil.SetupTestModule(t, filepath.Join(cwd, "testdata", file.Name()), testDefinition)
 			defer cleanup()
 
-			main, modules, testErr := GetDependencies(logrus.New(), testDir)
+			main, modules, testErr := GetDependencies(log, testDir)
 			if testDefinition.ExpectedError {
 				assert.Error(t, testErr)
 			} else {
@@ -65,7 +67,7 @@ func TestModuleInformationRetrieval(t *testing.T) {
 				assert.Equal(t, testDefinition.ExpectedModules, modules)
 			}
 
-			main, modules, testErr = GetDependenciesWithUpdates(logrus.New(), testDir)
+			main, modules, testErr = GetDependenciesWithUpdates(log, testDir)
 			if testDefinition.ExpectedError {
 				assert.Error(t, testErr)
 			} else {
@@ -75,11 +77,11 @@ func TestModuleInformationRetrieval(t *testing.T) {
 			}
 
 			if !testDefinition.ExpectedError {
-				main, testErr = GetModule(logrus.New(), testDir, testDefinition.ExpectedMain.Path)
+				main, testErr = GetModule(log, testDir, testDefinition.ExpectedMain.Path)
 				require.NoError(t, testErr)
 				assert.Equal(t, testDefinition.ExpectedMain, main)
 
-				main, testErr = GetModuleWithUpdate(logrus.New(), testDir, testDefinition.ExpectedMain.Path)
+				main, testErr = GetModuleWithUpdate(log, testDir, testDefinition.ExpectedMain.Path)
 				require.NoError(t, testErr)
 				assert.Equal(t, testDefinition.ExpectedMain, main)
 			}
@@ -88,16 +90,18 @@ func TestModuleInformationRetrieval(t *testing.T) {
 }
 
 func TestLackOfConnectivity(t *testing.T) {
+	log := zap.NewNop()
+
 	savedClient := httpClient
 	defer func() { httpClient = savedClient }()
 
 	for _, fakeRTT := range []http.RoundTripper{&disconnectedRTT{}, &erroneousRTT{}} {
 		httpClient = &http.Client{Transport: fakeRTT}
 
-		_, _, err := GetDependenciesWithUpdates(logrus.New(), "")
+		_, _, err := GetDependenciesWithUpdates(log, "")
 		assert.Error(t, err)
 
-		_, err = GetModuleWithUpdate(logrus.New(), ".", "github.com/Helcaraxan/gomod")
+		_, err = GetModuleWithUpdate(log, ".", "github.com/Helcaraxan/gomod")
 		assert.Error(t, err)
 	}
 }

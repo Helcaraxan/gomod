@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 )
@@ -23,24 +23,24 @@ type TargetDependencies struct {
 // SubGraph returns a copy of the dependency graph with all dependencies that are part of chains
 // that need to be modified for the specified dependency to be set to a given target version
 // annotated as such.
-func (f *TargetDependencies) Apply(logger *logrus.Logger, graph *depgraph.DepGraph) *depgraph.DepGraph {
+func (f *TargetDependencies) Apply(log *zap.Logger, graph *depgraph.DepGraph) *depgraph.DepGraph {
 	if len(f.Targets) == 0 {
 		return graph
 	}
 
 	keep := map[string]struct{}{}
 	for _, dep := range f.Targets {
-		keep = applyFilter(logger, graph, &targetDependencyFilter{
+		keep = applyFilter(log, graph, &targetDependencyFilter{
 			module:  dep.Module,
 			version: dep.Version,
 		}, keep)
 	}
 
-	logger.Debug("Pruning the dependency graph of irrelevant paths.")
+	log.Debug("Pruning the dependency graph of irrelevant paths.")
 	subGraph := graph.DeepCopy()
 	for _, dependency := range graph.Dependencies.List() {
 		if _, ok := keep[dependency.Name()]; !ok {
-			logger.Debugf("Pruning %q.", dependency.Name())
+			log.Debug("Pruning dependency.", zap.String("dependency", dependency.Name()))
 			subGraph.RemoveDependency(dependency.Name())
 		}
 	}
@@ -53,7 +53,7 @@ type targetDependencyFilter struct {
 }
 
 func applyFilter(
-	logger *logrus.Logger,
+	logger *zap.Logger,
 	graph *depgraph.DepGraph,
 	filter *targetDependencyFilter,
 	keep map[string]struct{},
@@ -68,9 +68,9 @@ func applyFilter(
 	}
 	keep[filterModule.Name()] = struct{}{}
 
-	logger.Debugf("Marking subgraph for dependency %q.", filter.module)
+	logger.Debug("Marking subgraph.", zap.String("dependency", filter.module))
 	if filter.version != "" {
-		logger.Debugf("Only considering dependencies preventing use of version %q.", filter.version)
+		logger.Debug("Only considering dependencies preventing use of a specific version.", zap.String("version", filter.version))
 	}
 	var todo []*depgraph.DependencyReference
 	for _, predecessor := range filterModule.Predecessors.List() {

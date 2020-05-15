@@ -8,36 +8,41 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
+	"github.com/Helcaraxan/gomod/internal/logger"
 )
+
+var log = zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zapcore.DebugLevel))
 
 func main() {
 	if len(os.Args) < 4 {
-		logrus.Fatal("Not enough arguments. Use: go run gen.go -- <output-dir> <output-package> <input-files...>")
+		log.Fatal("Not enough arguments. Use: go run gen.go -- <output-dir> <output-package> <input-files...>")
 	}
 	outputPackage := os.Args[2]
 	outputDir, err := filepath.Abs(os.Args[1])
 	if err != nil {
-		logrus.Fatalf("Could not resolve output path %q to an absolute path.", os.Args[1])
+		log.Fatal("Could not resolve absolute path.", zap.String("path", os.Args[1]))
 	}
 
 	info, err := os.Stat(outputDir)
 	switch {
 	case err == nil:
 		if !info.IsDir() {
-			logrus.Fatalf("Selected output path %q exists but is not a directory.", outputDir)
+			log.Fatal("Selected output path exists but is not a directory.", zap.String("path", outputDir))
 		}
 	case os.IsNotExist(err):
 		if err = os.MkdirAll(outputDir, 0755); err != nil {
-			logrus.Fatalf("Failed to ensure that output directory %q exists.", outputDir)
+			log.Fatal("Failed to ensure that output directory exists.", zap.String("path", outputDir))
 		}
 	default:
-		logrus.Fatalf("Could not retrieve information about output path %q.", outputDir)
+		log.Fatal("Could not retrieve information about output path.", zap.String("path", outputDir))
 	}
 
 	for _, file := range os.Args[3:] {
 		if err = processFile(outputDir, outputPackage, file); err != nil {
-			logrus.WithError(err).Fatalf("Unable to process file %q.", file)
+			log.Fatal("Unable to process file.", zap.String("file", file), zap.Error(err))
 		}
 	}
 }
@@ -50,7 +55,7 @@ const %s = ` + "`%s`\n"
 
 func processFile(outputDir string, outputPackage string, inputPath string) error {
 	if filepath.Ext(inputPath) != ".sh" {
-		logrus.Warnf("Skipping %q as it does not have a '.sh' extension.", inputPath)
+		log.Warn("Skipping file as it does not have a '.sh' extension.", zap.String("file", inputPath))
 		return nil
 	}
 

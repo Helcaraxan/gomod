@@ -4,12 +4,12 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/printer"
 )
 
-func ParseVisualConfig(logger *logrus.Logger, config string) (*printer.StyleOptions, error) {
+func ParseVisualConfig(logger *zap.Logger, config string) (*printer.StyleOptions, error) {
 	styleOptions := &printer.StyleOptions{}
 	for _, setting := range strings.Split(config, ",") {
 		if setting == "" {
@@ -32,7 +32,7 @@ func ParseVisualConfig(logger *logrus.Logger, config string) (*printer.StyleOpti
 		case "cluster":
 			err = parseStyleCluster(logger, styleOptions, configValue)
 		default:
-			logger.Errorf("Skipping unknown visual option '%s'.", configKey)
+			logger.Error("Skipping unknown visual option.", zap.String("option", configKey))
 			err = errors.New("invalid config")
 		}
 		if err != nil {
@@ -42,20 +42,20 @@ func ParseVisualConfig(logger *logrus.Logger, config string) (*printer.StyleOpti
 	return styleOptions, nil
 }
 
-func parseStyleScaleNodes(logger *logrus.Logger, styleOptions *printer.StyleOptions, raw string) error {
+func parseStyleScaleNodes(logger *zap.Logger, styleOptions *printer.StyleOptions, raw string) error {
 	switch strings.ToLower(raw) {
 	case "", "true", "on", "yes":
 		styleOptions.ScaleNodes = true
 	case "false", "off", "no":
 		styleOptions.ScaleNodes = false
 	default:
-		logger.Errorf("Could not set 'scale_nodes' style to '%s'. Accepted values are 'true' and 'false'.", raw)
+		logger.Error("Could not set 'scale_nodes' style. Accepted values are 'true' and 'false'.", zap.String("value", raw))
 		return errors.New("invalid 'scale_nodes' value")
 	}
 	return nil
 }
 
-func parseStyleCluster(logger *logrus.Logger, styleOptions *printer.StyleOptions, raw string) error {
+func parseStyleCluster(logger *zap.Logger, styleOptions *printer.StyleOptions, raw string) error {
 	switch strings.ToLower(raw) {
 	case "off", "false", "no":
 		styleOptions.Cluster = printer.Off
@@ -64,7 +64,7 @@ func parseStyleCluster(logger *logrus.Logger, styleOptions *printer.StyleOptions
 	case "full":
 		styleOptions.Cluster = printer.Full
 	default:
-		logger.Errorf("Could not set 'cluster' style to '%s'. Accepted values are 'off', 'shared' and 'full'.", raw)
+		logger.Error("Could not set 'cluster' style. Accepted values are 'off', 'shared' and 'full'.", zap.String("value", raw))
 		return errors.New("invalid 'cluster' value")
 	}
 	return nil

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/internal/util"
 )
@@ -34,26 +34,26 @@ type ModuleError struct {
 }
 
 // Retrieve the Module information for all dependencies of the Go module found at the specified path.
-func GetDependencies(logger *logrus.Logger, moduleDir string) (*Module, map[string]*Module, error) {
-	return retrieveModuleInformation(logger, moduleDir, "all")
+func GetDependencies(log *zap.Logger, moduleDir string) (*Module, map[string]*Module, error) {
+	return retrieveModuleInformation(log, moduleDir, "all")
 }
 
 // Retrieve the Module information for all dependencies of the Go module found at the specified
 // path, including any potentially available updates. This requires internet connectivity in order
 // to return the results. Lack of connectivity should result in an error being returned but this is
 // not a hard guarantee.
-func GetDependenciesWithUpdates(logger *logrus.Logger, moduleDir string) (*Module, map[string]*Module, error) {
+func GetDependenciesWithUpdates(log *zap.Logger, moduleDir string) (*Module, map[string]*Module, error) {
 	if err := connectivityCheck(); err != nil {
-		logger.WithError(err).Error("No connectivity.")
+		log.Error("No connectivity.", zap.Error(err))
 		return nil, nil, err
 	}
-	return retrieveModuleInformation(logger, moduleDir, "all", "-versions", "-u")
+	return retrieveModuleInformation(log, moduleDir, "all", "-versions", "-u")
 }
 
 // Retrieve the Module information for the specified target module which must be a dependency of the
 // Go module found at the specified path.
-func GetModule(logger *logrus.Logger, moduleDir string, targetModule string) (*Module, error) {
-	module, _, err := retrieveModuleInformation(logger, moduleDir, targetModule)
+func GetModule(log *zap.Logger, moduleDir string, targetModule string) (*Module, error) {
+	module, _, err := retrieveModuleInformation(log, moduleDir, targetModule)
 	return module, err
 }
 
@@ -61,22 +61,22 @@ func GetModule(logger *logrus.Logger, moduleDir string, targetModule string) (*M
 // Go module found at the specified path, including any potentially available updates. This requires
 // internet connectivity in order to return the results. Lack of connectivity should result in an
 // error being returned but this is not a hard guarantee.
-func GetModuleWithUpdate(logger *logrus.Logger, moduleDir string, targetModule string) (*Module, error) {
+func GetModuleWithUpdate(log *zap.Logger, moduleDir string, targetModule string) (*Module, error) {
 	if err := connectivityCheck(); err != nil {
-		logger.WithError(err).Error("No connectivity.")
+		log.Error("No connectivity.", zap.Error(err))
 		return nil, err
 	}
-	module, _, err := retrieveModuleInformation(logger, moduleDir, targetModule, "-versions", "-u")
+	module, _, err := retrieveModuleInformation(log, moduleDir, targetModule, "-versions", "-u")
 	return module, err
 }
 
 func retrieveModuleInformation(
-	logger *logrus.Logger,
+	log *zap.Logger,
 	moduleDir string,
 	targetModule string,
 	extraGoListArgs ...string,
 ) (*Module, map[string]*Module, error) {
-	logger.Debug("Retrieving module information via 'go list'")
+	log.Debug("Retrieving module information via 'go list'")
 
 	goListArgs := append([]string{"list", "-json", "-m"}, extraGoListArgs...)
 	if targetModule == "" {
@@ -84,7 +84,7 @@ func retrieveModuleInformation(
 	}
 	goListArgs = append(goListArgs, targetModule)
 
-	raw, _, err := util.RunCommand(logger, moduleDir, "go", goListArgs...)
+	raw, _, err := util.RunCommand(log, moduleDir, "go", goListArgs...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -101,7 +101,7 @@ func retrieveModuleInformation(
 	modules := map[string]*Module{}
 	for _, module := range moduleList {
 		if module.Error != nil {
-			logger.Warnf("Unable to retrieve information for module %q: %s", module.Path, module.Error.Err)
+			log.Warn("Unable to retrieve information for module", zap.String("module", module.Path), zap.String("error", module.Error.Err))
 			continue
 		}
 

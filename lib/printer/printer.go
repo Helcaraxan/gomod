@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 	"github.com/Helcaraxan/gomod/lib/internal/util"
@@ -47,7 +47,7 @@ var (
 // to the Print function of a DepGraph.
 type PrintConfig struct {
 	// Logger that should be used to show progress while printing the DepGraph.
-	Logger *logrus.Logger
+	Log *zap.Logger
 
 	// Annotate edges and nodes with their respective versions.
 	Annotate bool
@@ -106,13 +106,13 @@ func Print(graph *depgraph.DepGraph, config *PrintConfig) error {
 func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
 	tempDir, err := ioutil.TempDir("", "depgraph")
 	if err != nil {
-		config.Logger.WithError(err).Error("Could not create a temporary directory.")
+		config.Log.Error("Could not create a temporary directory.", zap.Error(err))
 	}
 	defer func() {
-		config.Logger.Debugf("Cleaning up temporary output folder %q.", tempDir)
+		config.Log.Debug("Cleaning up temporary output folder.", zap.String("path", tempDir))
 		_ = os.RemoveAll(tempDir)
 	}()
-	config.Logger.Debugf("Using temporary output folder %q.", tempDir)
+	config.Log.Debug("Using temporary output folder.", zap.String("path", tempDir))
 
 	if len(config.OutputPath) == 0 {
 		if config.OutputFormat == FormatUnknown {
@@ -123,19 +123,19 @@ func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
 		if config.OutputFormat == FormatUnknown {
 			config.OutputFormat = StringToFormat[filepath.Ext(config.OutputPath)[1:]]
 		} else if filepath.Ext(config.OutputPath) != "."+FormatToString[config.OutputFormat] {
-			config.Logger.Errorf(
-				"The given output file's extension '%s' does not match the specified output format '%s'.",
-				filepath.Base(config.OutputPath),
-				FormatToString[config.OutputFormat],
+			config.Log.Error(
+				"The given output file's extension does not match the specified output format.",
+				zap.String("extension", filepath.Ext(config.OutputPath)),
+				zap.String("format", FormatToString[config.OutputFormat]),
 			)
 			return errors.New("mismatched output filename and specified output format")
 		}
 	}
 	if config.OutputFormat == FormatUnknown {
-		config.Logger.Error("Could not determine the output format from either the specified output path or format.")
+		config.Log.Error("Could not determine the output format from either the specified output path or format.")
 	}
 
-	out, err := util.PrepareOutputPath(config.Logger, config.OutputPath, config.Force)
+	out, err := util.PrepareOutputPath(config.Log, config.OutputPath, config.Force)
 	if err != nil {
 		return err
 	}
@@ -147,8 +147,8 @@ func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
 		return err
 	}
 
-	config.Logger.Debugf("Generating %q.", config.OutputPath)
-	_, _, err = util.RunCommand(config.Logger, "", "dot", "-T"+FormatToString[config.OutputFormat], "-o"+config.OutputPath, dotPrintConfig.OutputPath)
+	config.Log.Debug("Generating file.", zap.String("path", config.OutputPath))
+	_, _, err = util.RunCommand(config.Log, "", "dot", "-T"+FormatToString[config.OutputFormat], "-o"+config.OutputPath, dotPrintConfig.OutputPath)
 	return err
 }
 
@@ -156,15 +156,15 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 	var err error
 	out := os.Stdout
 	if len(config.OutputPath) > 0 {
-		if out, err = util.PrepareOutputPath(config.Logger, config.OutputPath, config.Force); err != nil {
+		if out, err = util.PrepareOutputPath(config.Log, config.OutputPath, config.Force); err != nil {
 			return err
 		}
 		defer func() {
 			_ = out.Close()
 		}()
-		config.Logger.Debugf("Writing DOT graph to %q.", config.OutputPath)
+		config.Log.Debug("Writing DOT graph.", zap.String("path", config.OutputPath))
 	} else {
-		config.Logger.Debug("Writing DOT graph to terminal.")
+		config.Log.Debug("Writing DOT graph to terminal.")
 	}
 
 	fileContent := []string{
@@ -184,7 +184,7 @@ func PrintToDOT(graph *depgraph.DepGraph, config *PrintConfig) error {
 	fileContent = append(fileContent, "}")
 
 	if _, err = out.WriteString(strings.Join(fileContent, "\n") + "\n"); err != nil {
-		config.Logger.WithError(err).Error("Failed to write temporary DOT file.")
+		config.Log.Error("Failed to write temporary DOT file.", zap.Error(err))
 		return fmt.Errorf("could not write to %q", out.Name())
 	}
 	return nil
@@ -225,7 +225,7 @@ func determineGlobalOptions(config *PrintConfig, graph *depgraph.DepGraph) []str
 
 func printClusterToDot(config *PrintConfig, cluster *graphCluster) string {
 	if len(cluster.members) == 0 {
-		config.Logger.Warnf("Found an empty node cluster '%s' associated with '%s'.", cluster.name(), cluster.hash)
+		config.Log.Warn("Found an empty node cluster associated with.", zap.String("cluster", cluster.name()), zap.String("hash", cluster.hash))
 		return ""
 	} else if len(cluster.members) == 1 {
 		return printNodeToDot(config, cluster.members[0])
@@ -302,7 +302,7 @@ func printEdgesToDot(config *PrintConfig, node *depgraph.Dependency, clusters *g
 	for _, dep := range node.Successors.List() {
 		cluster, ok := clusters.clusterMap[dep.Name()]
 		if !ok {
-			config.Logger.Errorf("No cluster reference found for dependency '%s'.", dep.Name())
+			config.Log.Error("No cluster reference found for dependency.", zap.String("dependency", dep.Name()))
 		}
 
 		if _, ok = clustersReached[cluster.id]; ok {

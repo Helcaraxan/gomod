@@ -1,7 +1,7 @@
 package filters
 
 import (
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 )
@@ -10,10 +10,10 @@ type NonSharedDependencies struct {
 	Excludes []string
 }
 
-func (f *NonSharedDependencies) Apply(logger *logrus.Logger, graph *depgraph.DepGraph) *depgraph.DepGraph {
-	logger.Debug("Pruning dependencies that are not shared between multiple modules.")
+func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.DepGraph) *depgraph.DepGraph {
+	log.Debug("Pruning dependencies that are not shared between multiple modules.")
 	if len(f.Excludes) > 0 {
-		logger.Debugf("Excluding %v from prune.", f.Excludes)
+		log.Debug("Excluding dependency from prune.", zap.Strings("exclude-list", f.Excludes))
 	}
 
 	excludeMap := make(map[string]struct{}, len(f.Excludes))

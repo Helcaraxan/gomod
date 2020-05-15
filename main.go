@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/Helcaraxan/gomod/internal/completion"
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/parsers"
 	"github.com/Helcaraxan/gomod/lib/analysis"
 	"github.com/Helcaraxan/gomod/lib/depgraph"
@@ -20,26 +22,29 @@ import (
 )
 
 type commonArgs struct {
-	logger *logrus.Logger
+	log *zap.Logger
 }
 
 func main() {
-	commonArgs := &commonArgs{
-		logger: logrus.New(),
-	}
+	commonArgs := &commonArgs{}
 
 	var verbose, quiet bool
 	rootCmd := &cobra.Command{
 		Use:   "gomod",
 		Short: gomodShort,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
-			if err := checkGoModulePresence(commonArgs.logger); err != nil {
-				return err
-			}
+			zapOut := os.Stdout
+			zapEnc := logger.NewGoModEncoder()
+			zapLevel := zapcore.InfoLevel
 			if verbose {
-				commonArgs.logger.SetLevel(logrus.DebugLevel)
+				zapLevel = zapcore.DebugLevel
 			} else if quiet {
-				commonArgs.logger.SetLevel(logrus.ErrorLevel)
+				zapLevel = zapcore.ErrorLevel
+			}
+			commonArgs.log = zap.New(zapcore.NewCore(zapEnc, zapOut, zapLevel))
+
+			if err := checkGoModulePresence(commonArgs.log); err != nil {
+				return err
 			}
 			return nil
 		},
@@ -56,7 +61,7 @@ func main() {
 	)
 
 	if err := rootCmd.Execute(); err != nil {
-		commonArgs.logger.WithError(err).Debug("Exited with an error.")
+		commonArgs.log.Debug("Exited with an error.", zap.Error(err))
 		os.Exit(1)
 	}
 }
@@ -121,11 +126,11 @@ func runCompletionCommand(args *completionArgs) error {
 	writer := os.Stdout
 	if args.outputPath != "" {
 		if writer, err = os.OpenFile(args.outputPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644); err != nil {
-			args.logger.WithError(err).Errorf("Failed to open %q to write completion script.", args.outputPath)
+			args.log.Error("Failed to open file to write completion script.", zap.String("path", args.outputPath), zap.Error(err))
 			return err
 		}
 	}
-	return completion.GenerateCompletionScript(args.logger, args.rootCmd, args.shell, writer)
+	return completion.GenerateCompletionScript(args.log, args.rootCmd, args.shell, writer)
 }
 
 type graphArgs struct {
@@ -156,10 +161,10 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// Only require 'dot' tool if outputting an image file.
 			if visual || cmd.Flags().Changed("style") {
-				if err := checkToolDependencies(cmdArgs.logger); err != nil {
+				if err := checkToolDependencies(cmdArgs.log); err != nil {
 					return err
 				}
-				visualOptions, err := parsers.ParseVisualConfig(cmdArgs.logger, style)
+				visualOptions, err := parsers.ParseVisualConfig(cmdArgs.log, style)
 				if err != nil {
 					return err
 				}
@@ -197,7 +202,7 @@ func runGraphCmd(args *graphArgs) error {
 		return errors.New("'shared' and 'dependencies' filters cannot be used simultaneously")
 	}
 
-	graph, err := depgraph.GetDepGraph(args.logger, "")
+	graph, err := depgraph.GetDepGraph(args.log, "")
 	if err != nil {
 		return err
 	}
@@ -241,11 +246,11 @@ func initAnalyseCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runAnalyseCmd(args *analyseArgs) error {
-	graph, err := depgraph.GetDepGraph(args.logger, "")
+	graph, err := depgraph.GetDepGraph(args.log, "")
 	if err != nil {
 		return err
 	}
-	analysisResult, err := analysis.Analyse(args.logger, graph)
+	analysisResult, err := analysis.Analyse(args.log, graph)
 	if err != nil {
 		return err
 	}
@@ -278,18 +283,18 @@ func initRevealCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runRevealCmd(args *revealArgs) error {
-	graph, err := depgraph.GetDepGraph(args.logger, "")
+	graph, err := depgraph.GetDepGraph(args.log, "")
 	if err != nil {
 		return err
 	}
-	replacements, err := reveal.FindReplacements(args.logger, graph)
+	replacements, err := reveal.FindReplacements(args.log, graph)
 	if err != nil {
 		return err
 	}
-	return replacements.Print(args.logger, os.Stdout, args.sources, args.targets)
+	return replacements.Print(args.log, os.Stdout, args.sources, args.targets)
 }
 
-func checkToolDependencies(logger *logrus.Logger) error {
+func checkToolDependencies(log *zap.Logger) error {
 	tools := []string{
 		"dot",
 		"go",
@@ -299,7 +304,7 @@ func checkToolDependencies(logger *logrus.Logger) error {
 	for _, tool := range tools {
 		if _, err := exec.LookPath(tool); err != nil {
 			success = false
-			logger.Errorf("The %q tool dependency does not seem to be available. Please install it first.", tool)
+			log.Error("A tool dependency does not seem to be available. Please install it first.", zap.String("tool", tool))
 		}
 	}
 	if !success {
@@ -308,10 +313,10 @@ func checkToolDependencies(logger *logrus.Logger) error {
 	return nil
 }
 
-func checkGoModulePresence(logger *logrus.Logger) error {
+func checkGoModulePresence(log *zap.Logger) error {
 	path, err := os.Getwd()
 	if err != nil {
-		logger.WithError(err).Error("Could not determine the current working directory.")
+		log.Error("Could not determine the current working directory.", zap.Error(err))
 		return err
 	}
 
@@ -323,13 +328,13 @@ func checkGoModulePresence(logger *logrus.Logger) error {
 			break
 		}
 	}
-	logrus.Error("This tool should be run from within a Go module.")
+	log.Error("This tool should be run from within a Go module.")
 	return errors.New("missing go module")
 }
 
 func printResult(graph *depgraph.DepGraph, args *graphArgs) error {
 	return printer.Print(graph, &printer.PrintConfig{
-		Logger:       args.logger,
+		Log:          args.log,
 		OutputPath:   args.outputPath,
 		Force:        args.force,
 		Style:        args.style,
