@@ -30,7 +30,7 @@ func (f *TargetDependencies) Apply(log *zap.Logger, graph *depgraph.DepGraph) *d
 
 	keep := map[string]struct{}{}
 	for _, dep := range f.Targets {
-		keep = applyFilter(log, graph, &targetDependencyFilter{
+		applyFilter(log, graph, &targetDependencyFilter{
 			module:  dep.Module,
 			version: dep.Version,
 		}, keep)
@@ -57,15 +57,12 @@ func applyFilter(
 	graph *depgraph.DepGraph,
 	filter *targetDependencyFilter,
 	keep map[string]struct{},
-) map[string]struct{} {
+) {
 	filterModule, ok := graph.GetDependency(filter.module)
 	if !ok {
-		return nil
+		return
 	}
 
-	if keep == nil {
-		keep = map[string]struct{}{}
-	}
 	keep[filterModule.Name()] = struct{}{}
 
 	logger.Debug("Marking subgraph.", zap.String("dependency", filter.module))
@@ -75,8 +72,9 @@ func applyFilter(
 	var todo []*depgraph.DependencyReference
 	for _, predecessor := range filterModule.Predecessors.List() {
 		if dependencyMatchesFilter(predecessor, filter) {
-			todo = append(todo, predecessor)
+			logger.Debug("Keeping dependency", zap.String("dependency", predecessor.Name()))
 			keep[predecessor.Name()] = struct{}{}
+			todo = append(todo, predecessor)
 		}
 	}
 
@@ -84,13 +82,13 @@ func applyFilter(
 		dependency := todo[0]
 		for _, predecessor := range dependency.Predecessors.List() {
 			if _, ok := keep[predecessor.Name()]; !ok {
+				logger.Debug("Keeping dependency", zap.String("dependency", predecessor.Name()))
 				keep[predecessor.Name()] = struct{}{}
 				todo = append(todo, predecessor)
 			}
 		}
 		todo = todo[1:]
 	}
-	return keep
 }
 
 func dependencyMatchesFilter(dependency *depgraph.DependencyReference, filter *targetDependencyFilter) bool {
