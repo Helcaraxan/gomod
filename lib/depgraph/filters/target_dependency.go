@@ -20,7 +20,7 @@ type TargetDependencies struct {
 	}
 }
 
-// SubGraph returns a copy of the dependency graph with all dependencies that are part of chains
+// Apply returns a copy of the dependency graph with all dependencies that are part of chains
 // that need to be modified for the specified dependency to be set to a given target version
 // annotated as such.
 func (f *TargetDependencies) Apply(log *zap.Logger, graph *depgraph.DepGraph) *depgraph.DepGraph {

@@ -69,7 +69,7 @@ func (g *DepGraph) addDependency(rawDependency *rawDependency) error {
 		g.log.Debug("Created new dependency.", zap.String("target", rawDependency.endModule.Path), zap.Any("dependency", endDependency))
 	}
 
-	if len(beginDependency.SelectedVersion()) != 0 &&
+	if beginDependency.SelectedVersion() != "" &&
 		beginDependency.Module.Replace == nil &&
 		beginDependency.SelectedVersion() != rawDependency.beginVersion {
 		g.log.Warn(
