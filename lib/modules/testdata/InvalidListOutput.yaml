@@ -1,5 +1,5 @@
 ---
-
-go_list_output: |
+go_list_mod_output:
+  github.com/Helcaraxan/gomod: |
     This is no JSON
 error: true

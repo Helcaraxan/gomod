@@ -59,7 +59,7 @@ func computeClusterHash(config *PrintConfig, node *depgraph.Dependency) string {
 
 	// Depending on the configuration we need to generate more or less unique cluster names.
 	if config.Style == nil || config.Style.Cluster == Off || (config.Style.Cluster == Shared && node.Predecessors.Len() > 1) {
-		hash += "_to_" + node.Name()
+		hash = node.Name() + "_from_" + hash
 	}
 	return hash
 }

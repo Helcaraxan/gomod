@@ -12,26 +12,28 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/lib/internal/testutil"
 )
 
 type testcase struct {
-	DriverError bool   `yaml:"driver_error"`
-	ListOutput  string `yaml:"go_list_output"`
+	DriverError   bool              `yaml:"driver_error"`
+	ListModOutput map[string]string `yaml:"go_list_mod_output"`
+	ListPkgOutput map[string]string `yaml:"go_list_pkg_output"`
 
 	ExpectedError   bool               `yaml:"error"`
 	ExpectedMain    *Module            `yaml:"main"`
 	ExpectedModules map[string]*Module `yaml:"modules"`
 }
 
-func (c *testcase) GoDriverError() bool   { return c.DriverError }
-func (c *testcase) GoListOutput() string  { return c.ListOutput }
-func (c *testcase) GoGraphOutput() string { return "" }
+func (c *testcase) GoDriverError() bool                { return c.DriverError }
+func (c *testcase) GoListModOutput() map[string]string { return c.ListModOutput }
+func (c *testcase) GoListPkgOutput() map[string]string { return c.ListPkgOutput }
+func (c *testcase) GoGraphOutput() string              { return "" }
 
 func TestModuleInformationRetrieval(t *testing.T) {
-	log := zap.NewNop()
-
 	savedClient := httpClient
 	defer func() { httpClient = savedClient }()
 	httpClient = &http.Client{Transport: &successfullRTT{}}
@@ -57,6 +59,8 @@ func TestModuleInformationRetrieval(t *testing.T) {
 			testDefinition := &testcase{}
 			testDir, cleanup := testutil.SetupTestModule(t, filepath.Join(cwd, "testdata", file.Name()), testDefinition)
 			defer cleanup()
+
+			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zap.DebugLevel))
 
 			main, modules, testErr := GetDependencies(log, testDir)
 			if testDefinition.ExpectedError {

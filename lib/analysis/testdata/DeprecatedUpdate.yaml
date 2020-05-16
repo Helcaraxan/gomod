@@ -1,21 +1,31 @@
 ---
-
 now: "2019-01-01T00:01:00Z"
-go_list_output: |
-  {
-    "Path": "test",
-    "Main": true
-  }
-  {
-    "Path": "dep",
-    "Time": "2019-01-01T00:00:00Z",
-    "Version": "v1.0.0",
-    "Update": {
-      "Path": "dep",
-      "Time": "2018-01-01T00:00:00Z",
-      "Version": "v1.1.0"
+go_list_mod_output:
+  test: |
+    {
+      "Path": "test",
+      "Main": true
     }
-  }
+  dep: |
+    {
+      "Path": "dep",
+      "Time": "2019-01-01T00:00:00Z",
+      "Version": "v1.0.0",
+      "Update": {
+        "Path": "dep",
+        "Time": "2018-01-01T00:00:00Z",
+        "Version": "v1.1.0"
+      }
+    }
+go_list_pkg_output:
+  test/...: |
+    {
+      "ImportPath": "test",
+      "Module": {
+        "Path": "test",
+        "Main": true
+      }
+    }
 go_graph_output: |
   test dep@v1.0.0
 dep_analysis:
@@ -40,12 +50,12 @@ print_output: |+
   Dependency counts:
   - Direct dependencies:   1
   - Indirect dependencies: 0
-  
+
   Age statistics:
   - Mean age of dependencies: 0 month(s) 0 day(s)
   - Maximum dependency age:   0 month(s) 0 day(s)
   - Age distribution per month:
-  
+
    100.00 % |#
             |#
             |#
@@ -58,15 +68,15 @@ print_output: |+
             |#
      0.00 % |_
              0 1
-  
+
   Update backlog statistics:
   - No available updates. Congratulations you are entirely up-to-date!
-  
+
   Reverse dependency statistics:
   - Mean number of reverse dependencies:    1.00
   - Maximum number of reverse dependencies: 1
   - Reverse dependency count distribution:
-  
+
    100.00 % |  #
             |  #
             |  #

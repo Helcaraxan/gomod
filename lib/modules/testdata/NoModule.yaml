@@ -1,4 +1,3 @@
 ---
-
-go_list_output:
+go_list_mod_output:
 error: true

@@ -103,14 +103,16 @@ func Print(graph *depgraph.DepGraph, config *PrintConfig) error {
 }
 
 // PrintToVisual creates an image file at the specified target path that represents the dependency graph.
-func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) error {
+func PrintToVisual(graph *depgraph.DepGraph, config *PrintConfig) (err error) {
 	tempDir, err := ioutil.TempDir("", "depgraph")
 	if err != nil {
 		config.Log.Error("Could not create a temporary directory.", zap.Error(err))
 	}
 	defer func() {
-		config.Log.Debug("Cleaning up temporary output folder.", zap.String("path", tempDir))
-		_ = os.RemoveAll(tempDir)
+		if err == nil {
+			config.Log.Debug("Cleaning up temporary output folder.", zap.String("path", tempDir))
+			_ = os.RemoveAll(tempDir)
+		}
 	}()
 	config.Log.Debug("Using temporary output folder.", zap.String("path", tempDir))
 

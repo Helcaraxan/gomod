@@ -61,17 +61,19 @@ func Test_RotateDistributionLines(t *testing.T) {
 }
 
 type testcase struct {
-	CurrentTime *time.Time `yaml:"now"`
-	ListOutput  string     `yaml:"go_list_output"`
-	GraphOutput string     `yaml:"go_graph_output"`
+	CurrentTime   *time.Time        `yaml:"now"`
+	ListModOutput map[string]string `yaml:"go_list_mod_output"`
+	ListPkgOutput map[string]string `yaml:"go_list_pkg_output"`
+	GraphOutput   string            `yaml:"go_graph_output"`
 
 	ExpectedDepAnalysis *DepAnalysis `yaml:"dep_analysis"`
 	ExpectedPrintOutput string       `yaml:"print_output"`
 }
 
-func (c *testcase) GoDriverError() bool   { return false }
-func (c *testcase) GoListOutput() string  { return c.ListOutput }
-func (c *testcase) GoGraphOutput() string { return c.GraphOutput }
+func (c *testcase) GoDriverError() bool                { return false }
+func (c *testcase) GoListModOutput() map[string]string { return c.ListModOutput }
+func (c *testcase) GoListPkgOutput() map[string]string { return c.ListPkgOutput }
+func (c *testcase) GoGraphOutput() string              { return c.GraphOutput }
 
 func TestAnalysis(t *testing.T) {
 	cwd, setupErr := os.Getwd()
