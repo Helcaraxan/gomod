@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,7 +27,9 @@ type commonArgs struct {
 }
 
 func main() {
-	commonArgs := &commonArgs{}
+	commonArgs := &commonArgs{
+		log: zap.NewNop(),
+	}
 
 	var verbose, quiet bool
 	rootCmd := &cobra.Command{
@@ -58,6 +61,7 @@ func main() {
 		initCompletionCommand(commonArgs),
 		initGraphCmd(commonArgs),
 		initRevealCmd(commonArgs),
+		initVersionCmd(commonArgs),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
@@ -296,6 +300,31 @@ func runRevealCmd(args *revealArgs) error {
 		return err
 	}
 	return replacements.Print(args.log, os.Stdout, args.sources, args.targets)
+}
+
+type versionArgs struct {
+	*commonArgs
+}
+
+func initVersionCmd(cArgs *commonArgs) *cobra.Command {
+	cmdArgs := &versionArgs{
+		commonArgs: cArgs,
+	}
+
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: versionShort,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return runVersionCmd(cmdArgs)
+		},
+	}
+
+	return versionCmd
+}
+
+func runVersionCmd(args *versionArgs) error {
+	fmt.Printf("gomod - version: %s - timestamp: %s\n", toolVersion, toolDate)
+	return nil
 }
 
 func checkToolDependencies(log *zap.Logger) error {
