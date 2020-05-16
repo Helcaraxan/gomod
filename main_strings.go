@@ -1,5 +1,10 @@
 package main
 
+var (
+	toolVersion = "devel"
+	toolDate    = "unknown"
+)
+
 const (
 	gomodShort = "A tool to visualise and analyse a Go module's dependency graph."
 
@@ -60,4 +65,6 @@ following list:
 	analyseShort = "Analyse the graph of dependencies for this Go module and output interesting statistics."
 
 	revealShort = "Reveal 'hidden' replace'd modules in your direct and direct independencies."
+
+	versionShort = "Display the version of the gomod tool."
 )
