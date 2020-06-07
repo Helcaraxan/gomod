@@ -1,9 +1,9 @@
 ---
-
-go_list_output: |
+go_list_mod_output:
+  test-module: |
     {
-        "Error": {
-            "Err": "could not load module"
-        }
+      "Error": {
+        "Err": "could not load module"
+      }
     }
 error: true

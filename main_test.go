@@ -24,16 +24,19 @@ func TestGraphGeneration(t *testing.T) {
 		dotArgs          *graphArgs
 		visualArgs       *graphArgs
 	}{
-		"Full": {
-			expectedFileBase: "full",
-			dotArgs:          &graphArgs{},
-			visualArgs: &graphArgs{
-				style: &printer.StyleOptions{
-					ScaleNodes: true,
-					Cluster:    printer.Full,
-				},
-			},
-		},
+		// Disabled test as the produced DOT graph crashes the .dot tool despite being valid.
+		// Issue that is being experienced is: https://gitlab.com/graphviz/graphviz/-/issues/1408
+		// Also relates to: https://github.com/Helcaraxan/gomod/issues/54
+		// "Full": {
+		// 	expectedFileBase: "full",
+		// 	dotArgs:          &graphArgs{},
+		// 	visualArgs: &graphArgs{
+		// 		style: &printer.StyleOptions{
+		// 			ScaleNodes: true,
+		// 			Cluster:    printer.Full,
+		// 		},
+		// 	},
+		// },
 		"Shared": {
 			expectedFileBase: "shared-dependencies",
 			dotArgs:          &graphArgs{shared: true},
@@ -59,7 +62,9 @@ func TestGraphGeneration(t *testing.T) {
 	tempDir, tempErr := ioutil.TempDir("", "gomod")
 	require.NoError(t, tempErr)
 	defer func() {
-		require.NoError(t, os.RemoveAll(tempDir))
+		if !t.Failed() {
+			require.NoError(t, os.RemoveAll(tempDir))
+		}
 	}()
 
 	cArgs := &commonArgs{log: zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zapcore.DebugLevel))}

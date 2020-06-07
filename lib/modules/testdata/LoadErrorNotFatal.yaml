@@ -1,6 +1,6 @@
 ---
-
-go_list_output: |
+go_list_mod_output:
+  github.com/Helcaraxan/gomod: |
     {
         "Path": "github.com/Helcaraxan/gomod",
         "Main": true,
@@ -13,13 +13,13 @@ go_list_output: |
         }
     }
 main:
+  path: "github.com/Helcaraxan/gomod"
+  main: true
+  dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
+  gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
+modules:
+  "github.com/Helcaraxan/gomod":
     path: "github.com/Helcaraxan/gomod"
     main: true
     dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
     gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
-modules:
-    "github.com/Helcaraxan/gomod":
-        path: "github.com/Helcaraxan/gomod"
-        main: true
-        dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
-        gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"

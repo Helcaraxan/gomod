@@ -6,6 +6,8 @@
 
 - Dependency graph filtering has been moved to be a well-defined feature with appropriate support
   and logic in its own package.
+- The generated dependency graphs now reflect the true dependency paths for non-module projects
+  instead of the artificial dependencies injected by the module system to provide reproducibility.
 
 **New features**
 

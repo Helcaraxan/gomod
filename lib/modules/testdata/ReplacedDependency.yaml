@@ -1,43 +1,44 @@
 ---
-
-go_list_output: |
+go_list_mod_output:
+  github.com/Helcaraxan/gomod: |
     {
-        "Path": "github.com/Helcaraxan/gomod",
-        "Main": true,
-        "Dir": "/Users/duco/go/src/github.com/Helcaraxan/gomod",
-        "GoMod": "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
+      "Path": "github.com/Helcaraxan/gomod",
+      "Main": true,
+      "Dir": "/Users/duco/go/src/github.com/Helcaraxan/gomod",
+      "GoMod": "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
     }
+  github.com/foo/bar: |
     {
-        "Path": "github.com/foo/bar",
-        "Replace": {
-            "Path": "../test_bar",
-            "GoMod": "/foo/test_bar/go.mod"
-        },
-        "Dir": "/foo/bar",
-        "GoMod": "/foo/bar/go.mod"
+      "Path": "github.com/foo/bar",
+      "Replace": {
+        "Path": "../test_bar",
+        "GoMod": "/foo/test_bar/go.mod"
+      },
+      "Dir": "/foo/bar",
+      "GoMod": "/foo/bar/go.mod"
     }
 main:
+  path: "github.com/Helcaraxan/gomod"
+  main: true
+  dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
+  gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
+modules:
+  "github.com/Helcaraxan/gomod":
     path: "github.com/Helcaraxan/gomod"
     main: true
     dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
     gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
-modules:
-    "github.com/Helcaraxan/gomod":
-        path: "github.com/Helcaraxan/gomod"
-        main: true
-        dir: "/Users/duco/go/src/github.com/Helcaraxan/gomod"
-        gomod: "/Users/duco/go/src/github.com/Helcaraxan/gomod/go.mod"
-    "github.com/foo/bar":
-        path: "github.com/foo/bar"
-        replace:
-            path: "../test_bar"
-            gomod: "/foo/test_bar/go.mod"
-        dir: "foo/bar"
-        gomod: "/foo/bar/go.mod"
-    "../test_bar":
-        path: "github.com/foo/bar"
-        replace:
-            path: "../test_bar"
-            gomod: "/foo/test_bar/go.mod"
-        dir: "foo/bar"
-        gomod: "/foo/bar/go.mod"
+  "github.com/foo/bar":
+    path: "github.com/foo/bar"
+    replace:
+      path: "../test_bar"
+      gomod: "/foo/test_bar/go.mod"
+    dir: "/foo/bar"
+    gomod: "/foo/bar/go.mod"
+  "../test_bar":
+    path: "github.com/foo/bar"
+    replace:
+      path: "../test_bar"
+      gomod: "/foo/test_bar/go.mod"
+    dir: "/foo/bar"
+    gomod: "/foo/bar/go.mod"

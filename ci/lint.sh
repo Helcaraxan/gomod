@@ -41,10 +41,10 @@ fi
 
 # shfmt
 if [[ -z "$(command -v shfmt)" ]] || ! grep "${SHFMT_VERSION}" <<<"$(shfmt -version)"; then
-  echo "Installing shfmt@${SHFMT_VERSION}."
-  GOBIN="${PWD}/bin" go get -u "mvdan.cc/sh/v3/cmd/shfmt@v${SHFMT_VERSION}"
+  echo "Installing shfmt."
+  GOBIN="${PWD}/bin" go install -modfile=tools.mod "mvdan.cc/sh/v3/cmd/shfmt"
 else
-  echo "Found installed shfmt@${SHFMT_VERSION}."
+  echo "Found installed shfmt."
 fi
 
 ## markdownlint

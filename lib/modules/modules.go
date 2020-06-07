@@ -21,6 +21,7 @@ type Module struct {
 	Replace   *Module      // replaced by this module
 	Version   string       // module version
 	Time      *time.Time   // time version was created
+	Dir       string       // location of the module's source
 	Update    *Module      // available update, if any (with -u)
 	GoMod     string       // the path to this module's go.mod file
 	GoVersion string       // the Go version associated with the module
@@ -76,8 +77,14 @@ func retrieveModuleInformation(
 	targetModule string,
 	extraGoListArgs ...string,
 ) (*Module, map[string]*Module, error) {
-	log.Debug("Retrieving module information via 'go list'")
+	log.Debug("Ensuring module information is available locally by running 'go mod download'.")
+	_, _, err := util.RunCommand(log, moduleDir, "go", "mod", "download")
+	if err != nil {
+		log.Error("Failed to run 'go mod download'.", zap.Error(err))
+		return nil, nil, err
+	}
 
+	log.Debug("Retrieving module information via 'go list'")
 	goListArgs := append([]string{"list", "-json", "-m"}, extraGoListArgs...)
 	if targetModule == "" {
 		targetModule = "all"
@@ -86,6 +93,7 @@ func retrieveModuleInformation(
 
 	raw, _, err := util.RunCommand(log, moduleDir, "go", goListArgs...)
 	if err != nil {
+		log.Error("Failed to list modules in dependency graph via 'go list'.", zap.Error(err))
 		return nil, nil, err
 	}
 	raw = bytes.ReplaceAll(bytes.TrimSpace(raw), []byte("\n}\n"), []byte("\n},\n"))
