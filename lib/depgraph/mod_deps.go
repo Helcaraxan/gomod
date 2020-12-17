@@ -12,7 +12,7 @@ import (
 	"github.com/Helcaraxan/gomod/lib/internal/util"
 )
 
-func (g *DepGraph) overlayModuleDependencies() error {
+func (g *ModuleGraph) overlayModuleDependencies() error {
 	g.log.Debug("Overlaying module-based dependency information over the import dependency graph.")
 
 	indirectsMap, err := g.getIndirectDeps()
@@ -72,7 +72,7 @@ type moduleDependency struct {
 	targetVersion string
 }
 
-func (g *DepGraph) parseDependency(depString string) (*moduleDependency, bool) {
+func (g *ModuleGraph) parseDependency(depString string) (*moduleDependency, bool) {
 	depContent := depRE.FindStringSubmatch(depString)
 	if len(depContent) == 0 {
 		g.log.Warn("Skipping ill-formed line in 'go mod graph' output.", zap.String("line", depString))
@@ -112,7 +112,7 @@ func (g *DepGraph) parseDependency(depString string) (*moduleDependency, bool) {
 	}, true
 }
 
-func (g *DepGraph) getIndirectDeps() (map[string]map[string]bool, error) {
+func (g *ModuleGraph) getIndirectDeps() (map[string]map[string]bool, error) {
 	indirectsMap := map[string]map[string]bool{}
 
 	for _, dep := range g.Dependencies.List() {

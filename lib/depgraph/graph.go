@@ -8,8 +8,8 @@ import (
 	"github.com/Helcaraxan/gomod/lib/modules"
 )
 
-// DepGraph represents a Go module's dependency graph.
-type DepGraph struct {
+// ModuleGraph represents a Go module's dependency graph.
+type ModuleGraph struct {
 	Path string
 
 	Main         *Dependency
@@ -19,23 +19,23 @@ type DepGraph struct {
 	replaces map[string]string
 }
 
-// Transform can be used to transform a DepGraph instance. The particular transformation will depend
-// on the underlying implementation but it can range from dependency pruning, to adding graph
+// Transform can be used to transform a ModuleGraph instance. The particular transformation will
+// depend on the underlying implementation but it can range from dependency pruning, to adding graph
 // annotations, to edge manipulation.
 type Transform interface {
-	// Apply returns a, potentially, modified copy of the input DepGraph instance. The actual
+	// Apply returns a, potentially, modified copy of the input ModuleGraph instance. The actual
 	// modifications depend on the underlying type and implementation of the particular
 	// GraphTransform.
-	Apply(*zap.Logger, *DepGraph) *DepGraph
+	Apply(*zap.Logger, *ModuleGraph) *ModuleGraph
 }
 
-// NewGraph returns a new DepGraph instance which will use the specified
+// NewGraph returns a new ModuleGraph instance which will use the specified
 // logger for writing log output. If nil a null-logger will be used instead.
-func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *DepGraph {
+func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *ModuleGraph {
 	if log == nil {
 		log = zap.NewNop()
 	}
-	newGraph := &DepGraph{
+	newGraph := &ModuleGraph{
 		Path:         path,
 		Dependencies: NewDependencyMap(),
 		log:          log,
@@ -45,7 +45,7 @@ func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *DepGraph 
 	return newGraph
 }
 
-func (g *DepGraph) GetDependency(name string) (*Dependency, bool) {
+func (g *ModuleGraph) GetDependency(name string) (*Dependency, bool) {
 	if replaced, ok := g.replaces[name]; ok {
 		name = replaced
 	}
@@ -56,7 +56,7 @@ func (g *DepGraph) GetDependency(name string) (*Dependency, bool) {
 	return dependencyReference.Dependency, true
 }
 
-func (g *DepGraph) AddDependency(module *modules.ModuleInfo) *Dependency {
+func (g *ModuleGraph) AddDependency(module *modules.ModuleInfo) *Dependency {
 	if module == nil {
 		return nil
 	} else if dependencyReference, ok := g.Dependencies.Get(module.Path); ok && dependencyReference != nil {
@@ -78,7 +78,7 @@ func (g *DepGraph) AddDependency(module *modules.ModuleInfo) *Dependency {
 	return newDependencyReference.Dependency
 }
 
-func (g *DepGraph) RemoveDependency(name string) {
+func (g *ModuleGraph) RemoveDependency(name string) {
 	g.log.Debug("Removing dependency.", zap.String("dependency", name))
 	if replaced, ok := g.replaces[name]; ok {
 		delete(g.replaces, name)
@@ -106,7 +106,7 @@ func (g *DepGraph) RemoveDependency(name string) {
 
 // DeepCopy returns a separate copy of the current dependency graph that can be
 // safely modified without affecting the original graph.
-func (g *DepGraph) DeepCopy() *DepGraph {
+func (g *ModuleGraph) DeepCopy() *ModuleGraph {
 	g.log.Debug("Deep-copying dependency graph.", zap.String("module", g.Main.Name()))
 
 	newGraph := NewGraph(g.log, g.Path, g.Main.Module)
@@ -158,7 +158,7 @@ func (g *DepGraph) DeepCopy() *DepGraph {
 	return newGraph
 }
 
-func (g *DepGraph) Transform(transformations ...Transform) *DepGraph {
+func (g *ModuleGraph) Transform(transformations ...Transform) *ModuleGraph {
 	graph := g
 	for _, transformation := range transformations {
 		graph = transformation.Apply(g.log, graph)
@@ -173,7 +173,7 @@ type Dependency struct {
 	Successors   *DependencyMap
 }
 
-// Name of the module represented by this Dependency in the DepGraph instance.
+// Name of the module represented by this Dependency in the ModuleGraph instance.
 func (n *Dependency) Name() string {
 	return n.Module.Path
 }

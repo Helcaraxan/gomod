@@ -95,7 +95,7 @@ var (
 	}
 )
 
-var testGraph *depgraph.DepGraph
+var testGraph *depgraph.ModuleGraph
 
 func init() {
 	log := zap.NewNop()
