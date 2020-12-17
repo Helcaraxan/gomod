@@ -31,7 +31,7 @@ type Transform interface {
 
 // NewGraph returns a new DepGraph instance which will use the specified
 // logger for writing log output. If nil a null-logger will be used instead.
-func NewGraph(log *zap.Logger, path string, main *modules.Module) *DepGraph {
+func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *DepGraph {
 	if log == nil {
 		log = zap.NewNop()
 	}
@@ -56,7 +56,7 @@ func (g *DepGraph) GetDependency(name string) (*Dependency, bool) {
 	return dependencyReference.Dependency, true
 }
 
-func (g *DepGraph) AddDependency(module *modules.Module) *Dependency {
+func (g *DepGraph) AddDependency(module *modules.ModuleInfo) *Dependency {
 	if module == nil {
 		return nil
 	} else if dependencyReference, ok := g.Dependencies.Get(module.Path); ok && dependencyReference != nil {
@@ -168,7 +168,7 @@ func (g *DepGraph) Transform(transformations ...Transform) *DepGraph {
 
 // Dependency represents a module in a Go module's dependency graph.
 type Dependency struct {
-	Module       *modules.Module
+	Module       *modules.ModuleInfo
 	Predecessors *DependencyMap
 	Successors   *DependencyMap
 }

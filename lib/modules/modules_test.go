@@ -23,9 +23,9 @@ type testcase struct {
 	ListModOutput map[string]string `yaml:"go_list_mod_output"`
 	ListPkgOutput map[string]string `yaml:"go_list_pkg_output"`
 
-	ExpectedError   bool               `yaml:"error"`
-	ExpectedMain    *Module            `yaml:"main"`
-	ExpectedModules map[string]*Module `yaml:"modules"`
+	ExpectedError   bool                   `yaml:"error"`
+	ExpectedMain    *ModuleInfo            `yaml:"main"`
+	ExpectedModules map[string]*ModuleInfo `yaml:"modules"`
 }
 
 func (c *testcase) GoDriverError() bool                { return c.DriverError }

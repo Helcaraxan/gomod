@@ -75,7 +75,7 @@ func Analyse(log *zap.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) {
 type analysis struct {
 	log       *zap.Logger
 	graph     *depgraph.DepGraph
-	moduleMap map[string]*modules.Module
+	moduleMap map[string]*modules.ModuleInfo
 
 	directDependencies          int
 	indirectDependencies        int
