@@ -30,10 +30,13 @@
 - The logging functionality is now provided by `go.uber.org/zap` instead of
   `github.com/sirupsen/logrus`.
 - The `Logger` field in the `printer.PrintConfig` struct type has been renamed to `Log`.
-- The following types and functions have been renamed:
+- The following types, fields and functions have been renamed:
   - `modules.Module` is now `modules.ModuleInfo`.
-  - `depgraph.DepGraph` is now `depgraph.ModuleGraph`.
   - `depgraph.GetDephGraph` is now `depgraph.GetModuleGraph`.
+  - `depgraph.Dependency` is now `depgraph.Module`.
+  - `depgraph.Dependency.Module` is now `depgraph.Module.Info`.
+  - `depgraph.DepGraph` is now `depgraph.ModuleGraph`.
+  - `depgraph.DepGraph.(Get|Add|Remove)Dependency` are now `depgraph.ModuleGraph.(Get|Add|Remove)Module`.
 
 ## 0.5.0
 

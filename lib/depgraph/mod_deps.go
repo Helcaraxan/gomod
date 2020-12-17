@@ -20,7 +20,7 @@ func (g *ModuleGraph) overlayModuleDependencies() error {
 		return err
 	}
 
-	raw, _, err := util.RunCommand(g.log, g.Main.Module.Dir, "go", "mod", "graph")
+	raw, _, err := util.RunCommand(g.log, g.Main.Info.Dir, "go", "mod", "graph")
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (g *ModuleGraph) overlayModuleDependencies() error {
 		)
 		if dep, ok := modDep.source.Successors.Get(modDep.target.Name()); !ok {
 			modDep.source.Successors.Add(&DependencyReference{
-				Dependency:        modDep.target,
+				Module:            modDep.target,
 				VersionConstraint: modDep.targetVersion,
 			})
 		} else {
@@ -54,7 +54,7 @@ func (g *ModuleGraph) overlayModuleDependencies() error {
 
 		if dep, ok := modDep.target.Predecessors.Get(modDep.source.Name()); !ok {
 			modDep.target.Predecessors.Add(&DependencyReference{
-				Dependency:        modDep.source,
+				Module:            modDep.source,
 				VersionConstraint: modDep.sourceVersion,
 			})
 		} else {
@@ -66,9 +66,9 @@ func (g *ModuleGraph) overlayModuleDependencies() error {
 }
 
 type moduleDependency struct {
-	source        *Dependency
+	source        *Module
 	sourceVersion string
-	target        *Dependency
+	target        *Module
 	targetVersion string
 }
 
@@ -82,19 +82,19 @@ func (g *ModuleGraph) parseDependency(depString string) (*moduleDependency, bool
 	sourceName, sourceVersion := depContent[1], depContent[2]
 	targetName, targetVersion := depContent[3], depContent[4]
 
-	source, ok := g.GetDependency(sourceName)
+	source, ok := g.GetModule(sourceName)
 	if !ok {
 		g.log.Warn("Encountered a dependency edge starting at an unknown module.", zap.String("source", sourceName), zap.String("target", targetName))
 		return nil, false
 	}
-	target, ok := g.GetDependency(targetName)
+	target, ok := g.GetModule(targetName)
 	if !ok {
 		g.log.Warn("Encountered a dependency edge ending at an unknown module.", zap.String("source", sourceName), zap.String("target", targetName))
 		return nil, false
 
 	}
 
-	if sourceVersion != source.Module.Version {
+	if sourceVersion != source.Info.Version {
 		g.log.Debug(
 			"Skipping edge as we are not using the specified source version.",
 			zap.String("source", sourceName),
@@ -119,12 +119,12 @@ func (g *ModuleGraph) getIndirectDeps() (map[string]map[string]bool, error) {
 		log := g.log.With(zap.String("module", dep.Name()))
 		log.Debug("Finding indirect dependencies for module.")
 
-		modContent, err := ioutil.ReadFile(dep.Module.GoMod)
+		modContent, err := ioutil.ReadFile(dep.Info.GoMod)
 		if os.IsNotExist(err) {
 			// This is mostly useful for tests where we don't want to write mod files for every test dependency.
 			indirectsMap[dep.Name()] = map[string]bool{}
 		} else if err != nil {
-			g.log.Error("Failed to read content of go.mod file.", zap.String("path", dep.Module.GoMod), zap.Error(err))
+			g.log.Error("Failed to read content of go.mod file.", zap.String("path", dep.Info.GoMod), zap.Error(err))
 			return nil, err
 		}
 

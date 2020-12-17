@@ -18,14 +18,14 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.ModuleGraph) *gra
 
 	hashToCluster := map[string]*graphCluster{}
 	for _, node := range graph.Dependencies.List() {
-		clusterHash := computeClusterHash(config, node.Dependency)
+		clusterHash := computeClusterHash(config, node.Module)
 		cluster := hashToCluster[clusterHash]
 		if cluster == nil {
 			cluster = newGraphCluster(clusterHash)
 			hashToCluster[clusterHash] = cluster
 			graphClusters.clusterList = append(graphClusters.clusterList, cluster)
 		}
-		cluster.members = append(cluster.members, node.Dependency)
+		cluster.members = append(cluster.members, node.Module)
 		graphClusters.clusterMap[node.Name()] = cluster
 	}
 
@@ -49,7 +49,7 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.ModuleGraph) *gra
 	return graphClusters
 }
 
-func computeClusterHash(config *PrintConfig, node *depgraph.Dependency) string {
+func computeClusterHash(config *PrintConfig, node *depgraph.Module) string {
 	var hashElements []string
 	for _, pred := range node.Predecessors.List() {
 		hashElements = append(hashElements, nodeNameToHash(pred.Name()))
@@ -83,7 +83,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 	depthMap := map[string]int{}
 
 	startNode, _ := c.graph.Dependencies.Get(nodeName)
-	workStack := []*depgraph.Dependency{startNode.Dependency}
+	workStack := []*depgraph.Module{startNode.Module}
 	workMap := map[string]int{nodeName: 0}
 	pathLength := 0
 	for len(workStack) > 0 {
@@ -110,7 +110,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 			depthMap[pred.Name()] = currentDepth + edgeLength
 			if _, ok := workMap[pred.Name()]; !ok { // Only allow one instance of a node in the queue.
 				workMap[pred.Name()] = 0
-				workStack = append(workStack, predNode.Dependency)
+				workStack = append(workStack, predNode.Module)
 			}
 		}
 	}
@@ -121,7 +121,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 type graphCluster struct {
 	id      int
 	hash    string
-	members []*depgraph.Dependency
+	members []*depgraph.Module
 
 	cachedDepCount int
 	cachedWidth    int
