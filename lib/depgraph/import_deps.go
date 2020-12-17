@@ -16,13 +16,13 @@ import (
 func (g *ModuleGraph) buildImportGraph() error {
 	g.log.Debug("Building initial dependency graph based on the import graph.")
 
-	pkgs, err := g.retrieveTransitiveImports([]string{fmt.Sprintf("%s/...", g.Main.Module.Path)})
+	pkgs, err := g.retrieveTransitiveImports([]string{fmt.Sprintf("%s/...", g.Main.Info.Path)})
 	if err != nil {
 		return err
 	}
 
 	for pkg, info := range pkgs {
-		source, ok := g.GetDependency(info.module.Path)
+		source, ok := g.GetModule(info.module.Path)
 		if !ok {
 			g.log.Error("Encountered package in unknown module.", zap.String("package", pkg), zap.String("module", info.module.Path))
 			continue
@@ -34,7 +34,7 @@ func (g *ModuleGraph) buildImportGraph() error {
 				g.log.Error("Detected import of unknown package.", zap.String("package", imp))
 				continue
 			}
-			target, ok := g.GetDependency(targetPkg.module.Path)
+			target, ok := g.GetModule(targetPkg.module.Path)
 			if !ok {
 				g.log.Error("Encountered package in unknown module.", zap.String("package", pkg), zap.String("module", targetPkg.module.Path))
 				continue
@@ -43,11 +43,11 @@ func (g *ModuleGraph) buildImportGraph() error {
 			}
 
 			source.Successors.Add(&DependencyReference{
-				Dependency:        target,
+				Module:            target,
 				VersionConstraint: target.SelectedVersion(),
 			})
 			target.Predecessors.Add(&DependencyReference{
-				Dependency:        source,
+				Module:            source,
 				VersionConstraint: source.SelectedVersion(),
 			})
 		}
@@ -103,7 +103,7 @@ func (g *ModuleGraph) retrieveTransitiveImports(pkgs []string) (map[string]packa
 }
 
 func (g *ModuleGraph) retrievePackageImports(packages []string) (map[string]packageImports, error) {
-	stdout, _, err := util.RunCommand(g.log, g.Main.Module.Dir, "go", append([]string{"list", "-json"}, packages...)...)
+	stdout, _, err := util.RunCommand(g.log, g.Main.Info.Dir, "go", append([]string{"list", "-json"}, packages...)...)
 	if err != nil {
 		g.log.Error("Failed to list imports for packages.", zap.Strings("packages", packages), zap.Error(err))
 		return nil, err

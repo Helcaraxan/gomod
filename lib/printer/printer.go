@@ -180,7 +180,7 @@ func PrintToDOT(graph *depgraph.ModuleGraph, config *PrintConfig) error {
 	}
 
 	for _, nodeReference := range graph.Dependencies.List() {
-		fileContent = append(fileContent, printEdgesToDot(config, nodeReference.Dependency, clusters)...)
+		fileContent = append(fileContent, printEdgesToDot(config, nodeReference.Module, clusters)...)
 	}
 
 	fileContent = append(fileContent, "}")
@@ -269,7 +269,7 @@ func printClusterToDot(config *PrintConfig, cluster *graphCluster) string {
 	return dot + "  }"
 }
 
-func printNodeToDot(config *PrintConfig, node *depgraph.Dependency) string {
+func printNodeToDot(config *PrintConfig, node *depgraph.Module) string {
 	var nodeOptions []string
 	if config.Style != nil && config.Style.ScaleNodes {
 		scaling := math.Log2(float64(node.Predecessors.Len()+node.Successors.Len())) / 5
@@ -280,8 +280,8 @@ func printNodeToDot(config *PrintConfig, node *depgraph.Dependency) string {
 	}
 	if config.Annotate && node.SelectedVersion() != "" {
 		var replacement string
-		if node.Module.Replace != nil {
-			replacement = node.Module.Replace.Path + "<br />"
+		if node.Info.Replace != nil {
+			replacement = node.Info.Replace.Path + "<br />"
 		}
 		nodeOptions = append(nodeOptions, fmt.Sprintf(
 			"label=<%s<br /><font point-size=\"10\">%s%s</font>>",
@@ -297,7 +297,7 @@ func printNodeToDot(config *PrintConfig, node *depgraph.Dependency) string {
 	return dot
 }
 
-func printEdgesToDot(config *PrintConfig, node *depgraph.Dependency, clusters *graphClusters) []string {
+func printEdgesToDot(config *PrintConfig, node *depgraph.Module, clusters *graphClusters) []string {
 	clustersReached := map[int]struct{}{}
 
 	var dots []string

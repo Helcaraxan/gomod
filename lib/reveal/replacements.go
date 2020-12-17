@@ -180,7 +180,7 @@ func FindReplacements(log *zap.Logger, graph *depgraph.ModuleGraph) (*Replacemen
 		originToReplace: map[string][]Replacement{},
 	}
 
-	replaces, err := parseGoMod(log, graph.Main.Module, replacements.topLevel, graph.Main.Module)
+	replaces, err := parseGoMod(log, graph.Main.Info, replacements.topLevel, graph.Main.Info)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func FindReplacements(log *zap.Logger, graph *depgraph.ModuleGraph) (*Replacemen
 	}
 
 	for _, node := range graph.Dependencies.List() {
-		replaces, err = parseGoMod(log, graph.Main.Module, replacements.topLevel, node.Module)
+		replaces, err = parseGoMod(log, graph.Main.Info, replacements.topLevel, node.Info)
 		if err != nil {
 			return nil, err
 		}

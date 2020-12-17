@@ -41,7 +41,7 @@ func (f *TargetDependencies) Apply(log *zap.Logger, graph *depgraph.ModuleGraph)
 	for _, dependency := range graph.Dependencies.List() {
 		if _, ok := keep[dependency.Name()]; !ok {
 			log.Debug("Pruning dependency.", zap.String("dependency", dependency.Name()))
-			subGraph.RemoveDependency(dependency.Name())
+			subGraph.RemoveModule(dependency.Name())
 		}
 	}
 	return subGraph
@@ -58,7 +58,7 @@ func applyFilter(
 	filter *targetDependencyFilter,
 	keep map[string]struct{},
 ) {
-	filterModule, ok := graph.GetDependency(filter.module)
+	filterModule, ok := graph.GetModule(filter.module)
 	if !ok {
 		return
 	}

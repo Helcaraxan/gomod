@@ -26,7 +26,7 @@ func GetModuleGraph(log *zap.Logger, path string) (*ModuleGraph, error) {
 
 	graph := NewGraph(log, path, mainModule)
 	for _, module := range moduleInfo {
-		graph.AddDependency(module)
+		graph.AddModule(module)
 	}
 
 	if err = graph.buildImportGraph(); err != nil {
@@ -39,7 +39,7 @@ func GetModuleGraph(log *zap.Logger, path string) (*ModuleGraph, error) {
 
 	for _, dependency := range graph.Dependencies.List() {
 		if dependency.Predecessors.Len() == 0 && dependency.Successors.Len() == 0 {
-			graph.RemoveDependency(dependency.Name())
+			graph.RemoveModule(dependency.Name())
 		}
 	}
 	return graph, nil

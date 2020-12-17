@@ -12,7 +12,7 @@ import (
 type ModuleGraph struct {
 	Path string
 
-	Main         *Dependency
+	Main         *Module
 	Dependencies *DependencyMap
 
 	log      *zap.Logger
@@ -41,11 +41,11 @@ func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *ModuleGra
 		log:          log,
 		replaces:     map[string]string{},
 	}
-	newGraph.Main = newGraph.AddDependency(main)
+	newGraph.Main = newGraph.AddModule(main)
 	return newGraph
 }
 
-func (g *ModuleGraph) GetDependency(name string) (*Dependency, bool) {
+func (g *ModuleGraph) GetModule(name string) (*Module, bool) {
 	if replaced, ok := g.replaces[name]; ok {
 		name = replaced
 	}
@@ -53,19 +53,19 @@ func (g *ModuleGraph) GetDependency(name string) (*Dependency, bool) {
 	if !ok {
 		return nil, false
 	}
-	return dependencyReference.Dependency, true
+	return dependencyReference.Module, true
 }
 
-func (g *ModuleGraph) AddDependency(module *modules.ModuleInfo) *Dependency {
+func (g *ModuleGraph) AddModule(module *modules.ModuleInfo) *Module {
 	if module == nil {
 		return nil
 	} else if dependencyReference, ok := g.Dependencies.Get(module.Path); ok && dependencyReference != nil {
-		return dependencyReference.Dependency
+		return dependencyReference.Module
 	}
 
 	newDependencyReference := &DependencyReference{
-		Dependency: &Dependency{
-			Module:       module,
+		Module: &Module{
+			Info:         module,
 			Predecessors: NewDependencyMap(),
 			Successors:   NewDependencyMap(),
 		},
@@ -75,10 +75,10 @@ func (g *ModuleGraph) AddDependency(module *modules.ModuleInfo) *Dependency {
 	if module.Replace != nil {
 		g.replaces[module.Replace.Path] = module.Path
 	}
-	return newDependencyReference.Dependency
+	return newDependencyReference.Module
 }
 
-func (g *ModuleGraph) RemoveDependency(name string) {
+func (g *ModuleGraph) RemoveModule(name string) {
 	g.log.Debug("Removing dependency.", zap.String("dependency", name))
 	if replaced, ok := g.replaces[name]; ok {
 		delete(g.replaces, name)
@@ -109,17 +109,17 @@ func (g *ModuleGraph) RemoveDependency(name string) {
 func (g *ModuleGraph) DeepCopy() *ModuleGraph {
 	g.log.Debug("Deep-copying dependency graph.", zap.String("module", g.Main.Name()))
 
-	newGraph := NewGraph(g.log, g.Path, g.Main.Module)
+	newGraph := NewGraph(g.log, g.Path, g.Main.Info)
 	for _, dependency := range g.Dependencies.List() {
-		if module := newGraph.AddDependency(dependency.Module); module == nil {
+		if module := newGraph.AddModule(dependency.Info); module == nil {
 			g.log.Error("Encountered an empty dependency.", zap.String("dependency", module.Name()))
 		}
 	}
 
 	for _, dependency := range g.Dependencies.List() {
-		newDependency, _ := newGraph.GetDependency(dependency.Name())
+		newDependency, _ := newGraph.GetModule(dependency.Name())
 		for _, predecessor := range dependency.Predecessors.List() {
-			newPredecessor, ok := newGraph.GetDependency(predecessor.Name())
+			newPredecessor, ok := newGraph.GetModule(predecessor.Name())
 			if !ok {
 				g.log.Warn(
 					"Could not find information for predecessor.",
@@ -129,12 +129,12 @@ func (g *ModuleGraph) DeepCopy() *ModuleGraph {
 				continue
 			}
 			newDependency.Predecessors.Add(&DependencyReference{
-				Dependency:        newPredecessor,
+				Module:            newPredecessor,
 				VersionConstraint: predecessor.VersionConstraint,
 			})
 		}
 		for _, successor := range dependency.Successors.List() {
-			newSuccessor, ok := newGraph.GetDependency(successor.Name())
+			newSuccessor, ok := newGraph.GetModule(successor.Name())
 			if !ok {
 				g.log.Warn(
 					"Could not find information for successor.",
@@ -144,7 +144,7 @@ func (g *ModuleGraph) DeepCopy() *ModuleGraph {
 				continue
 			}
 			newDependency.Successors.Add(&DependencyReference{
-				Dependency:        newSuccessor,
+				Module:            newSuccessor,
 				VersionConstraint: successor.VersionConstraint,
 			})
 		}
@@ -166,32 +166,32 @@ func (g *ModuleGraph) Transform(transformations ...Transform) *ModuleGraph {
 	return graph
 }
 
-// Dependency represents a module in a Go module's dependency graph.
-type Dependency struct {
-	Module       *modules.ModuleInfo
+// Module represents a module in a Go module's dependency graph.
+type Module struct {
+	Info         *modules.ModuleInfo
 	Predecessors *DependencyMap
 	Successors   *DependencyMap
 }
 
 // Name of the module represented by this Dependency in the ModuleGraph instance.
-func (n *Dependency) Name() string {
-	return n.Module.Path
+func (n *Module) Name() string {
+	return n.Info.Path
 }
 
 // SelectedVersion corresponds to the version of the dependency represented by
 // this Dependency which was selected for use.
-func (n *Dependency) SelectedVersion() string {
-	if n.Module.Replace != nil {
-		return n.Module.Replace.Version
+func (n *Module) SelectedVersion() string {
+	if n.Info.Replace != nil {
+		return n.Info.Replace.Version
 	}
-	return n.Module.Version
+	return n.Info.Version
 }
 
 // Timestamp returns the time corresponding to the creation of the version at
 // which this dependency is used.
-func (n *Dependency) Timestamp() *time.Time {
-	if n.Module.Replace != nil {
-		return n.Module.Replace.Time
+func (n *Module) Timestamp() *time.Time {
+	if n.Info.Replace != nil {
+		return n.Info.Replace.Time
 	}
-	return n.Module.Time
+	return n.Info.Time
 }

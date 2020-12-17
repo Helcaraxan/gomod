@@ -44,11 +44,11 @@ func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.ModuleGra
 func pruneUnsharedChain(graph *depgraph.ModuleGraph, excludeMap map[string]struct{}, leaf *depgraph.DependencyReference) {
 	for {
 		if len(leaf.Predecessors.List()) == 0 {
-			graph.RemoveDependency(leaf.Name())
+			graph.RemoveModule(leaf.Name())
 			return
 		}
 		newLeaf := leaf.Predecessors.List()[0]
-		graph.RemoveDependency(leaf.Name())
+		graph.RemoveModule(leaf.Name())
 		_, ok := excludeMap[newLeaf.Name()]
 		if ok || len(newLeaf.Successors.List()) != 0 || len(newLeaf.Predecessors.List()) > 1 {
 			return
