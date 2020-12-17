@@ -57,7 +57,7 @@ func (g *DepGraph) buildImportGraph() error {
 }
 
 type packageImports struct {
-	module  *modules.Module
+	module  *modules.ModuleInfo
 	imports []string
 }
 
@@ -112,7 +112,7 @@ func (g *DepGraph) retrievePackageImports(packages []string) (map[string]package
 
 	type packageInfo struct {
 		ImportPath   string
-		Module       *modules.Module
+		Module       *modules.ModuleInfo
 		Imports      []string
 		TestImports  []string
 		XTestImports []string

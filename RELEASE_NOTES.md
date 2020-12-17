@@ -30,6 +30,7 @@
 - The logging functionality is now provided by `go.uber.org/zap` instead of
   `github.com/sirupsen/logrus`.
 - The `Logger` field in the `printer.PrintConfig` struct type has been renamed to `Log`.
+- The `modules.Module` type has been renamed to `modules.ModuleInfo`.
 
 ## 0.5.0
 

@@ -16,7 +16,7 @@ import (
 )
 
 type Replacement struct {
-	Offender *modules.Module
+	Offender *modules.ModuleInfo
 	Original string
 	Override string
 	Version  string
@@ -212,9 +212,9 @@ func FindReplacements(log *zap.Logger, graph *depgraph.DepGraph) (*Replacements,
 
 func parseGoMod(
 	log *zap.Logger,
-	topLevelModule *modules.Module,
+	topLevelModule *modules.ModuleInfo,
 	topLevelReplaces map[string]string,
-	module *modules.Module,
+	module *modules.ModuleInfo,
 ) ([]Replacement, error) {
 	module, goModPath := findGoModFile(log, module)
 	if goModPath == "" {
@@ -246,7 +246,7 @@ func parseGoMod(
 	return replaces, nil
 }
 
-func findGoModFile(log *zap.Logger, module *modules.Module) (*modules.Module, string) {
+func findGoModFile(log *zap.Logger, module *modules.ModuleInfo) (*modules.ModuleInfo, string) {
 	if module == nil {
 		return nil, ""
 	} else if module.Replace != nil {
@@ -265,7 +265,7 @@ func findGoModFile(log *zap.Logger, module *modules.Module) (*modules.Module, st
 	return module, ""
 }
 
-func parseGoModForReplacements(log *zap.Logger, module *modules.Module, goModContent string) []Replacement {
+func parseGoModForReplacements(log *zap.Logger, module *modules.ModuleInfo, goModContent string) []Replacement {
 	var replacements []Replacement
 	for _, singleReplaceMatch := range singleReplaceRE.FindAllStringSubmatch(goModContent, -1) {
 		replacements = append(replacements, parseReplacements(log, module, singleReplaceMatch[1])...)
@@ -276,7 +276,7 @@ func parseGoModForReplacements(log *zap.Logger, module *modules.Module, goModCon
 	return replacements
 }
 
-func parseReplacements(log *zap.Logger, module *modules.Module, replaceString string) []Replacement {
+func parseReplacements(log *zap.Logger, module *modules.ModuleInfo, replaceString string) []Replacement {
 	var replacements []Replacement
 	for _, replaceMatch := range replaceRE.FindAllStringSubmatch(replaceString, -1) {
 		replace := Replacement{

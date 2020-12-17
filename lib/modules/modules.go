@@ -13,16 +13,16 @@ import (
 	"github.com/Helcaraxan/gomod/lib/internal/util"
 )
 
-// Module represents the data returned by 'go list -m --json' for a Go module.
-type Module struct {
+// ModuleInfo represents the data returned by 'go list -m --json' for a Go module.
+type ModuleInfo struct {
 	Main      bool         // is this the main module?
 	Indirect  bool         // is it an indirect dependency?
 	Path      string       // module path
-	Replace   *Module      // replaced by this module
+	Replace   *ModuleInfo  // replaced by this module
 	Version   string       // module version
 	Time      *time.Time   // time version was created
 	Dir       string       // location of the module's source
-	Update    *Module      // available update, if any (with -u)
+	Update    *ModuleInfo  // available update, if any (with -u)
 	GoMod     string       // the path to this module's go.mod file
 	GoVersion string       // the Go version associated with the module
 	Error     *ModuleError // error loading module
@@ -35,7 +35,7 @@ type ModuleError struct {
 }
 
 // Retrieve the Module information for all dependencies of the Go module found at the specified path.
-func GetDependencies(log *zap.Logger, moduleDir string) (*Module, map[string]*Module, error) {
+func GetDependencies(log *zap.Logger, moduleDir string) (*ModuleInfo, map[string]*ModuleInfo, error) {
 	return retrieveModuleInformation(log, moduleDir, "all")
 }
 
@@ -43,7 +43,7 @@ func GetDependencies(log *zap.Logger, moduleDir string) (*Module, map[string]*Mo
 // path, including any potentially available updates. This requires internet connectivity in order
 // to return the results. Lack of connectivity should result in an error being returned but this is
 // not a hard guarantee.
-func GetDependenciesWithUpdates(log *zap.Logger, moduleDir string) (*Module, map[string]*Module, error) {
+func GetDependenciesWithUpdates(log *zap.Logger, moduleDir string) (*ModuleInfo, map[string]*ModuleInfo, error) {
 	if err := connectivityCheck(); err != nil {
 		log.Error("No connectivity.", zap.Error(err))
 		return nil, nil, err
@@ -53,7 +53,7 @@ func GetDependenciesWithUpdates(log *zap.Logger, moduleDir string) (*Module, map
 
 // Retrieve the Module information for the specified target module which must be a dependency of the
 // Go module found at the specified path.
-func GetModule(log *zap.Logger, moduleDir string, targetModule string) (*Module, error) {
+func GetModule(log *zap.Logger, moduleDir string, targetModule string) (*ModuleInfo, error) {
 	module, _, err := retrieveModuleInformation(log, moduleDir, targetModule)
 	return module, err
 }
@@ -62,7 +62,7 @@ func GetModule(log *zap.Logger, moduleDir string, targetModule string) (*Module,
 // Go module found at the specified path, including any potentially available updates. This requires
 // internet connectivity in order to return the results. Lack of connectivity should result in an
 // error being returned but this is not a hard guarantee.
-func GetModuleWithUpdate(log *zap.Logger, moduleDir string, targetModule string) (*Module, error) {
+func GetModuleWithUpdate(log *zap.Logger, moduleDir string, targetModule string) (*ModuleInfo, error) {
 	if err := connectivityCheck(); err != nil {
 		log.Error("No connectivity.", zap.Error(err))
 		return nil, err
@@ -76,7 +76,7 @@ func retrieveModuleInformation(
 	moduleDir string,
 	targetModule string,
 	extraGoListArgs ...string,
-) (*Module, map[string]*Module, error) {
+) (*ModuleInfo, map[string]*ModuleInfo, error) {
 	log.Debug("Ensuring module information is available locally by running 'go mod download'.")
 	_, _, err := util.RunCommand(log, moduleDir, "go", "mod", "download")
 	if err != nil {
@@ -100,13 +100,13 @@ func retrieveModuleInformation(
 	raw = append([]byte("[\n"), raw...)
 	raw = append(raw, []byte("\n]")...)
 
-	var moduleList []*Module
+	var moduleList []*ModuleInfo
 	if err = json.Unmarshal(raw, &moduleList); err != nil {
 		return nil, nil, fmt.Errorf("Unable to retrieve information from 'go list': %v", err)
 	}
 
-	var main *Module
-	modules := map[string]*Module{}
+	var main *ModuleInfo
+	modules := map[string]*ModuleInfo{}
 	for _, module := range moduleList {
 		if module.Error != nil {
 			log.Warn("Unable to retrieve information for module", zap.String("module", module.Path), zap.String("error", module.Error.Err))

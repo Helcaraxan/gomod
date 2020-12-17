@@ -16,8 +16,8 @@ func TestMapNew(t *testing.T) {
 }
 
 func TestMapCopy(t *testing.T) {
-	dependencyA := &Dependency{Module: &modules.Module{Path: "dependency_a"}}
-	dependencyB := &Dependency{Module: &modules.Module{Path: "dependency_b"}}
+	dependencyA := &Dependency{Module: &modules.ModuleInfo{Path: "dependency_a"}}
+	dependencyB := &Dependency{Module: &modules.ModuleInfo{Path: "dependency_b"}}
 
 	originalMap := NewDependencyMap()
 	originalMap.Add(&DependencyReference{Dependency: dependencyA})
@@ -36,7 +36,7 @@ func TestMapCopy(t *testing.T) {
 }
 
 func TestMapAdd(t *testing.T) {
-	dependencyA := &Dependency{Module: &modules.Module{Path: "dependency_a"}}
+	dependencyA := &Dependency{Module: &modules.ModuleInfo{Path: "dependency_a"}}
 
 	newMap := NewDependencyMap()
 	newMap.Add(&DependencyReference{Dependency: dependencyA})
@@ -48,7 +48,7 @@ func TestMapAdd(t *testing.T) {
 }
 
 func TestMapDelete(t *testing.T) {
-	dependencyA := &Dependency{Module: &modules.Module{Path: "dependency_a"}}
+	dependencyA := &Dependency{Module: &modules.ModuleInfo{Path: "dependency_a"}}
 
 	newMap := NewDependencyMap()
 
@@ -56,12 +56,12 @@ func TestMapDelete(t *testing.T) {
 
 	newMap.Add(&DependencyReference{Dependency: dependencyA})
 	newMap.Delete("dependency_a")
-	assert.NotContains(t, newMap.List(), &Dependency{Module: &modules.Module{Path: "dependency_a"}})
+	assert.NotContains(t, newMap.List(), &Dependency{Module: &modules.ModuleInfo{Path: "dependency_a"}})
 }
 
 func TestMapLen(t *testing.T) {
-	dependencyA := &Dependency{Module: &modules.Module{Path: "dependency_a"}}
-	dependencyB := &Dependency{Module: &modules.Module{Path: "dependency_b"}}
+	dependencyA := &Dependency{Module: &modules.ModuleInfo{Path: "dependency_a"}}
+	dependencyB := &Dependency{Module: &modules.ModuleInfo{Path: "dependency_b"}}
 
 	newMap := NewDependencyMap()
 	assert.Equal(t, 0, newMap.Len())
@@ -80,8 +80,8 @@ func TestMapLen(t *testing.T) {
 }
 
 func TestMapList(t *testing.T) {
-	dependencyA := &Dependency{Module: &modules.Module{Path: "dependency_a"}}
-	dependencyB := &Dependency{Module: &modules.Module{Path: "dependency_b"}}
+	dependencyA := &Dependency{Module: &modules.ModuleInfo{Path: "dependency_a"}}
+	dependencyB := &Dependency{Module: &modules.ModuleInfo{Path: "dependency_b"}}
 
 	newMap := NewDependencyMap()
 	newMap.Add(&DependencyReference{Dependency: dependencyB})

@@ -17,7 +17,7 @@ import (
 
 var (
 	replaceA = Replacement{
-		Offender: &modules.Module{Path: "offender"},
+		Offender: &modules.ModuleInfo{Path: "offender"},
 		Original: "originalA",
 		Override: "overrideA",
 		Version:  "v1.0.0",
@@ -39,13 +39,13 @@ var (
 		Override: "./overrideD",
 	}
 	replaceE = Replacement{
-		Offender: &modules.Module{Path: "offender-bis"},
+		Offender: &modules.ModuleInfo{Path: "offender-bis"},
 		Original: "originalA",
 		Override: "overrideA-bis",
 		Version:  "v2.0.0",
 	}
 	replaceF = Replacement{
-		Offender: &modules.Module{Path: "offender-tertio"},
+		Offender: &modules.ModuleInfo{Path: "offender-tertio"},
 		Original: "originalB",
 		Override: "overrideB-bis",
 		Version:  "v2.0.0",
@@ -69,25 +69,25 @@ var (
 		},
 	}
 
-	moduleA = &modules.Module{
+	moduleA = &modules.ModuleInfo{
 		Main:    false,
 		Path:    "moduleA",
 		Version: "v1.0.0",
 		GoMod:   filepath.Join("testdata", "moduleA", "go.mod"),
 	}
-	moduleB = &modules.Module{
+	moduleB = &modules.ModuleInfo{
 		Main:    false,
 		Path:    filepath.Join("testdata", "moduleB"),
 		Version: "v1.1.0",
 	}
-	moduleC = &modules.Module{
+	moduleC = &modules.ModuleInfo{
 		Main:    false,
 		Path:    "moduleA",
 		Version: "v0.1.0",
 		Replace: moduleA,
 		GoMod:   "nowhere",
 	}
-	moduleD = &modules.Module{
+	moduleD = &modules.ModuleInfo{
 		Main:    false,
 		Path:    "moduleD",
 		Version: "v0.0.1",
@@ -100,7 +100,7 @@ var testGraph *depgraph.DepGraph
 func init() {
 	log := zap.NewNop()
 
-	testGraph = depgraph.NewGraph(log, "", &modules.Module{
+	testGraph = depgraph.NewGraph(log, "", &modules.ModuleInfo{
 		Main:  true,
 		Path:  "test/module",
 		GoMod: filepath.Join("testdata", "mainModule", "go.mod"),
@@ -116,12 +116,12 @@ func Test_ParseReplaces(t *testing.T) {
 
 	testcases := map[string]struct {
 		input    string
-		offender *modules.Module
+		offender *modules.ModuleInfo
 		expected []Replacement
 	}{
 		"SingleReplace": {
 			input:    "replace originalA => overrideA v1.0.0",
-			offender: &modules.Module{Path: "offender"},
+			offender: &modules.ModuleInfo{Path: "offender"},
 			expected: []Replacement{replaceA},
 		},
 		"MultiReplace": {
@@ -289,8 +289,8 @@ func Test_FindGoModFile(t *testing.T) {
 	log := zap.NewNop()
 
 	testcases := map[string]struct {
-		module         *modules.Module
-		expectedModule *modules.Module
+		module         *modules.ModuleInfo
+		expectedModule *modules.ModuleInfo
 		expectedPath   string
 	}{
 		"NoModule": {
