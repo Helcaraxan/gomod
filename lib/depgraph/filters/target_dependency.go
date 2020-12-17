@@ -69,7 +69,7 @@ func applyFilter(
 	if filter.version != "" {
 		logger.Debug("Only considering dependencies preventing use of a specific version.", zap.String("version", filter.version))
 	}
-	var todo []*depgraph.DependencyReference
+	var todo []*depgraph.ModuleReference
 	for _, predecessor := range filterModule.Predecessors.List() {
 		if dependencyMatchesFilter(predecessor, filter) {
 			logger.Debug("Keeping dependency", zap.String("dependency", predecessor.Name()))
@@ -91,7 +91,7 @@ func applyFilter(
 	}
 }
 
-func dependencyMatchesFilter(dependency *depgraph.DependencyReference, filter *targetDependencyFilter) bool {
+func dependencyMatchesFilter(dependency *depgraph.ModuleReference, filter *targetDependencyFilter) bool {
 	if dependency.VersionConstraint == "" || filter.version == "" {
 		return true
 	}

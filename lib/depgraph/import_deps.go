@@ -42,11 +42,11 @@ func (g *ModuleGraph) buildImportGraph() error {
 				continue
 			}
 
-			source.Successors.Add(&DependencyReference{
+			source.Successors.Add(&ModuleReference{
 				Module:            target,
 				VersionConstraint: target.SelectedVersion(),
 			})
-			target.Predecessors.Add(&DependencyReference{
+			target.Predecessors.Add(&ModuleReference{
 				Module:            source,
 				VersionConstraint: source.SelectedVersion(),
 			})

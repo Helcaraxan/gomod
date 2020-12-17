@@ -10,7 +10,7 @@ import (
 )
 
 func TestMapNew(t *testing.T) {
-	newMap := NewDependencyMap()
+	newMap := NewModuleDependencies()
 	assert.NotNil(t, newMap.dependencyMap)
 	assert.NotNil(t, newMap.dependencyList)
 }
@@ -19,10 +19,10 @@ func TestMapCopy(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 	dependencyB := &Module{Info: &modules.ModuleInfo{Path: "dependency_b"}}
 
-	originalMap := NewDependencyMap()
-	originalMap.Add(&DependencyReference{Module: dependencyA})
+	originalMap := NewModuleDependencies()
+	originalMap.Add(&ModuleReference{Module: dependencyA})
 	copiedMap := originalMap.Copy()
-	originalMap.Add(&DependencyReference{Module: dependencyB})
+	originalMap.Add(&ModuleReference{Module: dependencyB})
 
 	_, okA := originalMap.Get("dependency_a")
 	_, okB := originalMap.Get("dependency_b")
@@ -38,11 +38,11 @@ func TestMapCopy(t *testing.T) {
 func TestMapAdd(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 
-	newMap := NewDependencyMap()
-	newMap.Add(&DependencyReference{Module: dependencyA})
+	newMap := NewModuleDependencies()
+	newMap.Add(&ModuleReference{Module: dependencyA})
 	_, ok := newMap.Get("dependency_a")
 	assert.True(t, ok)
-	newMap.Add(&DependencyReference{Module: dependencyA})
+	newMap.Add(&ModuleReference{Module: dependencyA})
 	_, ok = newMap.Get("dependency_a")
 	assert.True(t, ok)
 }
@@ -50,11 +50,11 @@ func TestMapAdd(t *testing.T) {
 func TestMapDelete(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 
-	newMap := NewDependencyMap()
+	newMap := NewModuleDependencies()
 
 	newMap.Delete("dependency_a")
 
-	newMap.Add(&DependencyReference{Module: dependencyA})
+	newMap.Add(&ModuleReference{Module: dependencyA})
 	newMap.Delete("dependency_a")
 	assert.NotContains(t, newMap.List(), &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}})
 }
@@ -63,16 +63,16 @@ func TestMapLen(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 	dependencyB := &Module{Info: &modules.ModuleInfo{Path: "dependency_b"}}
 
-	newMap := NewDependencyMap()
+	newMap := NewModuleDependencies()
 	assert.Equal(t, 0, newMap.Len())
 
-	newMap.Add(&DependencyReference{Module: dependencyA})
+	newMap.Add(&ModuleReference{Module: dependencyA})
 	assert.Equal(t, 1, newMap.Len())
 
-	newMap.Add(&DependencyReference{Module: dependencyA})
+	newMap.Add(&ModuleReference{Module: dependencyA})
 	assert.Equal(t, 1, newMap.Len())
 
-	newMap.Add(&DependencyReference{Module: dependencyB})
+	newMap.Add(&ModuleReference{Module: dependencyB})
 	assert.Equal(t, 2, newMap.Len())
 
 	newMap.Delete("dependency_a")
@@ -83,9 +83,9 @@ func TestMapList(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 	dependencyB := &Module{Info: &modules.ModuleInfo{Path: "dependency_b"}}
 
-	newMap := NewDependencyMap()
-	newMap.Add(&DependencyReference{Module: dependencyB})
-	newMap.Add(&DependencyReference{Module: dependencyA})
+	newMap := NewModuleDependencies()
+	newMap.Add(&ModuleReference{Module: dependencyB})
+	newMap.Add(&ModuleReference{Module: dependencyA})
 
 	list := newMap.List()
 	isSorted := sort.SliceIsSorted(list, func(i int, j int) bool { return list[i].Name() < list[j].Name() })

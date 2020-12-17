@@ -37,6 +37,8 @@
   - `depgraph.Dependency.Module` is now `depgraph.Module.Info`.
   - `depgraph.DepGraph` is now `depgraph.ModuleGraph`.
   - `depgraph.DepGraph.(Get|Add|Remove)Dependency` are now `depgraph.ModuleGraph.(Get|Add|Remove)Module`.
+  - `depgraph.DependencyReference` is now `depgraph.ModuleReference`.
+  - `depgraph.(New)DependencyMap` are now `depgraph.(New)ModuleDependencies`.
 
 ## 0.5.0
 
