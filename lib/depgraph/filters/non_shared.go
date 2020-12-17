@@ -10,7 +10,7 @@ type NonSharedDependencies struct {
 	Excludes []string
 }
 
-func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.DepGraph) *depgraph.DepGraph {
+func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.ModuleGraph) *depgraph.ModuleGraph {
 	log.Debug("Pruning dependencies that are not shared between multiple modules.")
 	if len(f.Excludes) > 0 {
 		log.Debug("Excluding dependency from prune.", zap.Strings("exclude-list", f.Excludes))
@@ -41,7 +41,7 @@ func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.DepGraph)
 	}
 }
 
-func pruneUnsharedChain(graph *depgraph.DepGraph, excludeMap map[string]struct{}, leaf *depgraph.DependencyReference) {
+func pruneUnsharedChain(graph *depgraph.ModuleGraph, excludeMap map[string]struct{}, leaf *depgraph.DependencyReference) {
 	for {
 		if len(leaf.Predecessors.List()) == 0 {
 			graph.RemoveDependency(leaf.Name())

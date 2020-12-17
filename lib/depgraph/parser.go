@@ -10,10 +10,10 @@ import (
 
 var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
 
-// GetDepGraph will return the dependency graph for the Go module that can be
-// found at the specified path. The 'logger' parameter can be 'nil' which will
-// result in no output or logging information being provided.
-func GetDepGraph(log *zap.Logger, path string) (*DepGraph, error) {
+// GetModuleGraph will return the dependency graph for the Go module that can be found at the
+// specified path. The 'logger' parameter can be 'nil' which will result in no output or logging
+// information being provided.
+func GetModuleGraph(log *zap.Logger, path string) (*ModuleGraph, error) {
 	if log == nil {
 		log = zap.NewNop()
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 )
 
-func computeGraphClusters(config *PrintConfig, graph *depgraph.DepGraph) *graphClusters {
+func computeGraphClusters(config *PrintConfig, graph *depgraph.ModuleGraph) *graphClusters {
 	graphClusters := &graphClusters{
 		graph:           graph,
 		clusterMap:      map[string]*graphCluster{},
@@ -65,7 +65,7 @@ func computeClusterHash(config *PrintConfig, node *depgraph.Dependency) string {
 }
 
 type graphClusters struct {
-	graph       *depgraph.DepGraph
+	graph       *depgraph.ModuleGraph
 	clusterMap  map[string]*graphCluster
 	clusterList []*graphCluster
 

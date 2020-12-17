@@ -206,7 +206,7 @@ func runGraphCmd(args *graphArgs) error {
 		return errors.New("'shared' and 'dependencies' filters cannot be used simultaneously")
 	}
 
-	graph, err := depgraph.GetDepGraph(args.log, "")
+	graph, err := depgraph.GetModuleGraph(args.log, "")
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func initAnalyseCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runAnalyseCmd(args *analyseArgs) error {
-	graph, err := depgraph.GetDepGraph(args.log, "")
+	graph, err := depgraph.GetModuleGraph(args.log, "")
 	if err != nil {
 		return err
 	}
@@ -291,7 +291,7 @@ func initRevealCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runRevealCmd(args *revealArgs) error {
-	graph, err := depgraph.GetDepGraph(args.log, "")
+	graph, err := depgraph.GetModuleGraph(args.log, "")
 	if err != nil {
 		return err
 	}
@@ -365,7 +365,7 @@ func checkGoModulePresence(log *zap.Logger) error {
 	return errors.New("missing go module")
 }
 
-func printResult(graph *depgraph.DepGraph, args *graphArgs) error {
+func printResult(graph *depgraph.ModuleGraph, args *graphArgs) error {
 	return printer.Print(graph, &printer.PrintConfig{
 		Log:          args.log,
 		OutputPath:   args.outputPath,

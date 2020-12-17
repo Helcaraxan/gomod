@@ -35,7 +35,7 @@ type DepAnalysis struct {
 
 var testCurrentTimeInjection *time.Time
 
-func Analyse(log *zap.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) {
+func Analyse(log *zap.Logger, g *depgraph.ModuleGraph) (*DepAnalysis, error) {
 	_, moduleMap, err := modules.GetDependenciesWithUpdates(log, g.Path)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func Analyse(log *zap.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) {
 
 type analysis struct {
 	log       *zap.Logger
-	graph     *depgraph.DepGraph
+	graph     *depgraph.ModuleGraph
 	moduleMap map[string]*modules.ModuleInfo
 
 	directDependencies          int

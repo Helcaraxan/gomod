@@ -10,7 +10,7 @@ type ArbitraryDependencies struct {
 	Dependencies []string
 }
 
-func (f *ArbitraryDependencies) Apply(log *zap.Logger, graph *depgraph.DepGraph) *depgraph.DepGraph {
+func (f *ArbitraryDependencies) Apply(log *zap.Logger, graph *depgraph.ModuleGraph) *depgraph.ModuleGraph {
 	filteredGraph := graph.DeepCopy()
 	for _, dependency := range f.Dependencies {
 		filteredGraph.RemoveDependency(dependency)
