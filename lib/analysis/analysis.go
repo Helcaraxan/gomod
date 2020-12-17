@@ -85,7 +85,7 @@ type analysis struct {
 	reverseDependencies         meanMaxDistribution
 }
 
-func (r *analysis) processDependency(dependency *depgraph.DependencyReference) {
+func (r *analysis) processDependency(dependency *depgraph.ModuleReference) {
 	const month = 30 * 24 * time.Hour
 	var isDirect int
 

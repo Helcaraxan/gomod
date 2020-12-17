@@ -44,7 +44,7 @@ func (g *ModuleGraph) overlayModuleDependencies() error {
 			zap.String("target", modDep.target.Name()),
 		)
 		if dep, ok := modDep.source.Successors.Get(modDep.target.Name()); !ok {
-			modDep.source.Successors.Add(&DependencyReference{
+			modDep.source.Successors.Add(&ModuleReference{
 				Module:            modDep.target,
 				VersionConstraint: modDep.targetVersion,
 			})
@@ -53,7 +53,7 @@ func (g *ModuleGraph) overlayModuleDependencies() error {
 		}
 
 		if dep, ok := modDep.target.Predecessors.Get(modDep.source.Name()); !ok {
-			modDep.target.Predecessors.Add(&DependencyReference{
+			modDep.target.Predecessors.Add(&ModuleReference{
 				Module:            modDep.source,
 				VersionConstraint: modDep.sourceVersion,
 			})

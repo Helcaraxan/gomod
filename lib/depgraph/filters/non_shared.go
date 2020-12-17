@@ -24,7 +24,7 @@ func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.ModuleGra
 	prunedGraph := graph.DeepCopy()
 	for {
 		// Find the next unshared dependency.
-		var target *depgraph.DependencyReference
+		var target *depgraph.ModuleReference
 		for _, dependency := range prunedGraph.Dependencies.List() {
 			_, ok := excludeMap[dependency.Name()]
 			if !ok && len(dependency.Successors.List()) == 0 && len(dependency.Predecessors.List()) <= 1 {
@@ -41,7 +41,7 @@ func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.ModuleGra
 	}
 }
 
-func pruneUnsharedChain(graph *depgraph.ModuleGraph, excludeMap map[string]struct{}, leaf *depgraph.DependencyReference) {
+func pruneUnsharedChain(graph *depgraph.ModuleGraph, excludeMap map[string]struct{}, leaf *depgraph.ModuleReference) {
 	for {
 		if len(leaf.Predecessors.List()) == 0 {
 			graph.RemoveModule(leaf.Name())

@@ -13,7 +13,7 @@ type ModuleGraph struct {
 	Path string
 
 	Main         *Module
-	Dependencies *DependencyMap
+	Dependencies *ModuleDependencies
 
 	log      *zap.Logger
 	replaces map[string]string
@@ -37,7 +37,7 @@ func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *ModuleGra
 	}
 	newGraph := &ModuleGraph{
 		Path:         path,
-		Dependencies: NewDependencyMap(),
+		Dependencies: NewModuleDependencies(),
 		log:          log,
 		replaces:     map[string]string{},
 	}
@@ -63,11 +63,11 @@ func (g *ModuleGraph) AddModule(module *modules.ModuleInfo) *Module {
 		return dependencyReference.Module
 	}
 
-	newDependencyReference := &DependencyReference{
+	newDependencyReference := &ModuleReference{
 		Module: &Module{
 			Info:         module,
-			Predecessors: NewDependencyMap(),
-			Successors:   NewDependencyMap(),
+			Predecessors: NewModuleDependencies(),
+			Successors:   NewModuleDependencies(),
 		},
 		VersionConstraint: module.Version,
 	}
@@ -128,7 +128,7 @@ func (g *ModuleGraph) DeepCopy() *ModuleGraph {
 				)
 				continue
 			}
-			newDependency.Predecessors.Add(&DependencyReference{
+			newDependency.Predecessors.Add(&ModuleReference{
 				Module:            newPredecessor,
 				VersionConstraint: predecessor.VersionConstraint,
 			})
@@ -143,7 +143,7 @@ func (g *ModuleGraph) DeepCopy() *ModuleGraph {
 				)
 				continue
 			}
-			newDependency.Successors.Add(&DependencyReference{
+			newDependency.Successors.Add(&ModuleReference{
 				Module:            newSuccessor,
 				VersionConstraint: successor.VersionConstraint,
 			})
@@ -169,8 +169,8 @@ func (g *ModuleGraph) Transform(transformations ...Transform) *ModuleGraph {
 // Module represents a module in a Go module's dependency graph.
 type Module struct {
 	Info         *modules.ModuleInfo
-	Predecessors *DependencyMap
-	Successors   *DependencyMap
+	Predecessors *ModuleDependencies
+	Successors   *ModuleDependencies
 }
 
 // Name of the module represented by this Dependency in the ModuleGraph instance.
