@@ -13,7 +13,8 @@ import (
 	"github.com/Helcaraxan/gomod/lib/internal/util"
 )
 
-// ModuleInfo represents the data returned by 'go list -m --json' for a Go module.
+// ModuleInfo represents the data returned by 'go list -m --json' for a Go module. It's content is
+// extracted directly from the Go documentation.
 type ModuleInfo struct {
 	Main      bool         // is this the main module?
 	Indirect  bool         // is it an indirect dependency?
