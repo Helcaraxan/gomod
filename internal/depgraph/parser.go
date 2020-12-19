@@ -5,7 +5,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/Helcaraxan/gomod/lib/modules"
+	"github.com/Helcaraxan/gomod/internal/modules"
 )
 
 var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
@@ -24,23 +24,24 @@ func GetGraph(log *zap.Logger, path string) (*Graph, error) {
 		return nil, err
 	}
 
-	graph := NewGraph(log, path, mainModule)
+	g := NewGraph(log, path, mainModule)
 	for _, module := range moduleInfo {
-		graph.AddModule(module)
+		g.addModule(module)
 	}
 
-	if err = graph.buildImportGraph(); err != nil {
+	if err = g.buildImportGraph(); err != nil {
 		return nil, err
 	}
 
-	if err = graph.overlayModuleDependencies(); err != nil {
+	if err = g.overlayModuleDependencies(); err != nil {
 		return nil, err
 	}
 
-	for _, module := range graph.Modules.List() {
+	for _, module := range g.Graph.Children().List() {
 		if module.Predecessors().Len() == 0 && module.Successors().Len() == 0 {
-			graph.RemoveModule(module.Name())
+			g.log.Debug("Removing module as it not connected to the final graph.", zap.String("dependency", module.Name()))
+			g.removeModule(module.Name())
 		}
 	}
-	return graph, nil
+	return g, nil
 }

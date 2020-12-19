@@ -3,15 +3,16 @@ package filters
 import (
 	"go.uber.org/zap"
 
-	"github.com/Helcaraxan/gomod/lib/depgraph"
+	"github.com/Helcaraxan/gomod/internal/depgraph"
+	"github.com/Helcaraxan/gomod/internal/graph"
 )
 
-type NonSharedDependencies struct {
+type NonSharedModules struct {
 	Excludes []string
 }
 
-func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.Graph) *depgraph.Graph {
-	log.Debug("Pruning dependencies that are not shared between multiple modules.")
+func (f *NonSharedModules) Apply(log *zap.Logger, g *depgraph.Graph) *depgraph.Graph {
+	log.Debug("Pruning modules that only have one predecessor in the dependency graph.")
 	if len(f.Excludes) > 0 {
 		log.Debug("Excluding dependency from prune.", zap.Strings("exclude-list", f.Excludes))
 	}
@@ -21,11 +22,10 @@ func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.Graph) *d
 		excludeMap[f.Excludes[idx]] = struct{}{}
 	}
 
-	prunedGraph := graph.DeepCopy()
 	for {
 		// Find the next unshared dependency.
-		var target depgraph.Node
-		for _, node := range prunedGraph.Modules.List() {
+		var target graph.Node
+		for _, node := range g.Graph.Children().List() {
 			_, ok := excludeMap[node.Name()]
 			if !ok && len(node.Successors().List()) == 0 && len(node.Predecessors().List()) <= 1 {
 				target = node
@@ -33,22 +33,22 @@ func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.Graph) *d
 			}
 		}
 		if target == nil {
-			return prunedGraph
+			return g
 		}
 
 		// Walk-up any chain of non-shared dependencies starting from the target one and prune them.
-		pruneUnsharedChain(prunedGraph, excludeMap, target)
+		pruneUnsharedChain(g, excludeMap, target)
 	}
 }
 
-func pruneUnsharedChain(graph *depgraph.Graph, excludeMap map[string]struct{}, leaf depgraph.Node) {
+func pruneUnsharedChain(g *depgraph.Graph, excludeMap map[string]struct{}, leaf graph.Node) {
 	for {
 		if len(leaf.Predecessors().List()) == 0 {
-			graph.RemoveModule(leaf.Name())
+			_ = g.Graph.DeleteNode(leaf.Hash())
 			return
 		}
 		newLeaf := leaf.Predecessors().List()[0].(*depgraph.ModuleReference)
-		graph.RemoveModule(leaf.Name())
+		_ = g.Graph.DeleteNode(leaf.Hash())
 		_, ok := excludeMap[newLeaf.Name()]
 		if ok || len(newLeaf.Successors().List()) != 0 || len(newLeaf.Predecessors().List()) > 1 {
 			return

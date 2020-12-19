@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/Helcaraxan/gomod/internal/logger"
-	"github.com/Helcaraxan/gomod/lib/printer"
+	"github.com/Helcaraxan/gomod/internal/printer"
 )
 
 func TestVisualConfig(t *testing.T) {

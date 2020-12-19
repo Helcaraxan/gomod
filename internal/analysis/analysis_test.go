@@ -13,9 +13,9 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	"github.com/Helcaraxan/gomod/internal/depgraph"
 	"github.com/Helcaraxan/gomod/internal/logger"
-	"github.com/Helcaraxan/gomod/lib/depgraph"
-	"github.com/Helcaraxan/gomod/lib/internal/testutil"
+	"github.com/Helcaraxan/gomod/internal/testutil"
 )
 
 func Test_DistributionCountToPercentage(t *testing.T) {

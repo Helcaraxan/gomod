@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/Helcaraxan/gomod/internal/logger"
-	"github.com/Helcaraxan/gomod/lib/printer"
+	"github.com/Helcaraxan/gomod/internal/printer"
 )
 
 var regenerate = flag.Bool("regenerate", false, "Instead of testing the output, use the generated output to refresh the golden images.")
@@ -72,6 +72,8 @@ func TestGraphGeneration(t *testing.T) {
 	for name := range testcases {
 		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			// Test the dot generation.
 			dotArgs := *testcase.dotArgs
 			dotArgs.commonArgs = cArgs
@@ -86,7 +88,7 @@ func TestGraphGeneration(t *testing.T) {
 				var expected []byte
 				expected, err = ioutil.ReadFile(filepath.Join("images", testcase.expectedFileBase+".dot"))
 				require.NoError(t, err)
-				assert.Equal(t, expected, actual)
+				assert.Equal(t, string(expected), string(actual))
 			}
 
 			// Test the visual generation.
