@@ -18,8 +18,8 @@ type Dependencies struct {
 	dependencyMap  map[string]Reference
 }
 
-func NewDependencies() *Dependencies {
-	return &Dependencies{
+func NewDependencies() Dependencies {
+	return Dependencies{
 		dependencyList: []Reference{},
 		dependencyMap:  map[string]Reference{},
 	}
@@ -29,8 +29,8 @@ func (m *Dependencies) Len() int {
 	return len(m.dependencyMap)
 }
 
-func (m *Dependencies) Copy() *Dependencies {
-	newMap := &Dependencies{
+func (m *Dependencies) Copy() Dependencies {
+	newMap := Dependencies{
 		dependencyMap:  map[string]Reference{},
 		dependencyList: make([]Reference, len(m.dependencyList)),
 	}
