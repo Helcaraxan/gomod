@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/Helcaraxan/gomod/lib/internal/util"
+	"github.com/Helcaraxan/gomod/internal/util"
 )
 
 func (g *Graph) overlayModuleDependencies() error {
@@ -43,23 +43,15 @@ func (g *Graph) overlayModuleDependencies() error {
 			zap.String("source", modDep.source.Name()),
 			zap.String("target", modDep.target.Name()),
 		)
-		if dep, ok := modDep.source.Successors().Get(modDep.target.Name()); !ok {
-			modDep.source.Successors().Add(&ModuleReference{
-				Module:            modDep.target,
-				VersionConstraint: modDep.targetVersion,
-			})
-		} else {
-			dep.(*ModuleReference).VersionConstraint = modDep.targetVersion
+		err = g.Graph.AddEdge(&ModuleReference{Module: modDep.source}, &ModuleReference{Module: modDep.target})
+		if err != nil {
+			return err
 		}
 
-		if dep, ok := modDep.target.Predecessors().Get(modDep.source.Name()); !ok {
-			modDep.target.Predecessors().Add(&ModuleReference{
-				Module:            modDep.source,
-				VersionConstraint: modDep.sourceVersion,
-			})
-		} else {
-			dep.(*ModuleReference).VersionConstraint = modDep.sourceVersion
-		}
+		sourceRef, _ := modDep.target.predecessors.Get(modDep.source.Hash())
+		sourceRef.(*ModuleReference).VersionConstraint = modDep.sourceVersion
+		targetRef, _ := modDep.source.successors.Get(modDep.target.Hash())
+		targetRef.(*ModuleReference).VersionConstraint = modDep.targetVersion
 	}
 
 	return nil
@@ -82,12 +74,12 @@ func (g *Graph) parseDependency(depString string) (*moduleDependency, bool) {
 	sourceName, sourceVersion := depContent[1], depContent[2]
 	targetName, targetVersion := depContent[3], depContent[4]
 
-	source, ok := g.GetModule(sourceName)
+	source, ok := g.getModule(sourceName)
 	if !ok {
 		g.log.Warn("Encountered a dependency edge starting at an unknown module.", zap.String("source", sourceName), zap.String("target", targetName))
 		return nil, false
 	}
-	target, ok := g.GetModule(targetName)
+	target, ok := g.getModule(targetName)
 	if !ok {
 		g.log.Warn("Encountered a dependency edge ending at an unknown module.", zap.String("source", sourceName), zap.String("target", targetName))
 		return nil, false
@@ -115,7 +107,7 @@ func (g *Graph) parseDependency(depString string) (*moduleDependency, bool) {
 func (g *Graph) getIndirectDeps() (map[string]map[string]bool, error) {
 	indirectsMap := map[string]map[string]bool{}
 
-	for _, node := range g.Modules.List() {
+	for _, node := range g.Graph.GetLevel(int(LevelModules)).List() {
 		module := node.(*ModuleReference)
 
 		log := g.log.With(zap.String("module", module.Name()))
@@ -134,7 +126,7 @@ func (g *Graph) getIndirectDeps() (map[string]map[string]bool, error) {
 		indirectDepRE := regexp.MustCompile(`^	([^\s]+) [^\s]+ // indirect$`)
 		for _, line := range bytes.Split(modContent, []byte("\n")) {
 			if m := indirectDepRE.FindSubmatch(line); len(m) == 2 {
-				g.log.Debug("Found indirect dependency.", zap.String("dependency", string(m[1])))
+				g.log.Debug("Found indirect dependency.", zap.String("consumer", module.Name()), zap.String("dependency", string(m[1])))
 				indirects[string(m[1])] = true
 			}
 		}

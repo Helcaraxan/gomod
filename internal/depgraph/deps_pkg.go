@@ -9,8 +9,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/Helcaraxan/gomod/lib/internal/util"
-	"github.com/Helcaraxan/gomod/lib/modules"
+	"github.com/Helcaraxan/gomod/internal/graph"
+	"github.com/Helcaraxan/gomod/internal/modules"
+	"github.com/Helcaraxan/gomod/internal/util"
 )
 
 func (g *Graph) buildImportGraph() error {
@@ -21,31 +22,25 @@ func (g *Graph) buildImportGraph() error {
 		return err
 	}
 
-	for _, node := range g.Packages.List() {
+	pkgs := g.Graph.GetLevel(int(LevelPackages))
+	for _, node := range pkgs.List() {
 		pkg := node.(*Package)
 
 		for _, imp := range pkg.Info.Imports {
-			targetNode, ok := g.Packages.Get(imp)
-			if !ok {
+			if isStandardLib(imp) {
+				continue
+			}
+
+			targetNode, _ := pkgs.Get(packageHash(imp))
+			if targetNode == nil {
 				g.log.Error("Detected import of unknown package.", zap.String("package", imp))
 				continue
 			}
+
 			targetPkg := targetNode.(*Package)
-			pkg.Successors().Add(targetPkg)
-			targetPkg.Predecessors().Add(pkg)
-
-			if pkg.Parent.Name() == targetPkg.Parent.Name() {
-				continue
+			if err = g.Graph.AddEdge(pkg, targetPkg); err != nil {
+				return err
 			}
-
-			pkg.Parent.Successors().Add(&ModuleReference{
-				Module:            targetPkg.Parent,
-				VersionConstraint: targetPkg.Parent.SelectedVersion(),
-			})
-			targetPkg.Parent.Predecessors().Add(&ModuleReference{
-				Module:            pkg.Parent,
-				VersionConstraint: pkg.Parent.SelectedVersion(),
-			})
 		}
 	}
 
@@ -93,10 +88,6 @@ func (g *Graph) retrievePackageInfo(packages []string) (imports []string, err er
 	}
 	dec := json.NewDecoder(bytes.NewReader(stdout))
 
-	isStandardLib := func(pkg string) bool {
-		return !strings.Contains(strings.Split(pkg, "/")[0], ".")
-	}
-
 	for {
 		pkgInfo := &modules.PackageInfo{}
 		if err = dec.Decode(pkgInfo); err != nil {
@@ -107,7 +98,7 @@ func (g *Graph) retrievePackageInfo(packages []string) (imports []string, err er
 				return nil, err
 			}
 		}
-		parent, ok := g.GetModule(pkgInfo.Module.Path)
+		parentModule, ok := g.getModule(pkgInfo.Module.Path)
 		if !ok {
 			g.log.Error("Encountered package in unknown module.", zap.String("package", pkgInfo.ImportPath), zap.String("module", pkgInfo.Module.Path))
 			continue
@@ -115,16 +106,16 @@ func (g *Graph) retrievePackageInfo(packages []string) (imports []string, err er
 
 		pkg := &Package{
 			Info:         pkgInfo,
-			Parent:       parent,
-			predecessors: NewEdges(),
-			successors:   NewEdges(),
+			parent:       &ModuleReference{Module: parentModule},
+			predecessors: graph.NewNodeRefs(),
+			successors:   graph.NewNodeRefs(),
 		}
-		g.Packages.Add(pkg)
-		g.log.Debug("Added import information for package", zap.String("package", pkg.Name()), zap.String("module", parent.Name()))
+		_ = g.Graph.AddNode(pkg)
+		g.log.Debug("Added import information for package", zap.String("package", pkg.Name()), zap.String("module", parentModule.Name()))
 
 		importCandidates := make([]string, len(pkgInfo.Imports))
 		copy(importCandidates, pkgInfo.Imports)
-		if parent.Name() == g.Main.Name() {
+		if parentModule.Name() == g.Main.Name() {
 			importCandidates = append(importCandidates, pkgInfo.TestImports...)
 			importCandidates = append(importCandidates, pkgInfo.XTestImports...)
 		}
@@ -136,4 +127,8 @@ func (g *Graph) retrievePackageInfo(packages []string) (imports []string, err er
 		}
 	}
 	return imports, nil
+}
+
+func isStandardLib(pkg string) bool {
+	return !strings.Contains(strings.Split(pkg, "/")[0], ".")
 }

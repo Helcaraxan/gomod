@@ -6,7 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/Helcaraxan/gomod/lib/printer"
+	"github.com/Helcaraxan/gomod/internal/printer"
 )
 
 func ParseVisualConfig(logger *zap.Logger, config string) (*printer.StyleOptions, error) {

@@ -21,33 +21,8 @@
 
 **Breaking changes**
 
-- The filter functionalities previously provided in the `depgraph` package have been moved out to a
-  separate `filters` package.
-  - `filters.TargetDependencies` implements the logic of the now removed `DepGraph.SubGraph()`
-    method.
-  - `filters.NonSharedDependencies` implements the logic of the now removed
-    `DepGraph.PruneUnsharedDeps()` method. In addition the filter now also allows for the
-    specification of dependencies to skip during the pruning.
-- The logging functionality is now provided by `go.uber.org/zap` instead of
-  `github.com/sirupsen/logrus`.
-- The `Logger` field in the `printer.PrintConfig` struct type has been renamed to `Log`.
-- The following types, fields and functions have been renamed:
-  - `modules.Module` is now `modules.ModuleInfo`.
-  - `depgraph.GetDephGraph` is now `depgraph.GetGraph`.
-  - `depgraph.Dependency` is now `depgraph.Module`.
-  - `depgraph.Dependency.Module` is now `depgraph.Module.Info`.
-  - `depgraph.DepGraph` is now `depgraph.Graph`.
-  - `depgraph.Dependencies` is now `depgraph.Modules`.
-  - `depgraph.DepGraph.(Get|Add|Remove)Dependency` are now `depgraph.Graph.(Get|Add|Remove)Module`.
-  - `depgraph.DependencyReference` is now `depgraph.ModuleReference`.
-  - `depgraph.(New)DependencyMap` are now `depgraph.(New)Edges`.
-- The `depgraph.ModuleDependencies` type has been refactored into a more generic
-  `depgraph.Dependencies` type:
-  - It works on a new `depgraph.Node` interface of which the existing
-    `depgraph.ModuleReference` struct type is an implementation.
-  - Some uses of the `*depgraph.ModuleReference` have been replaced by `depgraph.Node`. In all these
-    cases it is safe to either continue to pass in a `*depgraph.ModuleReference` or to convert any
-    such return value to a `*depgraph.ModuleReference` type.
+- All library functionalities have been, for now, moved into the `internal` tree while further work
+  is being done on the actual API and end-functionality of `gomod`.
 
 ## 0.5.0
 

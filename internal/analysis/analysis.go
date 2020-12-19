@@ -8,8 +8,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/Helcaraxan/gomod/lib/depgraph"
-	"github.com/Helcaraxan/gomod/lib/modules"
+	"github.com/Helcaraxan/gomod/internal/depgraph"
+	"github.com/Helcaraxan/gomod/internal/modules"
 )
 
 type DepAnalysis struct {
@@ -47,7 +47,7 @@ func Analyse(log *zap.Logger, g *depgraph.Graph) (*DepAnalysis, error) {
 		moduleMap: moduleMap,
 	}
 
-	for _, module := range g.Modules.List() {
+	for _, module := range g.Graph.Children().List() {
 		result.processDependency(module.(*depgraph.ModuleReference))
 	}
 
@@ -93,7 +93,8 @@ func (r *analysis) processDependency(dependency *depgraph.ModuleReference) {
 		return
 	}
 
-	if _, ok := r.graph.Main.Successors().Get(dependency.Name()); ok {
+	origin, _ := r.graph.Graph.Children().Get(r.graph.Main.Hash())
+	if _, w := origin.Successors().Get(dependency.Hash()); w > 0 {
 		r.directDependencies++
 		isDirect = 1
 	} else {

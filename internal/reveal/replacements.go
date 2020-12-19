@@ -11,8 +11,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/Helcaraxan/gomod/lib/depgraph"
-	"github.com/Helcaraxan/gomod/lib/modules"
+	"github.com/Helcaraxan/gomod/internal/depgraph"
+	"github.com/Helcaraxan/gomod/internal/modules"
 )
 
 type Replacement struct {
@@ -173,14 +173,14 @@ var (
 	replaceRE       = regexp.MustCompile(`([^\s]+) => ([^\s]+)(?: (v[^\s]+))?`)
 )
 
-func FindReplacements(log *zap.Logger, graph *depgraph.Graph) (*Replacements, error) {
+func FindReplacements(log *zap.Logger, g *depgraph.Graph) (*Replacements, error) {
 	replacements := &Replacements{
-		main:            graph.Main.Name(),
+		main:            g.Main.Name(),
 		topLevel:        map[string]string{},
 		originToReplace: map[string][]Replacement{},
 	}
 
-	replaces, err := parseGoMod(log, graph.Main.Info, replacements.topLevel, graph.Main.Info)
+	replaces, err := parseGoMod(log, g.Main.Info, replacements.topLevel, g.Main.Info)
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +188,8 @@ func FindReplacements(log *zap.Logger, graph *depgraph.Graph) (*Replacements, er
 		replacements.topLevel[replace.Original] = replace.Override
 	}
 
-	for _, module := range graph.Modules.List() {
-		replaces, err = parseGoMod(log, graph.Main.Info, replacements.topLevel, module.(*depgraph.ModuleReference).Info)
+	for _, module := range g.Graph.Children().List() {
+		replaces, err = parseGoMod(log, g.Main.Info, replacements.topLevel, module.(*depgraph.ModuleReference).Info)
 		if err != nil {
 			return nil, err
 		}

@@ -12,14 +12,14 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	"github.com/Helcaraxan/gomod/internal/analysis"
 	"github.com/Helcaraxan/gomod/internal/completion"
+	"github.com/Helcaraxan/gomod/internal/depgraph"
+	"github.com/Helcaraxan/gomod/internal/depgraph/filters"
 	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/parsers"
-	"github.com/Helcaraxan/gomod/lib/analysis"
-	"github.com/Helcaraxan/gomod/lib/depgraph"
-	"github.com/Helcaraxan/gomod/lib/depgraph/filters"
-	"github.com/Helcaraxan/gomod/lib/printer"
-	"github.com/Helcaraxan/gomod/lib/reveal"
+	"github.com/Helcaraxan/gomod/internal/printer"
+	"github.com/Helcaraxan/gomod/internal/reveal"
 )
 
 type commonArgs struct {
@@ -214,7 +214,7 @@ func runGraphCmd(args *graphArgs) error {
 	var transformations []depgraph.Transform
 	if len(args.dependencies) > 0 {
 		args.log.Debug("Configuring filters for dependencies.", zap.Strings("args", args.dependencies))
-		filter := &filters.TargetDependencies{}
+		filter := &filters.TargetModules{}
 		for _, dependency := range args.dependencies {
 			specification := strings.Split(dependency+"@", "@")
 			target := &struct{ Module, Version string }{
@@ -228,7 +228,7 @@ func runGraphCmd(args *graphArgs) error {
 	}
 	if args.shared {
 		args.log.Debug("Adding filter for non-shared dependencies.")
-		transformations = append(transformations, &filters.NonSharedDependencies{})
+		transformations = append(transformations, &filters.NonSharedModules{})
 	}
 	return printResult(graph.Transform(transformations...), args)
 }
@@ -365,8 +365,8 @@ func checkGoModulePresence(log *zap.Logger) error {
 	return errors.New("missing go module")
 }
 
-func printResult(graph *depgraph.Graph, args *graphArgs) error {
-	return printer.Print(graph, &printer.PrintConfig{
+func printResult(g *depgraph.Graph, args *graphArgs) error {
+	return printer.Print(&g.Graph, &printer.PrintConfig{
 		Log:          args.log,
 		OutputPath:   args.outputPath,
 		Force:        args.force,

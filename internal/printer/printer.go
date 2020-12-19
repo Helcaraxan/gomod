@@ -11,8 +11,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/Helcaraxan/gomod/lib/depgraph"
-	"github.com/Helcaraxan/gomod/lib/internal/util"
+	"github.com/Helcaraxan/gomod/internal/graph"
+	"github.com/Helcaraxan/gomod/internal/util"
 )
 
 type Format int
@@ -43,14 +43,21 @@ var (
 	}
 )
 
+type Level uint8
+
+const (
+	LevelModules Level = iota
+	LevelPackages
+)
+
 // PrintConfig allows for the specification of parameters that should be passed to the Print
 // function of a Graph.
 type PrintConfig struct {
 	// Logger that should be used to show progress while printing the Graph.
 	Log *zap.Logger
 
-	// Print package-level dependencies instead of module-level ones.
-	Packages bool
+	// Which level of granularity to print the graph at (modules, packages).
+	Granularity Level
 
 	// Annotate edges and nodes with their respective versions.
 	Annotate bool
@@ -68,8 +75,7 @@ type PrintConfig struct {
 }
 
 type StyleOptions struct {
-	// Scale nodes according to their number of dependencies of the module they represent and the
-	//number of modules depending on it.
+	// Scale nodes according to the number of their successors and predecssors.
 	ScaleNodes bool
 	// Level at which to cluster nodes in the printed graph. This can be very beneficial for larger
 	// dependency graphs that might be unreadable with the default settings.
@@ -83,27 +89,28 @@ type ClusterLevel int
 const (
 	// No clustering. Each node is printed as is.
 	Off ClusterLevel = iota
-	// Cluster non-shared dependencies to reduce the complexity and size of the graph.
+	// Cluster nodes that have the same parent.
+	Parent
+	// Cluster nodes that all have the same, unique, predecessor in the graph.
 	Shared
-	// Cluster non-shared dependencies as well as any group of node that all share the same
-	// predecessors in the graph.
+	// Cluster nodes that all have the same (group of) predecessor(s) in the graph.
 	Full
 )
 
 // Print takes in a PrintConfig struct and dumps the content of this Graph instance according to
 // parameters.
-func Print(graph *depgraph.Graph, config *PrintConfig) error {
-	var printer func(*depgraph.Graph, *PrintConfig) error
+func Print(g *graph.HierarchicalDigraph, config *PrintConfig) error {
+	var printer func(*graph.HierarchicalDigraph, *PrintConfig) error
 	if config.Style != nil {
 		printer = PrintToVisual
 	} else {
 		printer = PrintToDOT
 	}
-	return printer(graph, config)
+	return printer(g, config)
 }
 
 // PrintToVisual creates an image file at the specified target path that represents the dependency graph.
-func PrintToVisual(graph *depgraph.Graph, config *PrintConfig) (err error) {
+func PrintToVisual(g *graph.HierarchicalDigraph, config *PrintConfig) (err error) {
 	tempDir, err := ioutil.TempDir("", "depgraph")
 	if err != nil {
 		config.Log.Error("Could not create a temporary directory.", zap.Error(err))
@@ -145,7 +152,7 @@ func PrintToVisual(graph *depgraph.Graph, config *PrintConfig) (err error) {
 
 	dotPrintConfig := *config
 	dotPrintConfig.OutputPath = filepath.Join(tempDir, "out.dot")
-	if err = PrintToDOT(graph, &dotPrintConfig); err != nil {
+	if err = PrintToDOT(g, &dotPrintConfig); err != nil {
 		return err
 	}
 
@@ -154,7 +161,7 @@ func PrintToVisual(graph *depgraph.Graph, config *PrintConfig) (err error) {
 	return err
 }
 
-func PrintToDOT(graph *depgraph.Graph, config *PrintConfig) error {
+func PrintToDOT(g *graph.HierarchicalDigraph, config *PrintConfig) error {
 	var err error
 	out := os.Stdout
 	if len(config.OutputPath) > 0 {
@@ -172,15 +179,15 @@ func PrintToDOT(graph *depgraph.Graph, config *PrintConfig) error {
 	fileContent := []string{
 		"strict digraph {",
 	}
-	fileContent = append(fileContent, determineGlobalOptions(config, graph)...)
+	fileContent = append(fileContent, determineGlobalOptions(g, config)...)
 
-	clusters := computeGraphClusters(config, graph)
+	clusters := computeGraphClusters(g, config)
 	for _, cluster := range clusters.clusterList {
-		fileContent = append(fileContent, printClusterToDot(config, cluster))
+		fileContent = append(fileContent, printClusterToDot(cluster, config))
 	}
 
-	for _, module := range graph.Modules.List() {
-		fileContent = append(fileContent, printEdgesToDot(config, module.(*depgraph.ModuleReference).Module, clusters)...)
+	for _, node := range g.GetLevel(int(config.Granularity)).List() {
+		fileContent = append(fileContent, printEdgesToDot(config, node, clusters)...)
 	}
 
 	fileContent = append(fileContent, "}")
@@ -192,11 +199,12 @@ func PrintToDOT(graph *depgraph.Graph, config *PrintConfig) error {
 	return nil
 }
 
-func determineGlobalOptions(config *PrintConfig, graph *depgraph.Graph) []string {
+func determineGlobalOptions(g *graph.HierarchicalDigraph, config *PrintConfig) []string {
 	globalOptions := []string{
 		"  node [shape=box,style=rounded]",
 		"  start=0", // Needed for placement determinism.
 	}
+
 	if config.Annotate {
 		globalOptions = append(globalOptions, "  concentrate=true")
 	} else {
@@ -206,6 +214,7 @@ func determineGlobalOptions(config *PrintConfig, graph *depgraph.Graph) []string
 			"  splines=ortho", // By far the most readable form of splines on larger graphs but incompatible with annotations.
 		)
 	}
+
 	if config.Style != nil {
 		if config.Style.Cluster > Off {
 			globalOptions = append(
@@ -215,17 +224,18 @@ func determineGlobalOptions(config *PrintConfig, graph *depgraph.Graph) []string
 			)
 		}
 		if config.Style.ScaleNodes {
-			rankSep := math.Log10(float64(graph.Modules.Len())) - 1
+			rankSep := math.Log10(float64(g.GetLevel(int(config.Granularity)).Len())) - 1
 			if rankSep < 0.3 {
 				rankSep = 0.3
 			}
 			globalOptions = append(globalOptions, fmt.Sprintf("  ranksep=%.2f", rankSep))
 		}
 	}
+
 	return globalOptions
 }
 
-func printClusterToDot(config *PrintConfig, cluster *graphCluster) string {
+func printClusterToDot(cluster *graphCluster, config *PrintConfig) string {
 	if len(cluster.members) == 0 {
 		config.Log.Warn("Found an empty node cluster associated with.", zap.String("cluster", cluster.name()), zap.String("hash", cluster.hash))
 		return ""
@@ -269,7 +279,12 @@ func printClusterToDot(config *PrintConfig, cluster *graphCluster) string {
 	return dot + "  }"
 }
 
-func printNodeToDot(config *PrintConfig, node *depgraph.Module) string {
+type annotated interface {
+	NodeAnnotations() []string
+	EdgeAnnotations() []string
+}
+
+func printNodeToDot(config *PrintConfig, node graph.Node) string {
 	var nodeOptions []string
 	if config.Style != nil && config.Style.ScaleNodes {
 		scaling := math.Log2(float64(node.Predecessors().Len()+node.Successors().Len())) / 5
@@ -278,18 +293,11 @@ func printNodeToDot(config *PrintConfig, node *depgraph.Module) string {
 		}
 		nodeOptions = append(nodeOptions, fmt.Sprintf("width=%.2f,height=%.2f", 5*scaling, scaling))
 	}
-	if config.Annotate && node.SelectedVersion() != "" {
-		var replacement string
-		if node.Info.Replace != nil {
-			replacement = node.Info.Replace.Path + "<br />"
-		}
-		nodeOptions = append(nodeOptions, fmt.Sprintf(
-			"label=<%s<br /><font point-size=\"10\">%s%s</font>>",
-			node.Name(),
-			replacement,
-			node.SelectedVersion(),
-		))
+
+	if a, ok := node.(annotated); config.Annotate && ok {
+		nodeOptions = append(nodeOptions, a.NodeAnnotations()...)
 	}
+
 	dot := "  \"" + node.Name() + "\""
 	if len(nodeOptions) > 0 {
 		dot += " [" + strings.Join(nodeOptions, ",") + "]"
@@ -297,36 +305,35 @@ func printNodeToDot(config *PrintConfig, node *depgraph.Module) string {
 	return dot
 }
 
-func printEdgesToDot(config *PrintConfig, module *depgraph.Module, clusters *graphClusters) []string {
+func printEdgesToDot(config *PrintConfig, node graph.Node, clusters *graphClusters) []string {
 	clustersReached := map[int]struct{}{}
 
 	var dots []string
-	for _, dep := range module.Successors().List() {
-		cluster, ok := clusters.clusterMap[dep.Name()]
+	for _, dep := range node.Successors().List() {
+		cluster, ok := clusters.clusterMap[dep.Hash()]
 		if !ok {
-			config.Log.Error("No cluster reference found for dependency.", zap.String("dependency", dep.Name()))
-		}
-
-		if _, ok = clustersReached[cluster.id]; ok {
+			config.Log.Error("No cluster reference found for node.", zap.String("node", dep.Hash()))
+			continue
+		} else if _, ok = clustersReached[cluster.id]; ok {
 			continue
 		}
 		clustersReached[cluster.id] = struct{}{}
 
 		target := dep.Name()
-		var edgeOptions []string
-		if minLength := clusters.getClusterDepthMap(dep.Name())[module.Name()]; minLength > 1 {
-			edgeOptions = append(edgeOptions, fmt.Sprintf("minlen=%d", minLength))
+		var edgeAnnotations []string
+		if minLength := clusters.clusterDepthMap(dep.Hash())[node.Hash()]; minLength > 1 {
+			edgeAnnotations = append(edgeAnnotations, fmt.Sprintf("minlen=%d", minLength))
 		}
 		if len(cluster.members) > 1 {
-			edgeOptions = append(edgeOptions, "lhead=\""+cluster.name()+"\"")
+			edgeAnnotations = append(edgeAnnotations, "lhead=\""+cluster.name()+"\"")
 			target = cluster.getRepresentative()
-		} else if config.Annotate { // We don't annotate an edge with version if it's leading to a cluster.
-			edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.(*depgraph.ModuleReference).VersionConstraint))
+		} else if a, ok := dep.(annotated); config.Annotate && ok { // We don't annotate an edge with version if it's leading to a cluster.
+			edgeAnnotations = append(edgeAnnotations, a.EdgeAnnotations()...)
 		}
 
-		dot := "  \"" + module.Name() + "\" -> \"" + target + "\""
-		if len(edgeOptions) > 0 {
-			dot += " [" + strings.Join(edgeOptions, ",") + "]"
+		dot := "  \"" + node.Name() + "\" -> \"" + target + "\""
+		if len(edgeAnnotations) > 0 {
+			dot += " [" + strings.Join(edgeAnnotations, ",") + "]"
 		}
 		dots = append(dots, dot)
 	}

@@ -6,14 +6,15 @@ import (
 	"github.com/blang/semver"
 	"go.uber.org/zap"
 
-	"github.com/Helcaraxan/gomod/lib/depgraph"
+	"github.com/Helcaraxan/gomod/internal/depgraph"
+	"github.com/Helcaraxan/gomod/internal/graph"
 )
 
-// TargetDependencies implements the `depgraph.Filter` interface. It removes any edges that are not
-// part of a chain leading to one of the specified dependencies. If for a given dependency has a
-// version set, we only keep edges that prevent the use of the dependency at that given version
-// under the constraints of minimal version selection.
-type TargetDependencies struct {
+// TargetModules implements the `depgraph.Filter` interface. It removes any edges that are not part
+// of a chain leading to one of the specified dependencies. If for a given dependency has a version
+// set, we only keep edges that prevent the use of the dependency at that given version under the
+// constraints of minimal version selection.
+type TargetModules struct {
 	Targets []*struct {
 		Module  string
 		Version string
@@ -23,28 +24,27 @@ type TargetDependencies struct {
 // Apply returns a copy of the dependency graph with all dependencies that are part of chains
 // that need to be modified for the specified dependency to be set to a given target version
 // annotated as such.
-func (f *TargetDependencies) Apply(log *zap.Logger, graph *depgraph.Graph) *depgraph.Graph {
+func (f *TargetModules) Apply(log *zap.Logger, g *depgraph.Graph) *depgraph.Graph {
 	if len(f.Targets) == 0 {
-		return graph
+		return g
 	}
 
 	keep := map[string]struct{}{}
 	for _, dep := range f.Targets {
-		applyFilter(log, graph, &targetDependencyFilter{
+		applyFilter(log, g, &targetDependencyFilter{
 			module:  dep.Module,
 			version: dep.Version,
 		}, keep)
 	}
 
 	log.Debug("Pruning the dependency graph of irrelevant paths.")
-	subGraph := graph.DeepCopy()
-	for _, dependency := range graph.Modules.List() {
+	for _, dependency := range g.Graph.GetLevel(int(depgraph.LevelModules)).List() {
 		if _, ok := keep[dependency.Name()]; !ok {
 			log.Debug("Pruning dependency.", zap.String("dependency", dependency.Name()))
-			subGraph.RemoveModule(dependency.Name())
+			_ = g.Graph.DeleteNode(dependency.Hash())
 		}
 	}
-	return subGraph
+	return g
 }
 
 type targetDependencyFilter struct {
@@ -52,25 +52,20 @@ type targetDependencyFilter struct {
 	version string
 }
 
-func applyFilter(
-	logger *zap.Logger,
-	graph *depgraph.Graph,
-	filter *targetDependencyFilter,
-	keep map[string]struct{},
-) {
-	filterModule, ok := graph.GetModule(filter.module)
-	if !ok {
+func applyFilter(logger *zap.Logger, g *depgraph.Graph, filter *targetDependencyFilter, keep map[string]struct{}) {
+	filterNode, _ := g.Graph.GetLevel(int(depgraph.LevelModules)).Get("module " + filter.module)
+	if filterNode == nil {
 		return
 	}
 
-	keep[filterModule.Name()] = struct{}{}
+	keep[filterNode.Name()] = struct{}{}
 
 	logger.Debug("Marking subgraph.", zap.String("dependency", filter.module))
 	if filter.version != "" {
 		logger.Debug("Only considering dependencies preventing use of a specific version.", zap.String("version", filter.version))
 	}
-	var todo []depgraph.Node
-	for _, node := range filterModule.Predecessors().List() {
+	var todo []graph.Node
+	for _, node := range filterNode.Predecessors().List() {
 		if dependencyMatchesFilter(node.(*depgraph.ModuleReference), filter) {
 			logger.Debug("Keeping dependency", zap.String("dependency", node.Name()))
 			keep[node.Name()] = struct{}{}
