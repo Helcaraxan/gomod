@@ -12,8 +12,9 @@ import (
 type Graph struct {
 	Path string
 
-	Main    *Module
-	Modules *Dependencies
+	Main     *Module
+	Modules  Dependencies
+	Packages Dependencies
 
 	log      *zap.Logger
 	replaces map[string]string
@@ -38,6 +39,7 @@ func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *Graph {
 	newGraph := &Graph{
 		Path:     path,
 		Modules:  NewDependencies(),
+		Packages: NewDependencies(),
 		log:      log,
 		replaces: map[string]string{},
 	}
@@ -172,8 +174,8 @@ func (g *Graph) Transform(transformations ...Transform) *Graph {
 // Module represents a module in a Go module's dependency graph.
 type Module struct {
 	Info         *modules.ModuleInfo
-	Predecessors *Dependencies
-	Successors   *Dependencies
+	Predecessors Dependencies
+	Successors   Dependencies
 }
 
 // Name of the module represented by this Dependency in the Graph instance.
@@ -204,8 +206,8 @@ type Package struct {
 	Info   *modules.PackageInfo
 	Parent *Module
 
-	Predecessors *Dependencies
-	Successors   *Dependencies
+	Predecessors Dependencies
+	Successors   Dependencies
 }
 
 // Name returns the import path of the package and not the value declared inside the package with

@@ -16,39 +16,35 @@ import (
 func (g *Graph) buildImportGraph() error {
 	g.log.Debug("Building initial dependency graph based on the import graph.")
 
-	pkgs, err := g.retrieveTransitiveImports([]string{fmt.Sprintf("%s/...", g.Main.Info.Path)})
+	err := g.retrieveTransitiveImports([]string{fmt.Sprintf("%s/...", g.Main.Info.Path)})
 	if err != nil {
 		return err
 	}
 
-	for pkg, info := range pkgs {
-		source, ok := g.GetModule(info.module.Path)
-		if !ok {
-			g.log.Error("Encountered package in unknown module.", zap.String("package", pkg), zap.String("module", info.module.Path))
-			continue
-		}
+	for _, ref := range g.Packages.List() {
+		pkg := ref.(*Package)
 
-		for _, imp := range info.imports {
-			targetPkg, ok := pkgs[imp]
+		for _, imp := range pkg.Info.Imports {
+			targetRef, ok := g.Packages.Get(imp)
 			if !ok {
 				g.log.Error("Detected import of unknown package.", zap.String("package", imp))
 				continue
 			}
-			target, ok := g.GetModule(targetPkg.module.Path)
-			if !ok {
-				g.log.Error("Encountered package in unknown module.", zap.String("package", pkg), zap.String("module", targetPkg.module.Path))
-				continue
-			} else if source.Name() == target.Name() {
+			targetPkg := targetRef.(*Package)
+			pkg.Successors.Add(targetPkg)
+			targetPkg.Predecessors.Add(pkg)
+
+			if pkg.Parent.Name() == targetPkg.Parent.Name() {
 				continue
 			}
 
-			source.Successors.Add(&ModuleReference{
-				Module:            target,
-				VersionConstraint: target.SelectedVersion(),
+			pkg.Parent.Successors.Add(&ModuleReference{
+				Module:            targetPkg.Parent,
+				VersionConstraint: targetPkg.Parent.SelectedVersion(),
 			})
-			target.Predecessors.Add(&ModuleReference{
-				Module:            source,
-				VersionConstraint: source.SelectedVersion(),
+			targetPkg.Parent.Predecessors.Add(&ModuleReference{
+				Module:            pkg.Parent,
+				VersionConstraint: pkg.Parent.SelectedVersion(),
 			})
 		}
 	}
@@ -56,15 +52,10 @@ func (g *Graph) buildImportGraph() error {
 	return nil
 }
 
-type packageImports struct {
-	module  *modules.ModuleInfo
-	imports []string
-}
-
-func (g *Graph) retrieveTransitiveImports(pkgs []string) (map[string]packageImports, error) {
+func (g *Graph) retrieveTransitiveImports(pkgs []string) error {
 	const maxQueryLength = 950 // This is chosen conservatively to ensure we don't exceed maximum command lengths for 'go list' invocations.
 
-	pkgInfos, queued := map[string]packageImports{}, map[string]bool{}
+	queued := map[string]bool{}
 	for len(pkgs) > 0 {
 		queryLength := 0
 
@@ -79,30 +70,22 @@ func (g *Graph) retrieveTransitiveImports(pkgs []string) (map[string]packageImpo
 		query := pkgs[:cursor]
 		pkgs = pkgs[cursor:]
 
-		importsMap, err := g.retrievePackageImports(query)
+		imports, err := g.retrievePackageInfo(query)
 		if err != nil {
-			return nil, err
-		}
-		for pkg := range importsMap {
-			queued[pkg] = true
+			return err
 		}
 
-		for pkg, info := range importsMap {
-			g.log.Debug("Adding import information for package", zap.String("package", pkg), zap.String("module", info.module.Path))
-			pkgInfos[pkg] = info
-
-			for _, imp := range info.imports {
-				if !queued[imp] {
-					pkgs = append(pkgs, imp)
-					queued[imp] = true
-				}
+		for _, pkg := range imports {
+			if !queued[pkg] {
+				queued[pkg] = true
+				pkgs = append(pkgs, pkg)
 			}
 		}
 	}
-	return pkgInfos, nil
+	return nil
 }
 
-func (g *Graph) retrievePackageImports(packages []string) (map[string]packageImports, error) {
+func (g *Graph) retrievePackageInfo(packages []string) (imports []string, err error) {
 	stdout, _, err := util.RunCommand(g.log, g.Main.Info.Dir, "go", append([]string{"list", "-json"}, packages...)...)
 	if err != nil {
 		g.log.Error("Failed to list imports for packages.", zap.Strings("packages", packages), zap.Error(err))
@@ -114,10 +97,9 @@ func (g *Graph) retrievePackageImports(packages []string) (map[string]packageImp
 		return !strings.Contains(strings.Split(pkg, "/")[0], ".")
 	}
 
-	infos := map[string]packageImports{}
 	for {
-		info := modules.PackageInfo{}
-		if err = dec.Decode(&info); err != nil {
+		pkgInfo := &modules.PackageInfo{}
+		if err = dec.Decode(pkgInfo); err != nil {
 			if err == io.EOF {
 				break
 			} else {
@@ -125,20 +107,33 @@ func (g *Graph) retrievePackageImports(packages []string) (map[string]packageImp
 				return nil, err
 			}
 		}
+		parent, ok := g.GetModule(pkgInfo.Module.Path)
+		if !ok {
+			g.log.Error("Encountered package in unknown module.", zap.String("package", pkgInfo.ImportPath), zap.String("module", pkgInfo.Module.Path))
+			continue
+		}
 
-		var imports []string
-		for _, importList := range [][]string{info.Imports, info.TestImports, info.XTestImports} {
-			for _, pkg := range importList {
-				if !isStandardLib(pkg) {
-					imports = append(imports, pkg)
-				}
+		pkg := &Package{
+			Info:         pkgInfo,
+			Parent:       parent,
+			Predecessors: NewDependencies(),
+			Successors:   NewDependencies(),
+		}
+		g.Packages.Add(pkg)
+		g.log.Debug("Added import information for package", zap.String("package", pkg.Name()), zap.String("module", parent.Name()))
+
+		importCandidates := make([]string, len(pkgInfo.Imports))
+		copy(importCandidates, pkgInfo.Imports)
+		if parent.Name() == g.Main.Name() {
+			importCandidates = append(importCandidates, pkgInfo.TestImports...)
+			importCandidates = append(importCandidates, pkgInfo.XTestImports...)
+		}
+
+		for _, candidate := range importCandidates {
+			if !isStandardLib(candidate) {
+				imports = append(imports, candidate)
 			}
 		}
-
-		infos[info.ImportPath] = packageImports{
-			module:  info.Module,
-			imports: imports,
-		}
 	}
-	return infos, nil
+	return imports, nil
 }

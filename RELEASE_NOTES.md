@@ -16,6 +16,7 @@
 - The new `depgraph.Transform` interface type allows for developers using `gomod` as a library to
   make use of external custom filters. This is supported via the new `DepGraph.Transform` method
   that takes the interface type as argument.
+- The `depgraph.Graph` type now contains information for packages as well as for modules.
 - A new `gomod version` enables the printing of the current version of the `gomod` tool.
 
 **Breaking changes**
