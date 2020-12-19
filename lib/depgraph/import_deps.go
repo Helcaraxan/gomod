@@ -110,21 +110,13 @@ func (g *Graph) retrievePackageImports(packages []string) (map[string]packageImp
 	}
 	dec := json.NewDecoder(bytes.NewReader(stdout))
 
-	type packageInfo struct {
-		ImportPath   string
-		Module       *modules.ModuleInfo
-		Imports      []string
-		TestImports  []string
-		XTestImports []string
-	}
-
 	isStandardLib := func(pkg string) bool {
 		return !strings.Contains(strings.Split(pkg, "/")[0], ".")
 	}
 
 	infos := map[string]packageImports{}
 	for {
-		info := packageInfo{}
+		info := modules.PackageInfo{}
 		if err = dec.Decode(&info); err != nil {
 			if err == io.EOF {
 				break

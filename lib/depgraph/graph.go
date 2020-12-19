@@ -198,3 +198,18 @@ func (n *Module) Timestamp() *time.Time {
 	}
 	return n.Info.Time
 }
+
+// Package represents a single Go package in a dependency graph.
+type Package struct {
+	Info   *modules.PackageInfo
+	Parent *Module
+
+	Predecessors *Dependencies
+	Successors   *Dependencies
+}
+
+// Name returns the import path of the package and not the value declared inside the package with
+// the 'package' statement.
+func (p *Package) Name() string {
+	return p.Info.ImportPath
+}
