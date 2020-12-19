@@ -13,7 +13,7 @@ import (
 	"github.com/Helcaraxan/gomod/lib/modules"
 )
 
-func (g *ModuleGraph) buildImportGraph() error {
+func (g *Graph) buildImportGraph() error {
 	g.log.Debug("Building initial dependency graph based on the import graph.")
 
 	pkgs, err := g.retrieveTransitiveImports([]string{fmt.Sprintf("%s/...", g.Main.Info.Path)})
@@ -61,7 +61,7 @@ type packageImports struct {
 	imports []string
 }
 
-func (g *ModuleGraph) retrieveTransitiveImports(pkgs []string) (map[string]packageImports, error) {
+func (g *Graph) retrieveTransitiveImports(pkgs []string) (map[string]packageImports, error) {
 	const maxQueryLength = 950 // This is chosen conservatively to ensure we don't exceed maximum command lengths for 'go list' invocations.
 
 	pkgInfos, queued := map[string]packageImports{}, map[string]bool{}
@@ -102,7 +102,7 @@ func (g *ModuleGraph) retrieveTransitiveImports(pkgs []string) (map[string]packa
 	return pkgInfos, nil
 }
 
-func (g *ModuleGraph) retrievePackageImports(packages []string) (map[string]packageImports, error) {
+func (g *Graph) retrievePackageImports(packages []string) (map[string]packageImports, error) {
 	stdout, _, err := util.RunCommand(g.log, g.Main.Info.Dir, "go", append([]string{"list", "-json"}, packages...)...)
 	if err != nil {
 		g.log.Error("Failed to list imports for packages.", zap.Strings("packages", packages), zap.Error(err))

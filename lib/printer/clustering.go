@@ -9,7 +9,7 @@ import (
 	"github.com/Helcaraxan/gomod/lib/depgraph"
 )
 
-func computeGraphClusters(config *PrintConfig, graph *depgraph.ModuleGraph) *graphClusters {
+func computeGraphClusters(config *PrintConfig, graph *depgraph.Graph) *graphClusters {
 	graphClusters := &graphClusters{
 		graph:           graph,
 		clusterMap:      map[string]*graphCluster{},
@@ -17,7 +17,9 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.ModuleGraph) *gra
 	}
 
 	hashToCluster := map[string]*graphCluster{}
-	for _, node := range graph.Dependencies.List() {
+	for _, ref := range graph.Modules.List() {
+		node := ref.(*depgraph.ModuleReference)
+
 		clusterHash := computeClusterHash(config, node.Module)
 		cluster := hashToCluster[clusterHash]
 		if cluster == nil {
@@ -65,7 +67,7 @@ func computeClusterHash(config *PrintConfig, node *depgraph.Module) string {
 }
 
 type graphClusters struct {
-	graph       *depgraph.ModuleGraph
+	graph       *depgraph.Graph
 	clusterMap  map[string]*graphCluster
 	clusterList []*graphCluster
 
@@ -82,8 +84,8 @@ func (c *graphClusters) getClusterDepthMap(nodeName string) map[string]int {
 func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 	depthMap := map[string]int{}
 
-	startNode, _ := c.graph.Dependencies.Get(nodeName)
-	workStack := []*depgraph.Module{startNode.Module}
+	startNode, _ := c.graph.Modules.Get(nodeName)
+	workStack := []*depgraph.Module{startNode.(*depgraph.ModuleReference).Module}
 	workMap := map[string]int{nodeName: 0}
 	pathLength := 0
 	for len(workStack) > 0 {
@@ -102,7 +104,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 		currentDepth := depthMap[curr.Name()]
 		baseEdgeLength := c.clusterMap[curr.Name()].getHeight()
 		for _, pred := range curr.Predecessors.List() {
-			predNode, _ := c.graph.Dependencies.Get(pred.Name())
+			predNode, _ := c.graph.Modules.Get(pred.Name())
 			edgeLength := baseEdgeLength + c.clusterMap[curr.Name()].getDepCount()/20 // Give bonus space for larger numbers of edges.
 			if depthMap[pred.Name()] >= currentDepth+edgeLength {
 				continue
@@ -110,7 +112,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 			depthMap[pred.Name()] = currentDepth + edgeLength
 			if _, ok := workMap[pred.Name()]; !ok { // Only allow one instance of a node in the queue.
 				workMap[pred.Name()] = 0
-				workStack = append(workStack, predNode.Module)
+				workStack = append(workStack, predNode.(*depgraph.ModuleReference).Module)
 			}
 		}
 	}

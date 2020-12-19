@@ -173,7 +173,7 @@ var (
 	replaceRE       = regexp.MustCompile(`([^\s]+) => ([^\s]+)(?: (v[^\s]+))?`)
 )
 
-func FindReplacements(log *zap.Logger, graph *depgraph.ModuleGraph) (*Replacements, error) {
+func FindReplacements(log *zap.Logger, graph *depgraph.Graph) (*Replacements, error) {
 	replacements := &Replacements{
 		main:            graph.Main.Name(),
 		topLevel:        map[string]string{},
@@ -188,8 +188,8 @@ func FindReplacements(log *zap.Logger, graph *depgraph.ModuleGraph) (*Replacemen
 		replacements.topLevel[replace.Original] = replace.Override
 	}
 
-	for _, node := range graph.Dependencies.List() {
-		replaces, err = parseGoMod(log, graph.Main.Info, replacements.topLevel, node.Info)
+	for _, ref := range graph.Modules.List() {
+		replaces, err = parseGoMod(log, graph.Main.Info, replacements.topLevel, ref.(*depgraph.ModuleReference).Info)
 		if err != nil {
 			return nil, err
 		}

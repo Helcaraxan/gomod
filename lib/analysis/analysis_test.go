@@ -104,7 +104,7 @@ func TestAnalysis(t *testing.T) {
 			}
 
 			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zap.DebugLevel))
-			graph, err := depgraph.GetModuleGraph(log, testDir)
+			graph, err := depgraph.GetGraph(log, testDir)
 			require.NoError(t, err)
 
 			analysis, err := Analyse(log, graph)

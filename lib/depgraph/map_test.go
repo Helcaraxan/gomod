@@ -10,7 +10,7 @@ import (
 )
 
 func TestMapNew(t *testing.T) {
-	newMap := NewModuleDependencies()
+	newMap := NewDependencies()
 	assert.NotNil(t, newMap.dependencyMap)
 	assert.NotNil(t, newMap.dependencyList)
 }
@@ -19,7 +19,7 @@ func TestMapCopy(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 	dependencyB := &Module{Info: &modules.ModuleInfo{Path: "dependency_b"}}
 
-	originalMap := NewModuleDependencies()
+	originalMap := NewDependencies()
 	originalMap.Add(&ModuleReference{Module: dependencyA})
 	copiedMap := originalMap.Copy()
 	originalMap.Add(&ModuleReference{Module: dependencyB})
@@ -38,7 +38,7 @@ func TestMapCopy(t *testing.T) {
 func TestMapAdd(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 
-	newMap := NewModuleDependencies()
+	newMap := NewDependencies()
 	newMap.Add(&ModuleReference{Module: dependencyA})
 	_, ok := newMap.Get("dependency_a")
 	assert.True(t, ok)
@@ -50,7 +50,7 @@ func TestMapAdd(t *testing.T) {
 func TestMapDelete(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 
-	newMap := NewModuleDependencies()
+	newMap := NewDependencies()
 
 	newMap.Delete("dependency_a")
 
@@ -63,7 +63,7 @@ func TestMapLen(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 	dependencyB := &Module{Info: &modules.ModuleInfo{Path: "dependency_b"}}
 
-	newMap := NewModuleDependencies()
+	newMap := NewDependencies()
 	assert.Equal(t, 0, newMap.Len())
 
 	newMap.Add(&ModuleReference{Module: dependencyA})
@@ -83,7 +83,7 @@ func TestMapList(t *testing.T) {
 	dependencyA := &Module{Info: &modules.ModuleInfo{Path: "dependency_a"}}
 	dependencyB := &Module{Info: &modules.ModuleInfo{Path: "dependency_b"}}
 
-	newMap := NewModuleDependencies()
+	newMap := NewDependencies()
 	newMap.Add(&ModuleReference{Module: dependencyB})
 	newMap.Add(&ModuleReference{Module: dependencyA})
 
