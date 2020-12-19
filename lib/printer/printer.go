@@ -49,6 +49,9 @@ type PrintConfig struct {
 	// Logger that should be used to show progress while printing the Graph.
 	Log *zap.Logger
 
+	// Print package-level dependencies instead of module-level ones.
+	Packages bool
+
 	// Annotate edges and nodes with their respective versions.
 	Annotate bool
 	// Options for generating a visual representation of the Graph. If the field is non-nil, print
@@ -176,8 +179,8 @@ func PrintToDOT(graph *depgraph.Graph, config *PrintConfig) error {
 		fileContent = append(fileContent, printClusterToDot(config, cluster))
 	}
 
-	for _, ref := range graph.Modules.List() {
-		fileContent = append(fileContent, printEdgesToDot(config, ref.(*depgraph.ModuleReference).Module, clusters)...)
+	for _, module := range graph.Modules.List() {
+		fileContent = append(fileContent, printEdgesToDot(config, module.(*depgraph.ModuleReference).Module, clusters)...)
 	}
 
 	fileContent = append(fileContent, "}")
@@ -269,7 +272,7 @@ func printClusterToDot(config *PrintConfig, cluster *graphCluster) string {
 func printNodeToDot(config *PrintConfig, node *depgraph.Module) string {
 	var nodeOptions []string
 	if config.Style != nil && config.Style.ScaleNodes {
-		scaling := math.Log2(float64(node.Predecessors.Len()+node.Successors.Len())) / 5
+		scaling := math.Log2(float64(node.Predecessors().Len()+node.Successors().Len())) / 5
 		if scaling < 0.1 {
 			scaling = 0.1
 		}
@@ -294,13 +297,11 @@ func printNodeToDot(config *PrintConfig, node *depgraph.Module) string {
 	return dot
 }
 
-func printEdgesToDot(config *PrintConfig, node *depgraph.Module, clusters *graphClusters) []string {
+func printEdgesToDot(config *PrintConfig, module *depgraph.Module, clusters *graphClusters) []string {
 	clustersReached := map[int]struct{}{}
 
 	var dots []string
-	for _, ref := range node.Successors.List() {
-		dep := ref.(*depgraph.ModuleReference)
-
+	for _, dep := range module.Successors().List() {
 		cluster, ok := clusters.clusterMap[dep.Name()]
 		if !ok {
 			config.Log.Error("No cluster reference found for dependency.", zap.String("dependency", dep.Name()))
@@ -313,17 +314,17 @@ func printEdgesToDot(config *PrintConfig, node *depgraph.Module, clusters *graph
 
 		target := dep.Name()
 		var edgeOptions []string
-		if minLength := clusters.getClusterDepthMap(dep.Name())[node.Name()]; minLength > 1 {
+		if minLength := clusters.getClusterDepthMap(dep.Name())[module.Name()]; minLength > 1 {
 			edgeOptions = append(edgeOptions, fmt.Sprintf("minlen=%d", minLength))
 		}
 		if len(cluster.members) > 1 {
 			edgeOptions = append(edgeOptions, "lhead=\""+cluster.name()+"\"")
 			target = cluster.getRepresentative()
 		} else if config.Annotate { // We don't annotate an edge with version if it's leading to a cluster.
-			edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.VersionConstraint))
+			edgeOptions = append(edgeOptions, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", dep.(*depgraph.ModuleReference).VersionConstraint))
 		}
 
-		dot := "  \"" + node.Name() + "\" -> \"" + target + "\""
+		dot := "  \"" + module.Name() + "\" -> \"" + target + "\""
 		if len(edgeOptions) > 0 {
 			dot += " [" + strings.Join(edgeOptions, ",") + "]"
 		}

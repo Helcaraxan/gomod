@@ -69,24 +69,22 @@ func applyFilter(
 	if filter.version != "" {
 		logger.Debug("Only considering dependencies preventing use of a specific version.", zap.String("version", filter.version))
 	}
-	var todo []*depgraph.ModuleReference
-	for _, ref := range filterModule.Predecessors.List() {
-		predecessor := ref.(*depgraph.ModuleReference)
-		if dependencyMatchesFilter(predecessor, filter) {
-			logger.Debug("Keeping dependency", zap.String("dependency", predecessor.Name()))
-			keep[predecessor.Name()] = struct{}{}
-			todo = append(todo, predecessor)
+	var todo []depgraph.Node
+	for _, node := range filterModule.Predecessors().List() {
+		if dependencyMatchesFilter(node.(*depgraph.ModuleReference), filter) {
+			logger.Debug("Keeping dependency", zap.String("dependency", node.Name()))
+			keep[node.Name()] = struct{}{}
+			todo = append(todo, node)
 		}
 	}
 
 	for len(todo) > 0 {
 		dependency := todo[0]
-		for _, ref := range dependency.Predecessors.List() {
-			predecessor := ref.(*depgraph.ModuleReference)
-			if _, ok := keep[predecessor.Name()]; !ok {
-				logger.Debug("Keeping dependency", zap.String("dependency", predecessor.Name()))
-				keep[predecessor.Name()] = struct{}{}
-				todo = append(todo, predecessor)
+		for _, node := range dependency.Predecessors().List() {
+			if _, ok := keep[node.Name()]; !ok {
+				logger.Debug("Keeping dependency", zap.String("dependency", node.Name()))
+				keep[node.Name()] = struct{}{}
+				todo = append(todo, node)
 			}
 		}
 		todo = todo[1:]

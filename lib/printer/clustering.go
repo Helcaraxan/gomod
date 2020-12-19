@@ -17,18 +17,18 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.Graph) *graphClus
 	}
 
 	hashToCluster := map[string]*graphCluster{}
-	for _, ref := range graph.Modules.List() {
-		node := ref.(*depgraph.ModuleReference)
+	for _, node := range graph.Modules.List() {
+		module := node.(*depgraph.ModuleReference).Module
 
-		clusterHash := computeClusterHash(config, node.Module)
+		clusterHash := computeClusterHash(config, module)
 		cluster := hashToCluster[clusterHash]
 		if cluster == nil {
 			cluster = newGraphCluster(clusterHash)
 			hashToCluster[clusterHash] = cluster
 			graphClusters.clusterList = append(graphClusters.clusterList, cluster)
 		}
-		cluster.members = append(cluster.members, node.Module)
-		graphClusters.clusterMap[node.Name()] = cluster
+		cluster.members = append(cluster.members, module)
+		graphClusters.clusterMap[module.Name()] = cluster
 	}
 
 	// Ensure determinism by sorting the modules in each cluster. The order that is used puts
@@ -37,8 +37,8 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.Graph) *graphClus
 	for hash := range hashToCluster {
 		cluster := hashToCluster[hash]
 		sort.Slice(cluster.members, func(i int, j int) bool {
-			hasDepsI := cluster.members[i].Successors.Len() > 0
-			hasDepsJ := cluster.members[j].Successors.Len() > 0
+			hasDepsI := cluster.members[i].Successors().Len() > 0
+			hasDepsJ := cluster.members[j].Successors().Len() > 0
 			if (hasDepsI && !hasDepsJ) || (!hasDepsI && hasDepsJ) {
 				return hasDepsJ
 			}
@@ -53,14 +53,14 @@ func computeGraphClusters(config *PrintConfig, graph *depgraph.Graph) *graphClus
 
 func computeClusterHash(config *PrintConfig, node *depgraph.Module) string {
 	var hashElements []string
-	for _, pred := range node.Predecessors.List() {
+	for _, pred := range node.Predecessors().List() {
 		hashElements = append(hashElements, nodeNameToHash(pred.Name()))
 	}
 	sort.Strings(hashElements)
 	hash := strings.Join(hashElements, "_")
 
 	// Depending on the configuration we need to generate more or less unique cluster names.
-	if config.Style == nil || config.Style.Cluster == Off || (config.Style.Cluster == Shared && node.Predecessors.Len() > 1) {
+	if config.Style == nil || config.Style.Cluster == Off || (config.Style.Cluster == Shared && node.Predecessors().Len() > 1) {
 		hash = node.Name() + "_from_" + hash
 	}
 	return hash
@@ -103,7 +103,7 @@ func (c *graphClusters) computeClusterDepthMap(nodeName string) map[string]int {
 
 		currentDepth := depthMap[curr.Name()]
 		baseEdgeLength := c.clusterMap[curr.Name()].getHeight()
-		for _, pred := range curr.Predecessors.List() {
+		for _, pred := range curr.Predecessors().List() {
 			predNode, _ := c.graph.Modules.Get(pred.Name())
 			edgeLength := baseEdgeLength + c.clusterMap[curr.Name()].getDepCount()/20 // Give bonus space for larger numbers of edges.
 			if depthMap[pred.Name()] >= currentDepth+edgeLength {
@@ -186,10 +186,10 @@ func (c *graphCluster) getWidth() int {
 func (c *graphCluster) computeDepCount() int {
 	var depCount int
 	for idx := len(c.members) - 1; idx >= 0; idx-- {
-		if c.members[idx].Successors.Len() == 0 {
+		if c.members[idx].Successors().Len() == 0 {
 			break
 		}
-		depCount += c.members[idx].Successors.Len()
+		depCount += c.members[idx].Successors().Len()
 	}
 	c.cachedDepCount = depCount
 	return depCount
@@ -197,7 +197,7 @@ func (c *graphCluster) computeDepCount() int {
 
 func (c *graphCluster) computeWidth() int {
 	membersWithDeps := 1
-	for membersWithDeps < len(c.members) && c.members[len(c.members)-1-membersWithDeps].Successors.Len() > 0 {
+	for membersWithDeps < len(c.members) && c.members[len(c.members)-1-membersWithDeps].Successors().Len() > 0 {
 		membersWithDeps++
 	}
 

@@ -2,37 +2,32 @@ package depgraph
 
 import "sort"
 
-type ModuleReference struct {
-	*Module
-	VersionConstraint string
-}
-
-func (m *ModuleReference) Name() string { return m.Module.Name() }
-
-type Reference interface {
+type Node interface {
 	Name() string
+	Predecessors() *Edges
+	Successors() *Edges
 }
 
-type Dependencies struct {
-	dependencyList []Reference
-	dependencyMap  map[string]Reference
+type Edges struct {
+	dependencyList []Node
+	dependencyMap  map[string]Node
 }
 
-func NewDependencies() Dependencies {
-	return Dependencies{
-		dependencyList: []Reference{},
-		dependencyMap:  map[string]Reference{},
+func NewEdges() Edges {
+	return Edges{
+		dependencyList: []Node{},
+		dependencyMap:  map[string]Node{},
 	}
 }
 
-func (m *Dependencies) Len() int {
+func (m Edges) Len() int {
 	return len(m.dependencyMap)
 }
 
-func (m *Dependencies) Copy() Dependencies {
-	newMap := Dependencies{
-		dependencyMap:  map[string]Reference{},
-		dependencyList: make([]Reference, len(m.dependencyList)),
+func (m Edges) Copy() Edges {
+	newMap := Edges{
+		dependencyMap:  map[string]Node{},
+		dependencyList: make([]Node, len(m.dependencyList)),
 	}
 	for _, dependency := range m.dependencyMap {
 		newMap.dependencyMap[dependency.Name()] = dependency
@@ -41,7 +36,7 @@ func (m *Dependencies) Copy() Dependencies {
 	return newMap
 }
 
-func (m *Dependencies) Add(dependencyReference Reference) {
+func (m *Edges) Add(dependencyReference Node) {
 	if _, ok := m.dependencyMap[dependencyReference.Name()]; ok {
 		return
 	}
@@ -50,12 +45,12 @@ func (m *Dependencies) Add(dependencyReference Reference) {
 	m.dependencyList = append(m.dependencyList, dependencyReference)
 }
 
-func (m *Dependencies) Get(name string) (Reference, bool) {
+func (m Edges) Get(name string) (Node, bool) {
 	dependency, ok := m.dependencyMap[name]
 	return dependency, ok
 }
 
-func (m *Dependencies) Delete(name string) {
+func (m *Edges) Delete(name string) {
 	if _, ok := m.dependencyMap[name]; !ok {
 		return
 	}
@@ -68,9 +63,9 @@ func (m *Dependencies) Delete(name string) {
 	}
 }
 
-func (m *Dependencies) List() []Reference {
+func (m Edges) List() []Node {
 	sort.Slice(m.dependencyList, func(i int, j int) bool { return m.dependencyList[i].Name() < m.dependencyList[j].Name() })
-	listCopy := make([]Reference, len(m.dependencyList))
+	listCopy := make([]Node, len(m.dependencyList))
 	copy(listCopy, m.dependencyList)
 	return listCopy
 }
