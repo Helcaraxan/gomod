@@ -8,77 +8,77 @@ import (
 	"github.com/Helcaraxan/gomod/lib/modules"
 )
 
-// ModuleGraph represents a Go module's dependency graph.
-type ModuleGraph struct {
+// Graph represents a Go module's dependency graph.
+type Graph struct {
 	Path string
 
-	Main         *Module
-	Dependencies *ModuleDependencies
+	Main    *Module
+	Modules *Dependencies
 
 	log      *zap.Logger
 	replaces map[string]string
 }
 
-// Transform can be used to transform a ModuleGraph instance. The particular transformation will
-// depend on the underlying implementation but it can range from dependency pruning, to adding graph
+// Transform can be used to transform a Graph instance. The particular transformation will depend on
+// the underlying implementation but it can range from dependency pruning, to adding graph
 // annotations, to edge manipulation.
 type Transform interface {
-	// Apply returns a, potentially, modified copy of the input ModuleGraph instance. The actual
+	// Apply returns a, potentially, modified copy of the input Graph instance. The actual
 	// modifications depend on the underlying type and implementation of the particular
 	// GraphTransform.
-	Apply(*zap.Logger, *ModuleGraph) *ModuleGraph
+	Apply(*zap.Logger, *Graph) *Graph
 }
 
-// NewGraph returns a new ModuleGraph instance which will use the specified
-// logger for writing log output. If nil a null-logger will be used instead.
-func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *ModuleGraph {
+// NewGraph returns a new Graph instance which will use the specified logger for writing log output.
+// If a nil value is passed a null-logger will be used instead.
+func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *Graph {
 	if log == nil {
 		log = zap.NewNop()
 	}
-	newGraph := &ModuleGraph{
-		Path:         path,
-		Dependencies: NewModuleDependencies(),
-		log:          log,
-		replaces:     map[string]string{},
+	newGraph := &Graph{
+		Path:     path,
+		Modules:  NewDependencies(),
+		log:      log,
+		replaces: map[string]string{},
 	}
 	newGraph.Main = newGraph.AddModule(main)
 	return newGraph
 }
 
-func (g *ModuleGraph) GetModule(name string) (*Module, bool) {
+func (g *Graph) GetModule(name string) (*Module, bool) {
 	if replaced, ok := g.replaces[name]; ok {
 		name = replaced
 	}
-	dependencyReference, ok := g.Dependencies.Get(name)
+	ref, ok := g.Modules.Get(name)
 	if !ok {
 		return nil, false
 	}
-	return dependencyReference.Module, true
+	return ref.(*ModuleReference).Module, true
 }
 
-func (g *ModuleGraph) AddModule(module *modules.ModuleInfo) *Module {
+func (g *Graph) AddModule(module *modules.ModuleInfo) *Module {
 	if module == nil {
 		return nil
-	} else if dependencyReference, ok := g.Dependencies.Get(module.Path); ok && dependencyReference != nil {
-		return dependencyReference.Module
+	} else if ref, ok := g.Modules.Get(module.Path); ok && ref != nil {
+		return ref.(*ModuleReference).Module
 	}
 
 	newDependencyReference := &ModuleReference{
 		Module: &Module{
 			Info:         module,
-			Predecessors: NewModuleDependencies(),
-			Successors:   NewModuleDependencies(),
+			Predecessors: NewDependencies(),
+			Successors:   NewDependencies(),
 		},
 		VersionConstraint: module.Version,
 	}
-	g.Dependencies.Add(newDependencyReference)
+	g.Modules.Add(newDependencyReference)
 	if module.Replace != nil {
 		g.replaces[module.Replace.Path] = module.Path
 	}
 	return newDependencyReference.Module
 }
 
-func (g *ModuleGraph) RemoveModule(name string) {
+func (g *Graph) RemoveModule(name string) {
 	g.log.Debug("Removing dependency.", zap.String("dependency", name))
 	if replaced, ok := g.replaces[name]; ok {
 		delete(g.replaces, name)
@@ -91,32 +91,35 @@ func (g *ModuleGraph) RemoveModule(name string) {
 		}
 	}
 
-	node, ok := g.Dependencies.Get(name)
+	ref, ok := g.Modules.Get(name)
 	if !ok {
 		return
 	}
-	for _, successor := range node.Successors.List() {
-		successor.Predecessors.Delete(node.Name())
+	mod := ref.(*ModuleReference)
+	for _, ref = range mod.Successors.List() {
+		ref.(*ModuleReference).Predecessors.Delete(mod.Name())
 	}
-	for _, predecessor := range node.Predecessors.List() {
-		predecessor.Successors.Delete(node.Name())
+	for _, ref = range mod.Predecessors.List() {
+		ref.(*ModuleReference).Successors.Delete(mod.Name())
 	}
-	g.Dependencies.Delete(name)
+	g.Modules.Delete(name)
 }
 
 // DeepCopy returns a separate copy of the current dependency graph that can be
 // safely modified without affecting the original graph.
-func (g *ModuleGraph) DeepCopy() *ModuleGraph {
+func (g *Graph) DeepCopy() *Graph {
 	g.log.Debug("Deep-copying dependency graph.", zap.String("module", g.Main.Name()))
 
 	newGraph := NewGraph(g.log, g.Path, g.Main.Info)
-	for _, dependency := range g.Dependencies.List() {
-		if module := newGraph.AddModule(dependency.Info); module == nil {
+	for _, ref := range g.Modules.List() {
+		if module := newGraph.AddModule(ref.(*ModuleReference).Info); module == nil {
 			g.log.Error("Encountered an empty dependency.", zap.String("dependency", module.Name()))
 		}
 	}
 
-	for _, dependency := range g.Dependencies.List() {
+	for _, ref := range g.Modules.List() {
+		dependency := ref.(*ModuleReference)
+
 		newDependency, _ := newGraph.GetModule(dependency.Name())
 		for _, predecessor := range dependency.Predecessors.List() {
 			newPredecessor, ok := newGraph.GetModule(predecessor.Name())
@@ -130,7 +133,7 @@ func (g *ModuleGraph) DeepCopy() *ModuleGraph {
 			}
 			newDependency.Predecessors.Add(&ModuleReference{
 				Module:            newPredecessor,
-				VersionConstraint: predecessor.VersionConstraint,
+				VersionConstraint: predecessor.(*ModuleReference).VersionConstraint,
 			})
 		}
 		for _, successor := range dependency.Successors.List() {
@@ -145,7 +148,7 @@ func (g *ModuleGraph) DeepCopy() *ModuleGraph {
 			}
 			newDependency.Successors.Add(&ModuleReference{
 				Module:            newSuccessor,
-				VersionConstraint: successor.VersionConstraint,
+				VersionConstraint: successor.(*ModuleReference).VersionConstraint,
 			})
 		}
 	}
@@ -158,7 +161,7 @@ func (g *ModuleGraph) DeepCopy() *ModuleGraph {
 	return newGraph
 }
 
-func (g *ModuleGraph) Transform(transformations ...Transform) *ModuleGraph {
+func (g *Graph) Transform(transformations ...Transform) *Graph {
 	graph := g
 	for _, transformation := range transformations {
 		graph = transformation.Apply(g.log, graph)
@@ -169,11 +172,11 @@ func (g *ModuleGraph) Transform(transformations ...Transform) *ModuleGraph {
 // Module represents a module in a Go module's dependency graph.
 type Module struct {
 	Info         *modules.ModuleInfo
-	Predecessors *ModuleDependencies
-	Successors   *ModuleDependencies
+	Predecessors *Dependencies
+	Successors   *Dependencies
 }
 
-// Name of the module represented by this Dependency in the ModuleGraph instance.
+// Name of the module represented by this Dependency in the Graph instance.
 func (n *Module) Name() string {
 	return n.Info.Path
 }

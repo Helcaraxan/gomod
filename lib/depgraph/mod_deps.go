@@ -12,7 +12,7 @@ import (
 	"github.com/Helcaraxan/gomod/lib/internal/util"
 )
 
-func (g *ModuleGraph) overlayModuleDependencies() error {
+func (g *Graph) overlayModuleDependencies() error {
 	g.log.Debug("Overlaying module-based dependency information over the import dependency graph.")
 
 	indirectsMap, err := g.getIndirectDeps()
@@ -49,7 +49,7 @@ func (g *ModuleGraph) overlayModuleDependencies() error {
 				VersionConstraint: modDep.targetVersion,
 			})
 		} else {
-			dep.VersionConstraint = modDep.targetVersion
+			dep.(*ModuleReference).VersionConstraint = modDep.targetVersion
 		}
 
 		if dep, ok := modDep.target.Predecessors.Get(modDep.source.Name()); !ok {
@@ -58,7 +58,7 @@ func (g *ModuleGraph) overlayModuleDependencies() error {
 				VersionConstraint: modDep.sourceVersion,
 			})
 		} else {
-			dep.VersionConstraint = modDep.sourceVersion
+			dep.(*ModuleReference).VersionConstraint = modDep.sourceVersion
 		}
 	}
 
@@ -72,7 +72,7 @@ type moduleDependency struct {
 	targetVersion string
 }
 
-func (g *ModuleGraph) parseDependency(depString string) (*moduleDependency, bool) {
+func (g *Graph) parseDependency(depString string) (*moduleDependency, bool) {
 	depContent := depRE.FindStringSubmatch(depString)
 	if len(depContent) == 0 {
 		g.log.Warn("Skipping ill-formed line in 'go mod graph' output.", zap.String("line", depString))
@@ -112,10 +112,12 @@ func (g *ModuleGraph) parseDependency(depString string) (*moduleDependency, bool
 	}, true
 }
 
-func (g *ModuleGraph) getIndirectDeps() (map[string]map[string]bool, error) {
+func (g *Graph) getIndirectDeps() (map[string]map[string]bool, error) {
 	indirectsMap := map[string]map[string]bool{}
 
-	for _, dep := range g.Dependencies.List() {
+	for _, ref := range g.Modules.List() {
+		dep := ref.(*ModuleReference)
+
 		log := g.log.With(zap.String("module", dep.Name()))
 		log.Debug("Finding indirect dependencies for module.")
 

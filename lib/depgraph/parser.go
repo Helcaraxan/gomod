@@ -10,10 +10,10 @@ import (
 
 var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
 
-// GetModuleGraph will return the dependency graph for the Go module that can be found at the
-// specified path. The 'logger' parameter can be 'nil' which will result in no output or logging
-// information being provided.
-func GetModuleGraph(log *zap.Logger, path string) (*ModuleGraph, error) {
+// GetGraph will return the dependency graph for the Go module that can be found at the specified
+// path. The 'logger' parameter can be 'nil' which will result in no output or logging information
+// being provided.
+func GetGraph(log *zap.Logger, path string) (*Graph, error) {
 	if log == nil {
 		log = zap.NewNop()
 	}
@@ -37,9 +37,10 @@ func GetModuleGraph(log *zap.Logger, path string) (*ModuleGraph, error) {
 		return nil, err
 	}
 
-	for _, dependency := range graph.Dependencies.List() {
-		if dependency.Predecessors.Len() == 0 && dependency.Successors.Len() == 0 {
-			graph.RemoveModule(dependency.Name())
+	for _, ref := range graph.Modules.List() {
+		dep := ref.(*ModuleReference)
+		if dep.Predecessors.Len() == 0 && dep.Successors.Len() == 0 {
+			graph.RemoveModule(dep.Name())
 		}
 	}
 	return graph, nil

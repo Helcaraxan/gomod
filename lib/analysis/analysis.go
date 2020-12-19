@@ -35,7 +35,7 @@ type DepAnalysis struct {
 
 var testCurrentTimeInjection *time.Time
 
-func Analyse(log *zap.Logger, g *depgraph.ModuleGraph) (*DepAnalysis, error) {
+func Analyse(log *zap.Logger, g *depgraph.Graph) (*DepAnalysis, error) {
 	_, moduleMap, err := modules.GetDependenciesWithUpdates(log, g.Path)
 	if err != nil {
 		return nil, err
@@ -47,8 +47,8 @@ func Analyse(log *zap.Logger, g *depgraph.ModuleGraph) (*DepAnalysis, error) {
 		moduleMap: moduleMap,
 	}
 
-	for _, dependency := range g.Dependencies.List() {
-		result.processDependency(dependency)
+	for _, ref := range g.Modules.List() {
+		result.processDependency(ref.(*depgraph.ModuleReference))
 	}
 
 	meanDepAge, maxDepAge, depAgeDistribution := result.depAges.compute()
@@ -74,7 +74,7 @@ func Analyse(log *zap.Logger, g *depgraph.ModuleGraph) (*DepAnalysis, error) {
 
 type analysis struct {
 	log       *zap.Logger
-	graph     *depgraph.ModuleGraph
+	graph     *depgraph.Graph
 	moduleMap map[string]*modules.ModuleInfo
 
 	directDependencies          int

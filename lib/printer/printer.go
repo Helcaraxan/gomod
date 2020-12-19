@@ -43,35 +43,33 @@ var (
 	}
 )
 
-// PrintConfig allows for the specification of parameters that should be passed
-// to the Print function of a ModuleGraph.
+// PrintConfig allows for the specification of parameters that should be passed to the Print
+// function of a Graph.
 type PrintConfig struct {
-	// Logger that should be used to show progress while printing the ModuleGraph.
+	// Logger that should be used to show progress while printing the Graph.
 	Log *zap.Logger
 
 	// Annotate edges and nodes with their respective versions.
 	Annotate bool
-	// Options for generating a visual representation of the ModuleGraph. If the
-	// field is non-nil, print out an image file using GraphViz, if false print
-	// out the graph in DOT format.
+	// Options for generating a visual representation of the Graph. If the field is non-nil, print
+	// out an image file using GraphViz, if false print out the graph in DOT format.
 	Style *StyleOptions
 
 	// Force overwriting of pre-existing files at the specified OutputPath.
 	Force bool
-	// Path at which the printed version of the ModuleGraph should be stored. If
-	// set to a nil-string a temporary file will be created.
+	// Path at which the printed version of the Graph should be stored. If set to a nil-string a
+	// temporary file will be created.
 	OutputPath string
 	// OutputFormat to use when writing files with the 'dot' tool.
 	OutputFormat Format
 }
 
 type StyleOptions struct {
-	// Scale nodes according to their number of dependencies of the module they
-	// represent and the number of modules depending on it.
+	// Scale nodes according to their number of dependencies of the module they represent and the
+	//number of modules depending on it.
 	ScaleNodes bool
-	// Level at which to cluster nodes in the printed graph. This can be very
-	// beneficial for larger dependency graphs that might be unreadable with the
-	// default settings.
+	// Level at which to cluster nodes in the printed graph. This can be very beneficial for larger
+	// dependency graphs that might be unreadable with the default settings.
 	Cluster ClusterLevel
 }
 
@@ -82,18 +80,17 @@ type ClusterLevel int
 const (
 	// No clustering. Each node is printed as is.
 	Off ClusterLevel = iota
-	// Cluster non-shared dependencies to reduce the complexity and size of the
-	// graph.
+	// Cluster non-shared dependencies to reduce the complexity and size of the graph.
 	Shared
-	// Cluster non-shared dependencies as well as any group of node that all
-	// share the same predecessors in the graph.
+	// Cluster non-shared dependencies as well as any group of node that all share the same
+	// predecessors in the graph.
 	Full
 )
 
-// Print takes in a PrintConfig struct and dumps the content of this ModuleGraph
-// instance according to parameters.
-func Print(graph *depgraph.ModuleGraph, config *PrintConfig) error {
-	var printer func(*depgraph.ModuleGraph, *PrintConfig) error
+// Print takes in a PrintConfig struct and dumps the content of this Graph instance according to
+// parameters.
+func Print(graph *depgraph.Graph, config *PrintConfig) error {
+	var printer func(*depgraph.Graph, *PrintConfig) error
 	if config.Style != nil {
 		printer = PrintToVisual
 	} else {
@@ -103,7 +100,7 @@ func Print(graph *depgraph.ModuleGraph, config *PrintConfig) error {
 }
 
 // PrintToVisual creates an image file at the specified target path that represents the dependency graph.
-func PrintToVisual(graph *depgraph.ModuleGraph, config *PrintConfig) (err error) {
+func PrintToVisual(graph *depgraph.Graph, config *PrintConfig) (err error) {
 	tempDir, err := ioutil.TempDir("", "depgraph")
 	if err != nil {
 		config.Log.Error("Could not create a temporary directory.", zap.Error(err))
@@ -154,7 +151,7 @@ func PrintToVisual(graph *depgraph.ModuleGraph, config *PrintConfig) (err error)
 	return err
 }
 
-func PrintToDOT(graph *depgraph.ModuleGraph, config *PrintConfig) error {
+func PrintToDOT(graph *depgraph.Graph, config *PrintConfig) error {
 	var err error
 	out := os.Stdout
 	if len(config.OutputPath) > 0 {
@@ -179,8 +176,8 @@ func PrintToDOT(graph *depgraph.ModuleGraph, config *PrintConfig) error {
 		fileContent = append(fileContent, printClusterToDot(config, cluster))
 	}
 
-	for _, nodeReference := range graph.Dependencies.List() {
-		fileContent = append(fileContent, printEdgesToDot(config, nodeReference.Module, clusters)...)
+	for _, ref := range graph.Modules.List() {
+		fileContent = append(fileContent, printEdgesToDot(config, ref.(*depgraph.ModuleReference).Module, clusters)...)
 	}
 
 	fileContent = append(fileContent, "}")
@@ -192,7 +189,7 @@ func PrintToDOT(graph *depgraph.ModuleGraph, config *PrintConfig) error {
 	return nil
 }
 
-func determineGlobalOptions(config *PrintConfig, graph *depgraph.ModuleGraph) []string {
+func determineGlobalOptions(config *PrintConfig, graph *depgraph.Graph) []string {
 	globalOptions := []string{
 		"  node [shape=box,style=rounded]",
 		"  start=0", // Needed for placement determinism.
@@ -215,7 +212,7 @@ func determineGlobalOptions(config *PrintConfig, graph *depgraph.ModuleGraph) []
 			)
 		}
 		if config.Style.ScaleNodes {
-			rankSep := math.Log10(float64(graph.Dependencies.Len())) - 1
+			rankSep := math.Log10(float64(graph.Modules.Len())) - 1
 			if rankSep < 0.3 {
 				rankSep = 0.3
 			}
@@ -301,7 +298,9 @@ func printEdgesToDot(config *PrintConfig, node *depgraph.Module, clusters *graph
 	clustersReached := map[int]struct{}{}
 
 	var dots []string
-	for _, dep := range node.Successors.List() {
+	for _, ref := range node.Successors.List() {
+		dep := ref.(*depgraph.ModuleReference)
+
 		cluster, ok := clusters.clusterMap[dep.Name()]
 		if !ok {
 			config.Log.Error("No cluster reference found for dependency.", zap.String("dependency", dep.Name()))

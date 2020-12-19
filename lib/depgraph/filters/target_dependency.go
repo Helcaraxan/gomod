@@ -23,7 +23,7 @@ type TargetDependencies struct {
 // Apply returns a copy of the dependency graph with all dependencies that are part of chains
 // that need to be modified for the specified dependency to be set to a given target version
 // annotated as such.
-func (f *TargetDependencies) Apply(log *zap.Logger, graph *depgraph.ModuleGraph) *depgraph.ModuleGraph {
+func (f *TargetDependencies) Apply(log *zap.Logger, graph *depgraph.Graph) *depgraph.Graph {
 	if len(f.Targets) == 0 {
 		return graph
 	}
@@ -38,7 +38,7 @@ func (f *TargetDependencies) Apply(log *zap.Logger, graph *depgraph.ModuleGraph)
 
 	log.Debug("Pruning the dependency graph of irrelevant paths.")
 	subGraph := graph.DeepCopy()
-	for _, dependency := range graph.Dependencies.List() {
+	for _, dependency := range graph.Modules.List() {
 		if _, ok := keep[dependency.Name()]; !ok {
 			log.Debug("Pruning dependency.", zap.String("dependency", dependency.Name()))
 			subGraph.RemoveModule(dependency.Name())
@@ -54,7 +54,7 @@ type targetDependencyFilter struct {
 
 func applyFilter(
 	logger *zap.Logger,
-	graph *depgraph.ModuleGraph,
+	graph *depgraph.Graph,
 	filter *targetDependencyFilter,
 	keep map[string]struct{},
 ) {
@@ -70,7 +70,8 @@ func applyFilter(
 		logger.Debug("Only considering dependencies preventing use of a specific version.", zap.String("version", filter.version))
 	}
 	var todo []*depgraph.ModuleReference
-	for _, predecessor := range filterModule.Predecessors.List() {
+	for _, ref := range filterModule.Predecessors.List() {
+		predecessor := ref.(*depgraph.ModuleReference)
 		if dependencyMatchesFilter(predecessor, filter) {
 			logger.Debug("Keeping dependency", zap.String("dependency", predecessor.Name()))
 			keep[predecessor.Name()] = struct{}{}
@@ -80,7 +81,8 @@ func applyFilter(
 
 	for len(todo) > 0 {
 		dependency := todo[0]
-		for _, predecessor := range dependency.Predecessors.List() {
+		for _, ref := range dependency.Predecessors.List() {
+			predecessor := ref.(*depgraph.ModuleReference)
 			if _, ok := keep[predecessor.Name()]; !ok {
 				logger.Debug("Keeping dependency", zap.String("dependency", predecessor.Name()))
 				keep[predecessor.Name()] = struct{}{}
