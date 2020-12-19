@@ -1,8 +1,6 @@
 package depgraph
 
 import (
-	"time"
-
 	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/lib/modules"
@@ -13,8 +11,8 @@ type Graph struct {
 	Path string
 
 	Main     *Module
-	Modules  Dependencies
-	Packages Dependencies
+	Modules  Edges
+	Packages Edges
 
 	log      *zap.Logger
 	replaces map[string]string
@@ -38,8 +36,8 @@ func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *Graph {
 	}
 	newGraph := &Graph{
 		Path:     path,
-		Modules:  NewDependencies(),
-		Packages: NewDependencies(),
+		Modules:  NewEdges(),
+		Packages: NewEdges(),
 		log:      log,
 		replaces: map[string]string{},
 	}
@@ -51,25 +49,25 @@ func (g *Graph) GetModule(name string) (*Module, bool) {
 	if replaced, ok := g.replaces[name]; ok {
 		name = replaced
 	}
-	ref, ok := g.Modules.Get(name)
+	node, ok := g.Modules.Get(name)
 	if !ok {
 		return nil, false
 	}
-	return ref.(*ModuleReference).Module, true
+	return node.(*ModuleReference).Module, true
 }
 
 func (g *Graph) AddModule(module *modules.ModuleInfo) *Module {
 	if module == nil {
 		return nil
-	} else if ref, ok := g.Modules.Get(module.Path); ok && ref != nil {
-		return ref.(*ModuleReference).Module
+	} else if node, ok := g.Modules.Get(module.Path); ok && node != nil {
+		return node.(*ModuleReference).Module
 	}
 
 	newDependencyReference := &ModuleReference{
 		Module: &Module{
 			Info:         module,
-			Predecessors: NewDependencies(),
-			Successors:   NewDependencies(),
+			predecessors: NewEdges(),
+			successors:   NewEdges(),
 		},
 		VersionConstraint: module.Version,
 	}
@@ -93,16 +91,16 @@ func (g *Graph) RemoveModule(name string) {
 		}
 	}
 
-	ref, ok := g.Modules.Get(name)
+	node, ok := g.Modules.Get(name)
 	if !ok {
 		return
 	}
-	mod := ref.(*ModuleReference)
-	for _, ref = range mod.Successors.List() {
-		ref.(*ModuleReference).Predecessors.Delete(mod.Name())
+	mod := node.(*ModuleReference)
+	for _, node = range mod.Successors().List() {
+		node.Predecessors().Delete(mod.Name())
 	}
-	for _, ref = range mod.Predecessors.List() {
-		ref.(*ModuleReference).Successors.Delete(mod.Name())
+	for _, node = range mod.Predecessors().List() {
+		node.Successors().Delete(mod.Name())
 	}
 	g.Modules.Delete(name)
 }
@@ -113,17 +111,17 @@ func (g *Graph) DeepCopy() *Graph {
 	g.log.Debug("Deep-copying dependency graph.", zap.String("module", g.Main.Name()))
 
 	newGraph := NewGraph(g.log, g.Path, g.Main.Info)
-	for _, ref := range g.Modules.List() {
-		if module := newGraph.AddModule(ref.(*ModuleReference).Info); module == nil {
-			g.log.Error("Encountered an empty dependency.", zap.String("dependency", module.Name()))
+	for _, module := range g.Modules.List() {
+		if newModule := newGraph.AddModule(module.(*ModuleReference).Info); newModule == nil {
+			g.log.Error("Encountered an empty dependency.", zap.String("dependency", newModule.Name()))
 		}
 	}
 
-	for _, ref := range g.Modules.List() {
-		dependency := ref.(*ModuleReference)
+	for _, module := range g.Modules.List() {
+		dependency := module.(*ModuleReference)
 
 		newDependency, _ := newGraph.GetModule(dependency.Name())
-		for _, predecessor := range dependency.Predecessors.List() {
+		for _, predecessor := range dependency.Predecessors().List() {
 			newPredecessor, ok := newGraph.GetModule(predecessor.Name())
 			if !ok {
 				g.log.Warn(
@@ -133,12 +131,12 @@ func (g *Graph) DeepCopy() *Graph {
 				)
 				continue
 			}
-			newDependency.Predecessors.Add(&ModuleReference{
+			newDependency.Predecessors().Add(&ModuleReference{
 				Module:            newPredecessor,
 				VersionConstraint: predecessor.(*ModuleReference).VersionConstraint,
 			})
 		}
-		for _, successor := range dependency.Successors.List() {
+		for _, successor := range dependency.Successors().List() {
 			newSuccessor, ok := newGraph.GetModule(successor.Name())
 			if !ok {
 				g.log.Warn(
@@ -148,7 +146,7 @@ func (g *Graph) DeepCopy() *Graph {
 				)
 				continue
 			}
-			newDependency.Successors.Add(&ModuleReference{
+			newDependency.Successors().Add(&ModuleReference{
 				Module:            newSuccessor,
 				VersionConstraint: successor.(*ModuleReference).VersionConstraint,
 			})
@@ -169,49 +167,4 @@ func (g *Graph) Transform(transformations ...Transform) *Graph {
 		graph = transformation.Apply(g.log, graph)
 	}
 	return graph
-}
-
-// Module represents a module in a Go module's dependency graph.
-type Module struct {
-	Info         *modules.ModuleInfo
-	Predecessors Dependencies
-	Successors   Dependencies
-}
-
-// Name of the module represented by this Dependency in the Graph instance.
-func (n *Module) Name() string {
-	return n.Info.Path
-}
-
-// SelectedVersion corresponds to the version of the dependency represented by
-// this Dependency which was selected for use.
-func (n *Module) SelectedVersion() string {
-	if n.Info.Replace != nil {
-		return n.Info.Replace.Version
-	}
-	return n.Info.Version
-}
-
-// Timestamp returns the time corresponding to the creation of the version at
-// which this dependency is used.
-func (n *Module) Timestamp() *time.Time {
-	if n.Info.Replace != nil {
-		return n.Info.Replace.Time
-	}
-	return n.Info.Time
-}
-
-// Package represents a single Go package in a dependency graph.
-type Package struct {
-	Info   *modules.PackageInfo
-	Parent *Module
-
-	Predecessors Dependencies
-	Successors   Dependencies
-}
-
-// Name returns the import path of the package and not the value declared inside the package with
-// the 'package' statement.
-func (p *Package) Name() string {
-	return p.Info.ImportPath
 }

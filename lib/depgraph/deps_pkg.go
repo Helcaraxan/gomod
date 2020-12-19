@@ -21,28 +21,28 @@ func (g *Graph) buildImportGraph() error {
 		return err
 	}
 
-	for _, ref := range g.Packages.List() {
-		pkg := ref.(*Package)
+	for _, node := range g.Packages.List() {
+		pkg := node.(*Package)
 
 		for _, imp := range pkg.Info.Imports {
-			targetRef, ok := g.Packages.Get(imp)
+			targetNode, ok := g.Packages.Get(imp)
 			if !ok {
 				g.log.Error("Detected import of unknown package.", zap.String("package", imp))
 				continue
 			}
-			targetPkg := targetRef.(*Package)
-			pkg.Successors.Add(targetPkg)
-			targetPkg.Predecessors.Add(pkg)
+			targetPkg := targetNode.(*Package)
+			pkg.Successors().Add(targetPkg)
+			targetPkg.Predecessors().Add(pkg)
 
 			if pkg.Parent.Name() == targetPkg.Parent.Name() {
 				continue
 			}
 
-			pkg.Parent.Successors.Add(&ModuleReference{
+			pkg.Parent.Successors().Add(&ModuleReference{
 				Module:            targetPkg.Parent,
 				VersionConstraint: targetPkg.Parent.SelectedVersion(),
 			})
-			targetPkg.Parent.Predecessors.Add(&ModuleReference{
+			targetPkg.Parent.Predecessors().Add(&ModuleReference{
 				Module:            pkg.Parent,
 				VersionConstraint: pkg.Parent.SelectedVersion(),
 			})
@@ -116,8 +116,8 @@ func (g *Graph) retrievePackageInfo(packages []string) (imports []string, err er
 		pkg := &Package{
 			Info:         pkgInfo,
 			Parent:       parent,
-			Predecessors: NewDependencies(),
-			Successors:   NewDependencies(),
+			predecessors: NewEdges(),
+			successors:   NewEdges(),
 		}
 		g.Packages.Add(pkg)
 		g.log.Debug("Added import information for package", zap.String("package", pkg.Name()), zap.String("module", parent.Name()))

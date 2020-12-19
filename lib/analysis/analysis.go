@@ -47,8 +47,8 @@ func Analyse(log *zap.Logger, g *depgraph.Graph) (*DepAnalysis, error) {
 		moduleMap: moduleMap,
 	}
 
-	for _, ref := range g.Modules.List() {
-		result.processDependency(ref.(*depgraph.ModuleReference))
+	for _, module := range g.Modules.List() {
+		result.processDependency(module.(*depgraph.ModuleReference))
 	}
 
 	meanDepAge, maxDepAge, depAgeDistribution := result.depAges.compute()
@@ -93,13 +93,13 @@ func (r *analysis) processDependency(dependency *depgraph.ModuleReference) {
 		return
 	}
 
-	if _, ok := r.graph.Main.Successors.Get(dependency.Name()); ok {
+	if _, ok := r.graph.Main.Successors().Get(dependency.Name()); ok {
 		r.directDependencies++
 		isDirect = 1
 	} else {
 		r.indirectDependencies++
 	}
-	if depArity := dependency.Predecessors.Len(); depArity > 0 {
+	if depArity := dependency.Predecessors().Len(); depArity > 0 {
 		r.reverseDependencies.insert(int64(depArity), depArity)
 	}
 

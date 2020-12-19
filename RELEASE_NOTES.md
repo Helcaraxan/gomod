@@ -40,14 +40,14 @@
   - `depgraph.Dependencies` is now `depgraph.Modules`.
   - `depgraph.DepGraph.(Get|Add|Remove)Dependency` are now `depgraph.Graph.(Get|Add|Remove)Module`.
   - `depgraph.DependencyReference` is now `depgraph.ModuleReference`.
-  - `depgraph.(New)DependencyMap` are now `depgraph.(New)ModuleDependencies`.
+  - `depgraph.(New)DependencyMap` are now `depgraph.(New)Edges`.
 - The `depgraph.ModuleDependencies` type has been refactored into a more generic
   `depgraph.Dependencies` type:
-  - It works on a new `depgraph.Reference` interface of which the existing
+  - It works on a new `depgraph.Node` interface of which the existing
     `depgraph.ModuleReference` struct type is an implementation.
-  - Some uses of the `*depgraph.ModuleReference` have been replaced by `depgraph.Reference`. In all
-    these cases it is safe to either continue to pass in a `*depgraph.ModuleReference` or to convert
-    any return value to a `*depgraph.ModuleReference` type.
+  - Some uses of the `*depgraph.ModuleReference` have been replaced by `depgraph.Node`. In all these
+    cases it is safe to either continue to pass in a `*depgraph.ModuleReference` or to convert any
+    such return value to a `*depgraph.ModuleReference` type.
 
 ## 0.5.0
 

@@ -24,12 +24,11 @@ func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.Graph) *d
 	prunedGraph := graph.DeepCopy()
 	for {
 		// Find the next unshared dependency.
-		var target *depgraph.ModuleReference
-		for _, ref := range prunedGraph.Modules.List() {
-			dependency := ref.(*depgraph.ModuleReference)
-			_, ok := excludeMap[ref.Name()]
-			if !ok && len(dependency.Successors.List()) == 0 && len(dependency.Predecessors.List()) <= 1 {
-				target = dependency
+		var target depgraph.Node
+		for _, node := range prunedGraph.Modules.List() {
+			_, ok := excludeMap[node.Name()]
+			if !ok && len(node.Successors().List()) == 0 && len(node.Predecessors().List()) <= 1 {
+				target = node
 				break
 			}
 		}
@@ -42,16 +41,16 @@ func (f *NonSharedDependencies) Apply(log *zap.Logger, graph *depgraph.Graph) *d
 	}
 }
 
-func pruneUnsharedChain(graph *depgraph.Graph, excludeMap map[string]struct{}, leaf *depgraph.ModuleReference) {
+func pruneUnsharedChain(graph *depgraph.Graph, excludeMap map[string]struct{}, leaf depgraph.Node) {
 	for {
-		if len(leaf.Predecessors.List()) == 0 {
+		if len(leaf.Predecessors().List()) == 0 {
 			graph.RemoveModule(leaf.Name())
 			return
 		}
-		newLeaf := leaf.Predecessors.List()[0].(*depgraph.ModuleReference)
+		newLeaf := leaf.Predecessors().List()[0].(*depgraph.ModuleReference)
 		graph.RemoveModule(leaf.Name())
 		_, ok := excludeMap[newLeaf.Name()]
-		if ok || len(newLeaf.Successors.List()) != 0 || len(newLeaf.Predecessors.List()) > 1 {
+		if ok || len(newLeaf.Successors().List()) != 0 || len(newLeaf.Predecessors().List()) > 1 {
 			return
 		}
 		leaf = newLeaf

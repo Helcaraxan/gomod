@@ -43,8 +43,8 @@ func (g *Graph) overlayModuleDependencies() error {
 			zap.String("source", modDep.source.Name()),
 			zap.String("target", modDep.target.Name()),
 		)
-		if dep, ok := modDep.source.Successors.Get(modDep.target.Name()); !ok {
-			modDep.source.Successors.Add(&ModuleReference{
+		if dep, ok := modDep.source.Successors().Get(modDep.target.Name()); !ok {
+			modDep.source.Successors().Add(&ModuleReference{
 				Module:            modDep.target,
 				VersionConstraint: modDep.targetVersion,
 			})
@@ -52,8 +52,8 @@ func (g *Graph) overlayModuleDependencies() error {
 			dep.(*ModuleReference).VersionConstraint = modDep.targetVersion
 		}
 
-		if dep, ok := modDep.target.Predecessors.Get(modDep.source.Name()); !ok {
-			modDep.target.Predecessors.Add(&ModuleReference{
+		if dep, ok := modDep.target.Predecessors().Get(modDep.source.Name()); !ok {
+			modDep.target.Predecessors().Add(&ModuleReference{
 				Module:            modDep.source,
 				VersionConstraint: modDep.sourceVersion,
 			})
@@ -115,18 +115,18 @@ func (g *Graph) parseDependency(depString string) (*moduleDependency, bool) {
 func (g *Graph) getIndirectDeps() (map[string]map[string]bool, error) {
 	indirectsMap := map[string]map[string]bool{}
 
-	for _, ref := range g.Modules.List() {
-		dep := ref.(*ModuleReference)
+	for _, node := range g.Modules.List() {
+		module := node.(*ModuleReference)
 
-		log := g.log.With(zap.String("module", dep.Name()))
+		log := g.log.With(zap.String("module", module.Name()))
 		log.Debug("Finding indirect dependencies for module.")
 
-		modContent, err := ioutil.ReadFile(dep.Info.GoMod)
+		modContent, err := ioutil.ReadFile(module.Info.GoMod)
 		if os.IsNotExist(err) {
 			// This is mostly useful for tests where we don't want to write mod files for every test dependency.
-			indirectsMap[dep.Name()] = map[string]bool{}
+			indirectsMap[module.Name()] = map[string]bool{}
 		} else if err != nil {
-			g.log.Error("Failed to read content of go.mod file.", zap.String("path", dep.Info.GoMod), zap.Error(err))
+			g.log.Error("Failed to read content of go.mod file.", zap.String("path", module.Info.GoMod), zap.Error(err))
 			return nil, err
 		}
 
@@ -138,7 +138,7 @@ func (g *Graph) getIndirectDeps() (map[string]map[string]bool, error) {
 				indirects[string(m[1])] = true
 			}
 		}
-		indirectsMap[dep.Name()] = indirects
+		indirectsMap[module.Name()] = indirects
 	}
 
 	return indirectsMap, nil

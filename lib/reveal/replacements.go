@@ -188,8 +188,8 @@ func FindReplacements(log *zap.Logger, graph *depgraph.Graph) (*Replacements, er
 		replacements.topLevel[replace.Original] = replace.Override
 	}
 
-	for _, ref := range graph.Modules.List() {
-		replaces, err = parseGoMod(log, graph.Main.Info, replacements.topLevel, ref.(*depgraph.ModuleReference).Info)
+	for _, module := range graph.Modules.List() {
+		replaces, err = parseGoMod(log, graph.Main.Info, replacements.topLevel, module.(*depgraph.ModuleReference).Info)
 		if err != nil {
 			return nil, err
 		}

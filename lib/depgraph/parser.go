@@ -37,10 +37,9 @@ func GetGraph(log *zap.Logger, path string) (*Graph, error) {
 		return nil, err
 	}
 
-	for _, ref := range graph.Modules.List() {
-		dep := ref.(*ModuleReference)
-		if dep.Predecessors.Len() == 0 && dep.Successors.Len() == 0 {
-			graph.RemoveModule(dep.Name())
+	for _, module := range graph.Modules.List() {
+		if module.Predecessors().Len() == 0 && module.Successors().Len() == 0 {
+			graph.RemoveModule(module.Name())
 		}
 	}
 	return graph, nil
