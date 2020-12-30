@@ -2,7 +2,6 @@ package main
 
 import (
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -100,25 +99,21 @@ func TestGen_SkipsNonShell(t *testing.T) {
 }
 
 func TestGen(t *testing.T) {
+	tempDir := t.TempDir()
+
 	oldLog := log
 	defer func() { log = oldLog }()
 	log = zap.NewNop()
 
-	outputDir, err := ioutil.TempDir("", "bash-gen")
-	require.NoError(t, err, "Must be able to create a temporary output directory.")
-	defer func() {
-		require.NoErrorf(t, os.RemoveAll(outputDir), "Must be able to delete the temporary output directory %q.", outputDir)
-	}()
-
 	inputPath := filepath.Join("testdata", "test_FUnc.sh")
-	err = processFile(outputDir, "test_gen", inputPath)
+	err := processFile(tempDir, "test_gen", inputPath)
 	require.NoErrorf(t, err, "Must be able to generate Go file based on %q.", inputPath)
 
 	expectedPath := filepath.Join("testdata", "test_func.go")
 	expected, err := ioutil.ReadFile(expectedPath)
 	require.NoErrorf(t, err, "Must be able to read expected file at %q.", expectedPath)
 
-	actualPath := filepath.Join(outputDir, "test_func.go")
+	actualPath := filepath.Join(tempDir, "test_func.go")
 	require.FileExists(t, actualPath)
 
 	actual, err := ioutil.ReadFile(actualPath)
