@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	"go.uber.org/zap"
@@ -45,10 +44,6 @@ func GetDependencies(log *zap.Logger, moduleDir string) (*ModuleInfo, map[string
 // to return the results. Lack of connectivity should result in an error being returned but this is
 // not a hard guarantee.
 func GetDependenciesWithUpdates(log *zap.Logger, moduleDir string) (*ModuleInfo, map[string]*ModuleInfo, error) {
-	if err := connectivityCheck(); err != nil {
-		log.Error("No connectivity.", zap.Error(err))
-		return nil, nil, err
-	}
 	return retrieveModuleInformation(log, moduleDir, "all", "-versions", "-u")
 }
 
@@ -64,10 +59,6 @@ func GetModule(log *zap.Logger, moduleDir string, targetModule string) (*ModuleI
 // internet connectivity in order to return the results. Lack of connectivity should result in an
 // error being returned but this is not a hard guarantee.
 func GetModuleWithUpdate(log *zap.Logger, moduleDir string, targetModule string) (*ModuleInfo, error) {
-	if err := connectivityCheck(); err != nil {
-		log.Error("No connectivity.", zap.Error(err))
-		return nil, err
-	}
 	module, _, err := retrieveModuleInformation(log, moduleDir, targetModule, "-versions", "-u")
 	return module, err
 }
@@ -126,16 +117,4 @@ func retrieveModuleInformation(
 		return nil, nil, errors.New("unable to load any module information")
 	}
 	return main, modules, nil
-}
-
-var httpClient = &http.Client{Timeout: 5 * time.Second}
-
-func connectivityCheck() error {
-	resp, err := httpClient.Get("https://proxy.golang.org/")
-	if err != nil {
-		return fmt.Errorf("failed to ping https://proxy.golang.org/: %s", err.Error())
-	} else if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("ping to https://proxy.golang.org/ returned a non-200 status code")
-	}
-	return nil
 }
