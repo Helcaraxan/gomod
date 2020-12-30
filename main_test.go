@@ -56,19 +56,13 @@ func TestGraphGeneration(t *testing.T) {
 		},
 	}
 
-	tempDir, tempErr := ioutil.TempDir("", "gomod")
-	require.NoError(t, tempErr)
-	defer func() {
-		if !t.Failed() {
-			require.NoError(t, os.RemoveAll(tempDir))
-		}
-	}()
-
 	cArgs := &commonArgs{log: zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zapcore.DebugLevel))}
 
 	for name := range testcases {
 		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
+			tempDir := t.TempDir()
+
 			// Test the dot generation.
 			dotArgs := *testcase.dotArgs
 			dotArgs.commonArgs = cArgs

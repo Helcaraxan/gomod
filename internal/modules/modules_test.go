@@ -51,8 +51,7 @@ func TestModuleInformationRetrieval(t *testing.T) {
 		testname := strings.TrimSuffix(file.Name(), ".yaml")
 		t.Run(testname, func(t *testing.T) {
 			testDefinition := &testcase{}
-			testDir, cleanup := testutil.SetupTestModule(t, filepath.Join(cwd, "testdata", file.Name()), testDefinition)
-			defer cleanup()
+			testDir := testutil.SetupTestModule(t, filepath.Join(cwd, "testdata", file.Name()), testDefinition)
 
 			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zap.DebugLevel))
 

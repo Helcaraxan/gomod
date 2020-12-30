@@ -95,8 +95,7 @@ func TestAnalysis(t *testing.T) {
 		testname := strings.TrimSuffix(file.Name(), ".yaml")
 		t.Run(testname, func(t *testing.T) {
 			testDefinition := &testcase{}
-			testDir, cleanup := testutil.SetupTestModule(t, filepath.Join(cwd, "testdata", file.Name()), testDefinition)
-			defer cleanup()
+			testDir := testutil.SetupTestModule(t, filepath.Join(cwd, "testdata", file.Name()), testDefinition)
 
 			if testDefinition.CurrentTime != nil {
 				testCurrentTimeInjection = testDefinition.CurrentTime

@@ -59,39 +59,35 @@ type TestDefinition interface {
 	GoListModOutput() map[string]string
 }
 
-func SetupTestModule(t *testing.T, testDefinitionPath string, testDefinition TestDefinition) (string, func()) {
-	testDir, testErr := ioutil.TempDir("", "gomod-testing")
-	require.NoError(t, testErr)
+func SetupTestModule(t *testing.T, testDefinitionPath string, testDefinition TestDefinition) string {
+	tempDir := t.TempDir()
 
-	require.NoError(t, ioutil.WriteFile(filepath.Join(testDir, "go"), []byte(fmt.Sprintf(fakeGoDriver, testDir)), 0700))
+	require.NoError(t, ioutil.WriteFile(filepath.Join(tempDir, "go"), []byte(fmt.Sprintf(fakeGoDriver, tempDir)), 0700))
 
 	currentEnvPath := os.Getenv("PATH")
-	os.Setenv("PATH", fmt.Sprintf("%s:%s", testDir, currentEnvPath))
+	os.Setenv("PATH", fmt.Sprintf("%s:%s", tempDir, currentEnvPath))
 
-	cleanup := func() {
-		if !t.Failed() {
-			require.NoError(t, os.RemoveAll(testDir))
-		}
+	t.Cleanup(func() {
 		require.NoError(t, os.Setenv("PATH", currentEnvPath))
-	}
+	})
 
 	raw, testErr := ioutil.ReadFile(testDefinitionPath)
 	require.NoError(t, testErr)
 	require.NoError(t, yaml.Unmarshal(raw, testDefinition))
 
 	if testDefinition.GoDriverError() {
-		require.NoError(t, ioutil.WriteFile(filepath.Join(testDir, "error.lock"), []byte(""), 0600))
-		return testDir, cleanup
+		require.NoError(t, ioutil.WriteFile(filepath.Join(tempDir, "error.lock"), []byte(""), 0600))
+		return tempDir
 	}
 
-	require.NoError(t, ioutil.WriteFile(filepath.Join(testDir, "graph-output.txt"), []byte(testDefinition.GoGraphOutput()), 0600))
+	require.NoError(t, ioutil.WriteFile(filepath.Join(tempDir, "graph-output.txt"), []byte(testDefinition.GoGraphOutput()), 0600))
 	for mod, output := range testDefinition.GoListModOutput() {
 		filename := fmt.Sprintf("list-mod-%s.txt", strings.ReplaceAll(mod, "/", "_"))
-		require.NoError(t, ioutil.WriteFile(filepath.Join(testDir, filename), []byte(output), 0600))
+		require.NoError(t, ioutil.WriteFile(filepath.Join(tempDir, filename), []byte(output), 0600))
 	}
 	for pkg, output := range testDefinition.GoListPkgOutput() {
 		filename := fmt.Sprintf("list-pkg-%s.txt", strings.ReplaceAll(pkg, "/", "_"))
-		require.NoError(t, ioutil.WriteFile(filepath.Join(testDir, filename), []byte(output), 0600))
+		require.NoError(t, ioutil.WriteFile(filepath.Join(tempDir, filename), []byte(output), 0600))
 	}
-	return testDir, cleanup
+	return tempDir
 }
