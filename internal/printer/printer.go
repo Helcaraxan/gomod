@@ -8,6 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/Helcaraxan/gomod/internal/depgraph"
 	"github.com/Helcaraxan/gomod/internal/graph"
 	"github.com/Helcaraxan/gomod/internal/util"
 )
@@ -185,9 +186,14 @@ func printClusterToDot(cluster *graphCluster, config *PrintConfig) string {
 }
 
 type annotated interface {
-	NodeAnnotations() []string
-	EdgeAnnotations() []string
+	NodeAttributes(annotate bool) []string
+	EdgeAttributes(target graph.Node, annotate bool) []string
 }
+
+var (
+	_ annotated = &depgraph.Module{}
+	//_ annotated = &depgraph.Package{}
+)
 
 func printNodeToDot(config *PrintConfig, node graph.Node) string {
 	var nodeOptions []string
@@ -199,8 +205,8 @@ func printNodeToDot(config *PrintConfig, node graph.Node) string {
 		nodeOptions = append(nodeOptions, fmt.Sprintf("width=%.2f,height=%.2f", 5*scaling, scaling))
 	}
 
-	if a, ok := node.(annotated); config.Annotate && ok {
-		nodeOptions = append(nodeOptions, a.NodeAnnotations()...)
+	if a, ok := node.(annotated); ok {
+		nodeOptions = append(nodeOptions, a.NodeAttributes(config.Annotate)...)
 	}
 
 	dot := "  \"" + node.Name() + "\""
@@ -229,11 +235,16 @@ func printEdgesToDot(config *PrintConfig, node graph.Node, clusters *graphCluste
 		if minLength := clusters.clusterDepthMap(dep.Hash())[node.Hash()]; minLength > 1 {
 			edgeAnnotations = append(edgeAnnotations, fmt.Sprintf("minlen=%d", minLength))
 		}
+
+		annotate := config.Annotate
 		if len(cluster.members) > 1 {
-			edgeAnnotations = append(edgeAnnotations, "lhead=\""+cluster.name()+"\"")
+			annotate = false
 			target = cluster.getRepresentative()
-		} else if a, ok := dep.(annotated); config.Annotate && ok { // We don't annotate an edge with version if it's leading to a cluster.
-			edgeAnnotations = append(edgeAnnotations, a.EdgeAnnotations()...)
+			edgeAnnotations = append(edgeAnnotations, "lhead=\""+cluster.name()+"\"")
+		}
+
+		if a, ok := node.(annotated); ok {
+			edgeAnnotations = append(edgeAnnotations, a.EdgeAttributes(dep, annotate)...)
 		}
 
 		dot := "  \"" + node.Name() + "\" -> \"" + target + "\""

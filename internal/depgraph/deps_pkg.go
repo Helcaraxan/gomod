@@ -37,6 +37,13 @@ func (g *Graph) buildImportGraph() error {
 				continue
 			}
 
+			g.log.Debug(
+				"Adding package dependency.",
+				zap.String("source", pkg.Name()),
+				zap.String("source-module", pkg.Parent().Name()),
+				zap.String("target", targetNode.Name()),
+				zap.String("target-module", targetNode.Parent().Name()),
+			)
 			targetPkg := targetNode.(*Package)
 			if err = g.Graph.AddEdge(pkg, targetPkg); err != nil {
 				return err
@@ -106,7 +113,7 @@ func (g *Graph) retrievePackageInfo(packages []string) (imports []string, err er
 
 		pkg := &Package{
 			Info:         pkgInfo,
-			parent:       &ModuleReference{Module: parentModule},
+			parent:       parentModule,
 			predecessors: graph.NewNodeRefs(),
 			successors:   graph.NewNodeRefs(),
 		}

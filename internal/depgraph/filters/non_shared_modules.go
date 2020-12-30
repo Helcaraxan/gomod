@@ -47,7 +47,7 @@ func pruneUnsharedChain(g *depgraph.Graph, excludeMap map[string]struct{}, leaf 
 			_ = g.Graph.DeleteNode(leaf.Hash())
 			return
 		}
-		newLeaf := leaf.Predecessors().List()[0].(*depgraph.ModuleReference)
+		newLeaf := leaf.Predecessors().List()[0].(*depgraph.Module)
 		_ = g.Graph.DeleteNode(leaf.Hash())
 		_, ok := excludeMap[newLeaf.Name()]
 		if ok || len(newLeaf.Successors().List()) != 0 || len(newLeaf.Predecessors().List()) > 1 {

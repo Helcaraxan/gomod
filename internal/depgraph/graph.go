@@ -67,25 +67,23 @@ func (g *Graph) getModule(name string) (*Module, bool) {
 	if err != nil {
 		return nil, false
 	}
-	return node.(*ModuleReference).Module, true
+	return node.(*Module), true
 }
 
 func (g *Graph) addModule(module *modules.ModuleInfo) *Module {
 	if module == nil {
 		return nil
 	} else if node, _ := g.Graph.GetNode(moduleHash(module.Path)); node != nil {
-		return node.(*ModuleReference).Module
+		return node.(*Module)
 	}
 
-	newDependencyReference := &ModuleReference{
-		Module:            NewModule(module),
-		VersionConstraint: module.Version,
-	}
-	_ = g.Graph.AddNode(newDependencyReference)
+	newModule := NewModule(module)
+
+	_ = g.Graph.AddNode(newModule)
 	if module.Replace != nil {
 		g.Replaces[module.Replace.Path] = module.Path
 	}
-	return newDependencyReference.Module
+	return newModule
 }
 
 func (g *Graph) removeModule(name string) {
@@ -105,7 +103,7 @@ func (g *Graph) removeModule(name string) {
 		return
 	}
 
-	mod := node.(*ModuleReference)
+	mod := node.(*Module)
 	for _, node = range mod.Successors().List() {
 		node.Predecessors().Delete(mod.Hash())
 	}

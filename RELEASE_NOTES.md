@@ -4,19 +4,13 @@
 
 **High-level overview**
 
-- Dependency graph filtering has been moved to be a well-defined feature with appropriate support
-  and logic in its own package.
-- The generated dependency graphs now reflect the true dependency paths for non-module projects
-  instead of the artificial dependencies injected by the module system to provide reproducibility.
+- The generated dependency graphs now reflect the true import-based dependency paths for non-module
+  projects instead of the artificial dependencies injected by the module system to provide
+  reproducibility. Indirect dependencies induced by the module system are represented by dashed
+  lines.
 
 **New features**
 
-- The new `filters.ArbitraryDependencies` implements a filter that removes an arbitrary set of
-  nodes.
-- The new `depgraph.Transform` interface type allows for developers using `gomod` as a library to
-  make use of external custom filters. This is supported via the new `DepGraph.Transform` method
-  that takes the interface type as argument.
-- The `depgraph.Graph` type now contains information for packages as well as for modules.
 - A new `gomod version` enables the printing of the current version of the `gomod` tool.
 
 **Breaking changes**

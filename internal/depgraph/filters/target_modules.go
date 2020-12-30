@@ -66,7 +66,7 @@ func applyFilter(logger *zap.Logger, g *depgraph.Graph, filter *targetDependency
 	}
 	var todo []graph.Node
 	for _, node := range filterNode.Predecessors().List() {
-		if dependencyMatchesFilter(node.(*depgraph.ModuleReference), filter) {
+		if dependencyMatchesFilter(node.(*depgraph.Module), filter) {
 			logger.Debug("Keeping dependency", zap.String("dependency", node.Name()))
 			keep[node.Name()] = struct{}{}
 			todo = append(todo, node)
@@ -86,11 +86,11 @@ func applyFilter(logger *zap.Logger, g *depgraph.Graph, filter *targetDependency
 	}
 }
 
-func dependencyMatchesFilter(dependency *depgraph.ModuleReference, filter *targetDependencyFilter) bool {
-	if dependency.VersionConstraint == "" || filter.version == "" {
+func dependencyMatchesFilter(dependency *depgraph.Module, filter *targetDependencyFilter) bool {
+	if dependency.Info.Version == "" || filter.version == "" {
 		return true
 	}
-	constraint := semver.MustParse(strings.TrimLeft(dependency.VersionConstraint, "v"))
+	constraint := semver.MustParse(strings.TrimLeft(dependency.Info.Version, "v"))
 	depVersion := semver.MustParse(strings.TrimLeft(filter.version, "v"))
 	return constraint.GT(depVersion)
 }

@@ -3,7 +3,6 @@ package depgraph
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
 	"regexp"
 	"strings"
 
@@ -14,11 +13,6 @@ import (
 
 func (g *Graph) overlayModuleDependencies() error {
 	g.log.Debug("Overlaying module-based dependency information over the import dependency graph.")
-
-	indirectsMap, err := g.getIndirectDeps()
-	if err != nil {
-		return err
-	}
 
 	raw, _, err := util.RunCommand(g.log, g.Main.Info.Dir, "go", "mod", "graph")
 	if err != nil {
@@ -32,26 +26,24 @@ func (g *Graph) overlayModuleDependencies() error {
 			continue
 		}
 
-		if indirectsMap[modDep.source.Name()][modDep.target.Name()] {
-			g.log.Debug("Skipping indirect dependency.", zap.String("source", modDep.source.Name()), zap.String("target", modDep.target.Name()))
-			continue
-		}
-
 		g.log.Debug(
 			"Overlaying module dependency.",
 			zap.String("version", modDep.targetVersion),
 			zap.String("source", modDep.source.Name()),
 			zap.String("target", modDep.target.Name()),
 		)
-		err = g.Graph.AddEdge(&ModuleReference{Module: modDep.source}, &ModuleReference{Module: modDep.target})
+		err = g.Graph.AddEdge(modDep.source, modDep.target)
 		if err != nil {
 			return err
 		}
+		modDep.source.VersionConstraints[modDep.target.Hash()] = VersionConstraint{
+			Source: modDep.sourceVersion,
+			Target: modDep.targetVersion,
+		}
+	}
 
-		sourceRef, _ := modDep.target.predecessors.Get(modDep.source.Hash())
-		sourceRef.(*ModuleReference).VersionConstraint = modDep.sourceVersion
-		targetRef, _ := modDep.source.successors.Get(modDep.target.Hash())
-		targetRef.(*ModuleReference).VersionConstraint = modDep.targetVersion
+	if err := g.markIndirects(); err != nil {
+		return err
 	}
 
 	return nil
@@ -95,6 +87,12 @@ func (g *Graph) parseDependency(depString string) (*moduleDependency, bool) {
 		)
 		return nil, false
 	}
+	g.log.Debug(
+		"Recording module dependency.",
+		zap.String("source", sourceName),
+		zap.String("version", sourceVersion),
+		zap.String("target", targetName),
+	)
 
 	return &moduleDependency{
 		source:        source,
@@ -104,34 +102,31 @@ func (g *Graph) parseDependency(depString string) (*moduleDependency, bool) {
 	}, true
 }
 
-func (g *Graph) getIndirectDeps() (map[string]map[string]bool, error) {
-	indirectsMap := map[string]map[string]bool{}
-
+func (g *Graph) markIndirects() error {
 	for _, node := range g.Graph.GetLevel(int(LevelModules)).List() {
-		module := node.(*ModuleReference)
+		module := node.(*Module)
 
 		log := g.log.With(zap.String("module", module.Name()))
 		log.Debug("Finding indirect dependencies for module.")
 
-		modContent, err := ioutil.ReadFile(module.Info.GoMod)
-		if os.IsNotExist(err) {
-			// This is mostly useful for tests where we don't want to write mod files for every test dependency.
-			indirectsMap[module.Name()] = map[string]bool{}
-		} else if err != nil {
-			g.log.Error("Failed to read content of go.mod file.", zap.String("path", module.Info.GoMod), zap.Error(err))
-			return nil, err
+		if module.Info.GoMod == "" {
+			// This occurs when we are under tests and can be skipped safely.
+			continue
 		}
 
-		indirects := map[string]bool{}
+		modContent, err := ioutil.ReadFile(module.Info.GoMod)
+		if err != nil {
+			g.log.Error("Failed to read content of go.mod file.", zap.String("path", module.Info.GoMod), zap.Error(err))
+			return err
+		}
+
 		indirectDepRE := regexp.MustCompile(`^	([^\s]+) [^\s]+ // indirect$`)
 		for _, line := range bytes.Split(modContent, []byte("\n")) {
 			if m := indirectDepRE.FindSubmatch(line); len(m) == 2 {
 				g.log.Debug("Found indirect dependency.", zap.String("consumer", module.Name()), zap.String("dependency", string(m[1])))
-				indirects[string(m[1])] = true
+				module.Indirects[string(m[1])] = true
 			}
 		}
-		indirectsMap[module.Name()] = indirects
 	}
-
-	return indirectsMap, nil
+	return nil
 }
