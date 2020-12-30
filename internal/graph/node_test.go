@@ -11,6 +11,7 @@ type testNode struct {
 	name     string
 	preds    NodeRefs
 	succs    NodeRefs
+	parent   *testNode
 	children NodeRefs
 }
 
@@ -18,8 +19,18 @@ func (n *testNode) Name() string            { return n.name }
 func (n *testNode) Hash() string            { return n.name }
 func (n *testNode) Predecessors() *NodeRefs { return &n.preds }
 func (n *testNode) Successors() *NodeRefs   { return &n.succs }
+func (n *testNode) Parent() Node            { return n.parent }
 func (n *testNode) Children() *NodeRefs     { return &n.children }
-func (n *testNode) Parent() Node            { return nil }
+
+func newTestNode(name string, parent *testNode) *testNode {
+	return &testNode{
+		name:     name,
+		preds:    NewNodeRefs(),
+		succs:    NewNodeRefs(),
+		parent:   parent,
+		children: NewNodeRefs(),
+	}
+}
 
 func TestEdgesNew(t *testing.T) {
 	t.Parallel()

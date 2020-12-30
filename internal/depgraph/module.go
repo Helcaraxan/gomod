@@ -23,6 +23,7 @@ func NewModule(info *modules.ModuleInfo) *Module {
 		Info:         info,
 		predecessors: graph.NewNodeRefs(),
 		successors:   graph.NewNodeRefs(),
+		packages:     graph.NewNodeRefs(),
 	}
 }
 

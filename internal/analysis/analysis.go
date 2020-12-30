@@ -47,7 +47,7 @@ func Analyse(log *zap.Logger, g *depgraph.Graph) (*DepAnalysis, error) {
 		moduleMap: moduleMap,
 	}
 
-	for _, module := range g.Graph.Children().List() {
+	for _, module := range g.Graph.GetLevel(0).List() {
 		result.processDependency(module.(*depgraph.ModuleReference))
 	}
 
@@ -93,7 +93,7 @@ func (r *analysis) processDependency(dependency *depgraph.ModuleReference) {
 		return
 	}
 
-	origin, _ := r.graph.Graph.Children().Get(r.graph.Main.Hash())
+	origin, _ := r.graph.Graph.GetNode(r.graph.Main.Hash())
 	if _, w := origin.Successors().Get(dependency.Hash()); w > 0 {
 		r.directDependencies++
 		isDirect = 1

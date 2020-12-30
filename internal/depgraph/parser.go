@@ -37,7 +37,7 @@ func GetGraph(log *zap.Logger, path string) (*Graph, error) {
 		return nil, err
 	}
 
-	for _, module := range g.Graph.Children().List() {
+	for _, module := range g.Graph.GetLevel(0).List() {
 		if module.Predecessors().Len() == 0 && module.Successors().Len() == 0 {
 			g.log.Debug("Removing module as it not connected to the final graph.", zap.String("dependency", module.Name()))
 			g.removeModule(module.Name())

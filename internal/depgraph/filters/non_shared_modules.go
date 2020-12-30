@@ -25,7 +25,7 @@ func (f *NonSharedModules) Apply(log *zap.Logger, g *depgraph.Graph) *depgraph.G
 	for {
 		// Find the next unshared dependency.
 		var target graph.Node
-		for _, node := range g.Graph.Children().List() {
+		for _, node := range g.Graph.GetLevel(0).List() {
 			_, ok := excludeMap[node.Name()]
 			if !ok && len(node.Successors().List()) == 0 && len(node.Predecessors().List()) <= 1 {
 				target = node
