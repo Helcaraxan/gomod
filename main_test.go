@@ -24,19 +24,16 @@ func TestGraphGeneration(t *testing.T) {
 		dotArgs          *graphArgs
 		visualArgs       *graphArgs
 	}{
-		// Disabled test as the produced DOT graph crashes the .dot tool despite being valid.
-		// Issue that is being experienced is: https://gitlab.com/graphviz/graphviz/-/issues/1408
-		// Also relates to: https://github.com/Helcaraxan/gomod/issues/54
-		// "Full": {
-		// 	expectedFileBase: "full",
-		// 	dotArgs:          &graphArgs{},
-		// 	visualArgs: &graphArgs{
-		// 		style: &printer.StyleOptions{
-		// 			ScaleNodes: true,
-		// 			Cluster:    printer.Full,
-		// 		},
-		// 	},
-		// },
+		"Full": {
+			expectedFileBase: "full",
+			dotArgs:          &graphArgs{},
+			visualArgs: &graphArgs{
+				style: &printer.StyleOptions{
+					ScaleNodes: true,
+					Cluster:    printer.Full,
+				},
+			},
+		},
 		"Shared": {
 			expectedFileBase: "shared-dependencies",
 			dotArgs:          &graphArgs{shared: true},
@@ -89,18 +86,6 @@ func TestGraphGeneration(t *testing.T) {
 				expected, err = ioutil.ReadFile(filepath.Join("images", testcase.expectedFileBase+".dot"))
 				require.NoError(t, err)
 				assert.Equal(t, string(expected), string(actual))
-			}
-
-			// Test the visual generation.
-			visualArgs := *testcase.visualArgs
-			visualArgs.commonArgs = cArgs
-			visualArgs.outputPath = filepath.Join(tempDir, testcase.expectedFileBase+".jpg")
-			require.NoError(t, runGraphCmd(&visualArgs))
-
-			actual, err = ioutil.ReadFile(filepath.Join(tempDir, testcase.expectedFileBase+".jpg"))
-			require.NoError(t, err)
-			if *regenerate {
-				require.NoError(t, ioutil.WriteFile(filepath.Join("images", testcase.expectedFileBase+".jpg"), actual, 0644))
 			}
 		})
 	}

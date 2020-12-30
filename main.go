@@ -46,7 +46,9 @@ func main() {
 			}
 			commonArgs.log = zap.New(zapcore.NewCore(zapEnc, zapOut, zapLevel))
 
-			if err := checkGoModulePresence(commonArgs.log); err != nil {
+			if err := checkToolDependencies(commonArgs.log); err != nil {
+				return err
+			} else if err := checkGoModulePresence(commonArgs.log); err != nil {
 				return err
 			}
 			return nil
@@ -143,9 +145,8 @@ type graphArgs struct {
 	annotate bool
 	style    *printer.StyleOptions
 
-	force        bool
-	outputPath   string
-	outputFormat string
+	force      bool
+	outputPath string
 
 	shared       bool
 	dependencies []string
@@ -156,23 +157,18 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 		commonArgs: cArgs,
 	}
 
-	var visual bool
 	var style string
 	graphCmd := &cobra.Command{
 		Use:   "graph",
 		Short: graphShort,
 		Long:  graphLong,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			// Only require 'dot' tool if outputting an image file.
-			if visual || cmd.Flags().Changed("style") {
-				if err := checkToolDependencies(cmdArgs.log); err != nil {
-					return err
-				}
-				visualOptions, err := parsers.ParseVisualConfig(cmdArgs.log, style)
+			if cmd.Flags().Changed("style") {
+				styleOptions, err := parsers.ParseStyleConfiguration(cmdArgs.log, style)
 				if err != nil {
 					return err
 				}
-				cmdArgs.style = visualOptions
+				cmdArgs.style = styleOptions
 			}
 			return runGraphCmd(cmdArgs)
 		},
@@ -182,6 +178,7 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 	graphCmd.Flags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the graph's nodes and edges with version information")
 	graphCmd.Flags().BoolVarP(&cmdArgs.force, "force", "f", false, "Overwrite any existing files")
 	graphCmd.Flags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "If set dump the output to this location")
+	graphCmd.Flags().StringVar(&style, "style", "", "Set style options that add decorations and optimisations to the produced 'dot' output.")
 
 	graphCmd.Flags().Lookup("output").Annotations = map[string][]string{cobra.BashCompFilenameExt: {"dot", "gif", "pdf", "png", "ps"}}
 
@@ -190,13 +187,6 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 	graphCmd.Flags().StringSliceVarP(&cmdArgs.dependencies, "dependencies", "d", nil, "Dependency for which to show the dependency graph")
 
 	graphCmd.Flags().Lookup("dependencies").Annotations = map[string][]string{cobra.BashCompCustom: {"__gomod_graph_dependencies"}}
-
-	// Flags controlling image generation.
-	graphCmd.Flags().BoolVarP(&visual, "visual", "V", false, "Produce an image of the graph instead of a '.dot' file.")
-	graphCmd.Flags().StringVar(&style, "style", "", "Set style options for producing a graph image. Implies '--visual'.")
-	graphCmd.Flags().StringVarP(&cmdArgs.outputFormat, "format", "F", "", "Output format for any image file (pdf, png, gif, ...)")
-
-	graphCmd.Flags().Lookup("format").Annotations = map[string][]string{cobra.BashCompCustom: {"__gomod_graph_format"}}
 
 	return graphCmd
 }
@@ -329,7 +319,6 @@ func runVersionCmd(args *versionArgs) error {
 
 func checkToolDependencies(log *zap.Logger) error {
 	tools := []string{
-		"dot",
 		"go",
 	}
 
@@ -367,11 +356,10 @@ func checkGoModulePresence(log *zap.Logger) error {
 
 func printResult(g *depgraph.Graph, args *graphArgs) error {
 	return printer.Print(g.Graph, &printer.PrintConfig{
-		Log:          args.log,
-		OutputPath:   args.outputPath,
-		Force:        args.force,
-		Style:        args.style,
-		Annotate:     args.annotate,
-		OutputFormat: printer.StringToFormat[args.outputFormat],
+		Log:        args.log,
+		OutputPath: args.outputPath,
+		Force:      args.force,
+		Style:      args.style,
+		Annotate:   args.annotate,
 	})
 }

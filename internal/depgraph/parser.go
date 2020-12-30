@@ -5,6 +5,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/Helcaraxan/gomod/internal/graph"
 	"github.com/Helcaraxan/gomod/internal/modules"
 )
 
@@ -37,11 +38,26 @@ func GetGraph(log *zap.Logger, path string) (*Graph, error) {
 		return nil, err
 	}
 
+	var roots []graph.Node
 	for _, module := range g.Graph.GetLevel(0).List() {
-		if module.Predecessors().Len() == 0 && module.Successors().Len() == 0 {
-			g.log.Debug("Removing module as it not connected to the final graph.", zap.String("dependency", module.Name()))
-			g.removeModule(module.Name())
+		if module.Predecessors().Len() == 0 && module.Hash() != g.Main.Hash() {
+			roots = append(roots, module)
 		}
 	}
+
+	for len(roots) > 0 {
+		next := roots[0]
+		roots = roots[1:]
+
+		for _, child := range next.Successors().List() {
+			if child.Predecessors().Len() == 1 {
+				roots = append(roots, child)
+			}
+		}
+
+		g.log.Debug("Removing module as it not connected to the final graph.", zap.String("dependency", next.Name()))
+		g.removeModule(next.Name())
+	}
+
 	return g, nil
 }

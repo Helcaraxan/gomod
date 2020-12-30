@@ -42,17 +42,19 @@ _Release-notes for each version can be found [here](./RELEASE_NOTES.md)_
 
 #### `gomod graph`
 
-Create a graphical representations of your dependency graph with the possibility to filter out
-noise, add annotations and focus on the pieces of the graph that are of interest to you. You can for
-example:
+Output your dependency graph in [DOT format] with the possibility to filter out noise, add
+annotations and focus on the pieces of the graph that are of interest to you. You can for example:
 
 - Only show dependencies that are required by more than one module.
 - Only show the dependency chains that lead to one or more specified modules.
 - Annotate dependencies with the versions in which they are used and the versions constraint
   imposed by each edge of the graph.
 
-This functionality requires the [`dot`](https://www.graphviz.org/) tool which you will need to
-install separately. You can produce images in GIF, JPG, PDF, PNG and PS format.
+If you want to create an image based on the generated text-based DOT content you need to use the
+[`dot`] tool which you will need to install separately.
+
+[DOT format]: https://graphviz.org/doc/info/lang.html
+[`dot`]: https://www.graphviz.org/download/
 
 #### `gomod reveal`
 
@@ -147,9 +149,8 @@ Specific zoom on the dependency chains leading to the `github.com/stretchr/testi
 
 ### Hidden `replace`'s
 
-Revealing hidden replaces in the [Matterbridge](https://github.com/42wim/matterbridge) dependency
-graph. One is accounted for, the other is not. This can be the cause of unexpected errors when
-building the project.
+Revealing hidden replaces in the [Matterbridge] dependency graph. One is accounted for, the other is
+not. This can be the cause of unexpected errors when building the project.
 
 ```text
  -> gomod reveal
@@ -163,6 +164,8 @@ building the project.
 
 [✓] Match with a top-level replace in 'github.com/42wim/matterbridge'
 ```
+
+[Matterbridge]: https://github.com/42wim/matterbridge
 
 ### Dependency statistics
 
