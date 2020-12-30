@@ -69,8 +69,6 @@ func TestGraphGeneration(t *testing.T) {
 	for name := range testcases {
 		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
 			// Test the dot generation.
 			dotArgs := *testcase.dotArgs
 			dotArgs.commonArgs = cArgs
