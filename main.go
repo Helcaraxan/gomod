@@ -36,7 +36,7 @@ func main() {
 		Use:   "gomod",
 		Short: gomodShort,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
-			zapOut := os.Stdout
+			zapOut := os.Stderr
 			zapEnc := logger.NewGoModEncoder()
 			zapLevel := zapcore.InfoLevel
 			if verbose {
