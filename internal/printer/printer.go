@@ -31,15 +31,12 @@ type PrintConfig struct {
 
 	// Annotate edges and nodes with their respective versions.
 	Annotate bool
-	// Options for generating a visual representation of the Graph. If the field is non-nil, print
-	// out an image file using GraphViz, if false print out the graph in DOT format.
-	Style *StyleOptions
-
-	// Force overwriting of pre-existing files at the specified OutputPath.
-	Force bool
 	// Path at which the printed version of the Graph should be stored. If set to a nil-string a
 	// temporary file will be created.
 	OutputPath string
+	// Options for generating a visual representation of the Graph. If the field is non-nil, print
+	// out an image file using GraphViz, if false print out the graph in DOT format.
+	Style *StyleOptions
 }
 
 type StyleOptions struct {
@@ -71,7 +68,7 @@ func Print(g *graph.HierarchicalDigraph, config *PrintConfig) error {
 	var err error
 	out := os.Stdout
 	if len(config.OutputPath) > 0 {
-		if out, err = util.PrepareOutputPath(config.Log, config.OutputPath, config.Force); err != nil {
+		if out, err = util.PrepareOutputPath(config.Log, config.OutputPath); err != nil {
 			return err
 		}
 		defer func() {

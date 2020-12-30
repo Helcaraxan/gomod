@@ -142,11 +142,9 @@ func runCompletionCommand(args *completionArgs) error {
 type graphArgs struct {
 	*commonArgs
 
-	annotate bool
-	style    *printer.StyleOptions
-
-	force      bool
+	annotate   bool
 	outputPath string
+	style      *printer.StyleOptions
 
 	shared       bool
 	dependencies []string
@@ -176,16 +174,14 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 
 	// Flags controlling output.
 	graphCmd.Flags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the graph's nodes and edges with version information")
-	graphCmd.Flags().BoolVarP(&cmdArgs.force, "force", "f", false, "Overwrite any existing files")
 	graphCmd.Flags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "If set dump the output to this location")
 	graphCmd.Flags().StringVar(&style, "style", "", "Set style options that add decorations and optimisations to the produced 'dot' output.")
-
-	graphCmd.Flags().Lookup("output").Annotations = map[string][]string{cobra.BashCompFilenameExt: {"dot", "gif", "pdf", "png", "ps"}}
 
 	// Flags controlling graph filtering.
 	graphCmd.Flags().BoolVarP(&cmdArgs.shared, "shared", "s", false, "Filter out unshared dependencies (i.e. only required by one Go module)")
 	graphCmd.Flags().StringSliceVarP(&cmdArgs.dependencies, "dependencies", "d", nil, "Dependency for which to show the dependency graph")
 
+	graphCmd.Flags().Lookup("output").Annotations = map[string][]string{cobra.BashCompFilenameExt: {"dot"}}
 	graphCmd.Flags().Lookup("dependencies").Annotations = map[string][]string{cobra.BashCompCustom: {"__gomod_graph_dependencies"}}
 
 	return graphCmd
@@ -358,7 +354,6 @@ func printResult(g *depgraph.Graph, args *graphArgs) error {
 	return printer.Print(g.Graph, &printer.PrintConfig{
 		Log:        args.log,
 		OutputPath: args.outputPath,
-		Force:      args.force,
 		Style:      args.style,
 		Annotate:   args.annotate,
 	})
