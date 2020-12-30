@@ -1,6 +1,9 @@
 package graph
 
-import "sort"
+import (
+	"reflect"
+	"sort"
+)
 
 type Node interface {
 	Name() string
@@ -13,9 +16,13 @@ type Node interface {
 	Children() *NodeRefs
 }
 
+func nodeIsNil(n Node) bool {
+	return n == nil || reflect.ValueOf(n).IsNil()
+}
+
 func nodeDepth(n Node) int {
 	depth := -1
-	for n != nil {
+	for !nodeIsNil(n) {
 		depth++
 		n = n.Parent()
 	}
@@ -41,7 +48,7 @@ func (n NodeRefs) Len() int {
 }
 
 func (n *NodeRefs) Add(node Node) {
-	if n == nil {
+	if nodeIsNil(node) {
 		return
 	}
 

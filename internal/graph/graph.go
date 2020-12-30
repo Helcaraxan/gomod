@@ -2,57 +2,72 @@ package graph
 
 import (
 	"errors"
-	"fmt"
+)
+
+var (
+	ErrNilGraph          = errors.New("cannot operate on nil-graph")
+	ErrNilNode           = errors.New("cannot operate on nil-node")
+	ErrNodeAlreadyExists = errors.New("node with identical hash already exists in graph")
+	ErrNodeNotFound      = errors.New("node not found")
+	ErrEdgeSelf          = errors.New("self-edges are not allowed")
+	ErrEdgeCrossLevel    = errors.New("edges not allowed between nodes of different hierarchical levels")
 )
 
 type HierarchicalDigraph struct {
-	name     string
-	members  NodeRefs
-	children NodeRefs
+	members NodeRefs
 }
 
-func NewHierarchicalDigraph(name string) HierarchicalDigraph {
-	return HierarchicalDigraph{
-		name:     name,
-		members:  NewNodeRefs(),
-		children: NewNodeRefs(),
+func NewHierarchicalDigraph() *HierarchicalDigraph {
+	return &HierarchicalDigraph{
+		members: NewNodeRefs(),
 	}
 }
 
-func (g *HierarchicalDigraph) Name() string            { return g.name }
-func (g *HierarchicalDigraph) Predecessors() *NodeRefs { return nil }
-func (g *HierarchicalDigraph) Successors() *NodeRefs   { return nil }
-func (g *HierarchicalDigraph) Parent() Node            { return nil }
-func (g *HierarchicalDigraph) Children() *NodeRefs     { return &g.children }
+func (g HierarchicalDigraph) GetNode(hash string) (Node, error) {
+	n, _ := g.members.Get(hash)
+	if n == nil {
+		return nil, ErrNodeNotFound
+	}
+	return n, nil
+}
 
 func (g *HierarchicalDigraph) AddNode(node Node) error {
 	if g == nil {
-		return errors.New("cannot add node to nil graph")
-	} else if n, _ := g.members.Get(node.Hash()); n != nil {
-		return fmt.Errorf("could not add node %q to graph as there is already a node with that hash", node.Hash())
+		return ErrNilGraph
+	} else if nodeIsNil(node) {
+		return ErrNilNode
 	}
 
-	g.members.Add(node)
-	if node.Parent() == nil {
-		g.children.Add(node)
+	if n, _ := g.members.Get(node.Hash()); n != nil {
+		return ErrNodeAlreadyExists
 	}
+
+	if p := node.Parent(); !nodeIsNil(p) {
+		if n, _ := g.members.Get(p.Hash()); nodeIsNil(n) {
+			return ErrNodeNotFound
+		}
+		p.Children().Add(node)
+	}
+	g.members.Add(node)
 
 	return nil
 }
 
 func (g *HierarchicalDigraph) DeleteNode(hash string) error {
 	if g == nil {
-		return errors.New("cannot delete node from nil graph")
+		return ErrNilGraph
 	}
 
 	target, _ := g.members.Get(hash)
 	if target == nil {
-		return fmt.Errorf("could not delete node %q from graph as there is no node with that name", hash)
+		return ErrNodeNotFound
 	}
 
-	for _, child := range target.Children().List() {
-		if err := g.DeleteNode(child.Hash()); err != nil {
-			return err
+	if target.Children() != nil {
+		for _, child := range target.Children().List() {
+			if err := g.DeleteNode(child.Hash()); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -68,36 +83,36 @@ func (g *HierarchicalDigraph) DeleteNode(hash string) error {
 		}
 	}
 
-	g.members.Delete(hash)
-	g.children.Delete(hash)
+	if p := target.Parent(); !nodeIsNil(p) {
+		p.Children().Delete(hash)
+	}
 
+	g.members.Delete(hash)
 	return nil
 }
 
 func (g *HierarchicalDigraph) AddEdge(src Node, dst Node) error {
 	if g == nil {
-		return errors.New("cannot add edge to nil graph")
-	} else if src.Hash() == dst.Hash() {
-		return errors.New("cannot add self-edge")
+		return ErrNilGraph
+	} else if nodeIsNil(src) || nodeIsNil(dst) {
+		return ErrNilNode
+	}
+
+	if src.Hash() == dst.Hash() {
+		return ErrEdgeSelf
 	}
 
 	if _, w := g.members.Get(src.Hash()); w == 0 {
-		return fmt.Errorf("could not start edge from node %q as there is no node with that name in the graph", src.Name())
+		return ErrNodeNotFound
 	} else if _, w := g.members.Get(dst.Hash()); w == 0 {
-		return fmt.Errorf("could not end edge from node %q as there is no node with that name in the graph", dst.Name())
+		return ErrNodeNotFound
 	}
 
 	if nodeDepth(src) != nodeDepth(dst) {
-		return fmt.Errorf(
-			"could not create edge between %q (%d) and %q (%d) as they do not belong to the same hierarchical graph level",
-			src.Name(),
-			nodeDepth(src),
-			dst.Name(),
-			nodeDepth(dst),
-		)
+		return ErrEdgeCrossLevel
 	}
 
-	for src != nil && dst != nil && src.Hash() != dst.Hash() {
+	for !nodeIsNil(src) && !nodeIsNil(dst) && src.Hash() != dst.Hash() {
 		src.Successors().Add(dst)
 		dst.Predecessors().Add(src)
 
@@ -109,26 +124,30 @@ func (g *HierarchicalDigraph) AddEdge(src Node, dst Node) error {
 
 func (g *HierarchicalDigraph) DeleteEdge(src Node, dst Node) error {
 	if g == nil {
-		return errors.New("cannot delete edge from nil graph")
+		return ErrNilGraph
+	} else if nodeIsNil(src) || nodeIsNil(dst) {
+		return ErrNilNode
 	}
 
 	if _, w := g.members.Get(src.Hash()); w == 0 {
-		return fmt.Errorf("could not remove edge starting at node %q as there is no node with that name in the graph", src.Name())
+		return ErrNodeNotFound
 	} else if _, w := g.members.Get(dst.Hash()); w == 0 {
-		return fmt.Errorf("could not remove edge ending at node %q as there is no node with that name in the graph", dst.Name())
+		return ErrNodeNotFound
 	}
 
-	for _, child := range src.Children().List() {
-		for _, succ := range child.Successors().List() {
-			if succ.Parent() == dst {
-				if err := g.DeleteEdge(child, succ); err != nil {
-					return err
+	if src.Children() != nil {
+		for _, child := range src.Children().List() {
+			for _, succ := range child.Successors().List() {
+				if sp := succ.Parent(); !nodeIsNil(sp) && sp == dst {
+					if err := g.DeleteEdge(child, succ); err != nil {
+						return err
+					}
 				}
 			}
 		}
 	}
 
-	for src != nil && dst != nil && src.Hash() != dst.Hash() {
+	for !nodeIsNil(src) && !nodeIsNil(dst) && src.Hash() != dst.Hash() {
 		src.Successors().Delete(dst.Hash())
 		dst.Predecessors().Delete(src.Hash())
 
@@ -138,7 +157,7 @@ func (g *HierarchicalDigraph) DeleteEdge(src Node, dst Node) error {
 	return nil
 }
 
-func (g *HierarchicalDigraph) GetLevel(level int) NodeRefs {
+func (g HierarchicalDigraph) GetLevel(level int) NodeRefs {
 	refs := NewNodeRefs()
 	for _, n := range g.members.nodeList {
 		if nodeDepth(n) == level {

@@ -11,7 +11,7 @@ import (
 type Graph struct {
 	Path string
 
-	Graph    graph.HierarchicalDigraph
+	Graph    *graph.HierarchicalDigraph
 	Main     *Module
 	Replaces map[string]string
 
@@ -43,7 +43,7 @@ func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *Graph {
 	}
 	g := &Graph{
 		Path:     path,
-		Graph:    graph.NewHierarchicalDigraph(main.Path),
+		Graph:    graph.NewHierarchicalDigraph(),
 		Replaces: map[string]string{},
 		log:      log,
 	}
@@ -63,8 +63,8 @@ func (g *Graph) getModule(name string) (*Module, bool) {
 	if replaced, ok := g.Replaces[name]; ok {
 		name = replaced
 	}
-	node, _ := g.Graph.Children().Get(moduleHash(name))
-	if node == nil {
+	node, err := g.Graph.GetNode(moduleHash(name))
+	if err != nil {
 		return nil, false
 	}
 	return node.(*ModuleReference).Module, true
@@ -73,7 +73,7 @@ func (g *Graph) getModule(name string) (*Module, bool) {
 func (g *Graph) addModule(module *modules.ModuleInfo) *Module {
 	if module == nil {
 		return nil
-	} else if node, _ := g.Graph.Children().Get(moduleHash(module.Path)); node != nil {
+	} else if node, _ := g.Graph.GetNode(moduleHash(module.Path)); node != nil {
 		return node.(*ModuleReference).Module
 	}
 
@@ -100,8 +100,8 @@ func (g *Graph) removeModule(name string) {
 		}
 	}
 
-	node, _ := g.Graph.Children().Get(moduleHash(name))
-	if node == nil {
+	node, err := g.Graph.GetNode(moduleHash(name))
+	if err != nil {
 		return
 	}
 
