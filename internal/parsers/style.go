@@ -9,7 +9,7 @@ import (
 	"github.com/Helcaraxan/gomod/internal/printer"
 )
 
-func ParseVisualConfig(logger *zap.Logger, config string) (*printer.StyleOptions, error) {
+func ParseStyleConfiguration(logger *zap.Logger, config string) (*printer.StyleOptions, error) {
 	styleOptions := &printer.StyleOptions{}
 	for _, setting := range strings.Split(config, ",") {
 		if setting == "" {
@@ -32,7 +32,7 @@ func ParseVisualConfig(logger *zap.Logger, config string) (*printer.StyleOptions
 		case "cluster":
 			err = parseStyleCluster(logger, styleOptions, configValue)
 		default:
-			logger.Error("Skipping unknown visual option.", zap.String("option", configKey))
+			logger.Error("Skipping unknown style option.", zap.String("option", configKey))
 			err = errors.New("invalid config")
 		}
 		if err != nil {

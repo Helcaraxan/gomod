@@ -1,46 +1,15 @@
 package printer
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/internal/graph"
 	"github.com/Helcaraxan/gomod/internal/util"
-)
-
-type Format int
-
-const (
-	FormatUnknown Format = iota
-	FormatPDF
-	FormatPNG
-	FormatPS
-	FormatJPG
-	FormatGIF
-)
-
-var (
-	FormatToString = map[Format]string{
-		FormatPDF: "pdf",
-		FormatPNG: "png",
-		FormatPS:  "ps",
-		FormatJPG: "jpg",
-		FormatGIF: "gif",
-	}
-	StringToFormat = map[string]Format{
-		"pdf": FormatPDF,
-		"png": FormatPNG,
-		"ps":  FormatPS,
-		"jpg": FormatJPG,
-		"gif": FormatGIF,
-	}
 )
 
 type Level uint8
@@ -70,8 +39,6 @@ type PrintConfig struct {
 	// Path at which the printed version of the Graph should be stored. If set to a nil-string a
 	// temporary file will be created.
 	OutputPath string
-	// OutputFormat to use when writing files with the 'dot' tool.
-	OutputFormat Format
 }
 
 type StyleOptions struct {
@@ -97,71 +64,9 @@ const (
 	Full
 )
 
-// Print takes in a PrintConfig struct and dumps the content of this Graph instance according to
-// parameters.
+// Print takes in a PrintConfig struct and dumps the content of a HierarchicalDigraph instance
+// according to parameters.
 func Print(g *graph.HierarchicalDigraph, config *PrintConfig) error {
-	var printer func(*graph.HierarchicalDigraph, *PrintConfig) error
-	if config.Style != nil {
-		printer = PrintToVisual
-	} else {
-		printer = PrintToDOT
-	}
-	return printer(g, config)
-}
-
-// PrintToVisual creates an image file at the specified target path that represents the dependency graph.
-func PrintToVisual(g *graph.HierarchicalDigraph, config *PrintConfig) (err error) {
-	tempDir, err := ioutil.TempDir("", "depgraph")
-	if err != nil {
-		config.Log.Error("Could not create a temporary directory.", zap.Error(err))
-	}
-	defer func() {
-		if err == nil {
-			config.Log.Debug("Cleaning up temporary output folder.", zap.String("path", tempDir))
-			_ = os.RemoveAll(tempDir)
-		}
-	}()
-	config.Log.Debug("Using temporary output folder.", zap.String("path", tempDir))
-
-	if len(config.OutputPath) == 0 {
-		if config.OutputFormat == FormatUnknown {
-			config.OutputFormat = FormatPNG
-		}
-		config.OutputPath = fmt.Sprintf("graph." + FormatToString[config.OutputFormat])
-	} else {
-		if config.OutputFormat == FormatUnknown {
-			config.OutputFormat = StringToFormat[filepath.Ext(config.OutputPath)[1:]]
-		} else if filepath.Ext(config.OutputPath) != "."+FormatToString[config.OutputFormat] {
-			config.Log.Error(
-				"The given output file's extension does not match the specified output format.",
-				zap.String("extension", filepath.Ext(config.OutputPath)),
-				zap.String("format", FormatToString[config.OutputFormat]),
-			)
-			return errors.New("mismatched output filename and specified output format")
-		}
-	}
-	if config.OutputFormat == FormatUnknown {
-		config.Log.Error("Could not determine the output format from either the specified output path or format.")
-	}
-
-	out, err := util.PrepareOutputPath(config.Log, config.OutputPath, config.Force)
-	if err != nil {
-		return err
-	}
-	_ = out.Close() // Will be written by the 'dot' tool.
-
-	dotPrintConfig := *config
-	dotPrintConfig.OutputPath = filepath.Join(tempDir, "out.dot")
-	if err = PrintToDOT(g, &dotPrintConfig); err != nil {
-		return err
-	}
-
-	config.Log.Debug("Generating file.", zap.String("path", config.OutputPath))
-	_, _, err = util.RunCommand(config.Log, "", "dot", "-T"+FormatToString[config.OutputFormat], "-o"+config.OutputPath, dotPrintConfig.OutputPath)
-	return err
-}
-
-func PrintToDOT(g *graph.HierarchicalDigraph, config *PrintConfig) error {
 	var err error
 	out := os.Stdout
 	if len(config.OutputPath) > 0 {
@@ -193,7 +98,7 @@ func PrintToDOT(g *graph.HierarchicalDigraph, config *PrintConfig) error {
 	fileContent = append(fileContent, "}")
 
 	if _, err = out.WriteString(strings.Join(fileContent, "\n") + "\n"); err != nil {
-		config.Log.Error("Failed to write temporary DOT file.", zap.Error(err))
+		config.Log.Error("Failed to write DOT file.", zap.Error(err))
 		return fmt.Errorf("could not write to %q", out.Name())
 	}
 	return nil

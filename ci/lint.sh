@@ -68,7 +68,7 @@ fi
 # Run linters.
 echo "Ensuring that generated Go code is being kept up to date."
 go generate ./...
-git diff --exit-code --quiet || (
+git diff --exit-code --quiet '*.go' || (
   echo "Please run 'go generate ./...' to update the generated Go code."
   false
 )
@@ -81,7 +81,7 @@ golangci-lint run ./...
 
 echo "Ensuring that 'go.mod' and 'go.sum' are being kept up to date."
 go mod tidy
-git diff --exit-code --quiet || (
+git diff --exit-code --quiet go.mod go.sum || (
   echo "Please run 'go mod tidy' to clean up the 'go.mod' and 'go.sum' files."
   false
 )

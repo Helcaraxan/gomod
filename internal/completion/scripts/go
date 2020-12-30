@@ -75,19 +75,6 @@ function assert_compreply_content() {
   unset COMPREPLY
 }
 
-# Meta-test function for __gomod_graph_format.
-function test_gomod_graph_format() {
-  local cur expected expected_raw
-
-  cur="$1"
-  expected_raw="$2"
-  IFS=";" read -ra expected <<<"${expected_raw}"
-
-  __gomod_graph_format || true
-
-  assert_compreply_content
-}
-
 # Meta-test function for __gomod_graph_dependencies.
 function test_gomod_graph_dependencies() {
   local cur expected expected_raw
@@ -109,11 +96,6 @@ function test_gomod_graph_dependencies() {
 count_test_invocations
 
 # - TEST INVOCATIONS -
-
-test_gomod_graph_format "" "gif;jpg;pdf;png;ps"
-test_gomod_graph_format "g" "gif"
-test_gomod_graph_format "p" "pdf;png;ps"
-test_gomod_graph_format "pn" "png"
 
 test_gomod_graph_dependencies "" "foo;bar;deadbeef" "foo v1.0.0;bar v1.0.0;deadbeef v1.0.0"
 test_gomod_graph_dependencies "d" "deadbeef" "foo v1.0.0;bar v1.0.0;deadbeef v1.0.0"

@@ -119,7 +119,7 @@ func TestVisualConfig(t *testing.T) {
 		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
 			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zap.DebugLevel))
-			config, err := ParseVisualConfig(log, testcase.optionValue)
+			config, err := ParseStyleConfiguration(log, testcase.optionValue)
 			if testcase.expectedError {
 				assert.Error(t, err)
 			} else {

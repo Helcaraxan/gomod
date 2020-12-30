@@ -2,19 +2,6 @@
 # vim: set tabstop=2 shiftwidth=2 expandtab
 # shellcheck shell=bash disable=SC2154
 
-function __gomod_graph_format() {
-  local formats
-
-  formats=(
-    "gif"
-    "jpg"
-    "pdf"
-    "png"
-    "ps"
-  )
-  IFS=$'\n' read -r -d '\0' -a COMPREPLY < <(compgen -W "${formats[*]}" -- "${cur}")
-}
-
 function __gomod_graph_dependencies() {
   local cur_prefix cur_suffix out
 

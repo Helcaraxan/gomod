@@ -13,12 +13,14 @@ jobs:
   lint:
     name: Lint
     runs-on:
-      - ubuntu-latest
+      - ubuntu-20.04
     steps:
       - name: Install Go
         uses: actions/setup-go@v1
         with:
           go-version: 1.15
+      - name: Install required tools
+        run: sudo apt-get install -y graphviz
       - name: Install Python
         uses: actions/setup-python@v1
       - name: Check out repository
@@ -31,14 +33,12 @@ jobs:
   test:
     name: Test
     runs-on:
-      - ubuntu-latest
+      - ubuntu-20.04
     steps:
       - name: Install Go
         uses: actions/setup-go@v1
         with:
           go-version: 1.15
-      - name: Install required tools
-        run: sudo apt-get install -y graphviz
       - name: Check out repository
         uses: actions/checkout@v2
         with:
