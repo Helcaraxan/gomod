@@ -10,7 +10,9 @@ import (
 
 // Module represents a module in a Go module's dependency graph.
 type Module struct {
-	Info *modules.ModuleInfo
+	Info               *modules.ModuleInfo
+	Indirects          map[string]bool
+	VersionConstraints map[string]VersionConstraint
 
 	predecessors graph.NodeRefs
 	successors   graph.NodeRefs
@@ -18,12 +20,19 @@ type Module struct {
 	packages graph.NodeRefs
 }
 
+type VersionConstraint struct {
+	Source string
+	Target string
+}
+
 func NewModule(info *modules.ModuleInfo) *Module {
 	return &Module{
-		Info:         info,
-		predecessors: graph.NewNodeRefs(),
-		successors:   graph.NewNodeRefs(),
-		packages:     graph.NewNodeRefs(),
+		Info:               info,
+		Indirects:          map[string]bool{},
+		VersionConstraints: map[string]VersionConstraint{},
+		predecessors:       graph.NewNodeRefs(),
+		successors:         graph.NewNodeRefs(),
+		packages:           graph.NewNodeRefs(),
 	}
 }
 
@@ -58,31 +67,25 @@ func (m *Module) Timestamp() *time.Time {
 	return m.Info.Time
 }
 
-// ModuleReference represents an edge from one module to another in a dependency graph.
-type ModuleReference struct {
-	*Module
-	VersionConstraint string
-}
-
-func (m *ModuleReference) Parent() graph.Node {
+func (m *Module) Parent() graph.Node {
 	return nil
 }
 
-func (m *ModuleReference) Predecessors() *graph.NodeRefs {
+func (m *Module) Predecessors() *graph.NodeRefs {
 	return &m.predecessors
 }
 
-func (m *ModuleReference) Successors() *graph.NodeRefs {
+func (m *Module) Successors() *graph.NodeRefs {
 	return &m.successors
 }
 
-func (m *ModuleReference) Children() *graph.NodeRefs {
+func (m *Module) Children() *graph.NodeRefs {
 	return &m.packages
 }
 
-func (m *ModuleReference) NodeAnnotations() []string {
+func (m *Module) NodeAttributes(annotate bool) []string {
 	var annotations []string
-	if m.SelectedVersion() != "" {
+	if annotate && m.SelectedVersion() != "" {
 		var replacement string
 		if m.Info.Replace != nil {
 			replacement = m.Info.Replace.Path + "<br />"
@@ -95,10 +98,15 @@ func (m *ModuleReference) NodeAnnotations() []string {
 	return annotations
 }
 
-func (m *ModuleReference) EdgeAnnotations() []string {
+func (m *Module) EdgeAttributes(target graph.Node, annotate bool) []string {
+	targetModule := target.(*Module)
+
 	var annotations []string
-	if m.VersionConstraint != "" {
-		annotations = append(annotations, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", m.VersionConstraint))
+	if m.Indirects[target.Name()] {
+		annotations = append(annotations, "style=dashed")
+	}
+	if c, ok := m.VersionConstraints[targetModule.Hash()]; ok && annotate {
+		annotations = append(annotations, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", c.Target))
 	}
 	return annotations
 }

@@ -12,7 +12,7 @@ type Package struct {
 	predecessors graph.NodeRefs
 	successors   graph.NodeRefs
 
-	parent *ModuleReference
+	parent *Module
 }
 
 // Name returns the import path of the package and not the value declared inside the package with

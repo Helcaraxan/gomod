@@ -48,7 +48,7 @@ func Analyse(log *zap.Logger, g *depgraph.Graph) (*DepAnalysis, error) {
 	}
 
 	for _, module := range g.Graph.GetLevel(0).List() {
-		result.processDependency(module.(*depgraph.ModuleReference))
+		result.processDependency(module.(*depgraph.Module))
 	}
 
 	meanDepAge, maxDepAge, depAgeDistribution := result.depAges.compute()
@@ -85,7 +85,7 @@ type analysis struct {
 	reverseDependencies         meanMaxDistribution
 }
 
-func (r *analysis) processDependency(dependency *depgraph.ModuleReference) {
+func (r *analysis) processDependency(dependency *depgraph.Module) {
 	const month = 30 * 24 * time.Hour
 	var isDirect int
 
