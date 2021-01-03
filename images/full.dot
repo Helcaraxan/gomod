@@ -21,7 +21,6 @@ strict digraph {
   "github.com/beorn7/perks"
   "github.com/bgentry/speakeasy"
   "github.com/bketelsen/crypt"
-  "github.com/blang/semver"
   "github.com/cespare/xxhash"
   "github.com/client9/misspell"
   "github.com/coreos/bbolt"
@@ -233,7 +232,6 @@ strict digraph {
   "cloud.google.com/go/storage" -> "google.golang.org/api" [minlen=6]
   "cloud.google.com/go/storage" -> "google.golang.org/genproto" [minlen=8]
   "cloud.google.com/go/storage" -> "google.golang.org/grpc" [minlen=7]
-  "github.com/Helcaraxan/gomod" -> "github.com/blang/semver"
   "github.com/Helcaraxan/gomod" -> "github.com/spf13/cobra"
   "github.com/Helcaraxan/gomod" -> "github.com/stretchr/testify" [minlen=5]
   "github.com/Helcaraxan/gomod" -> "go.uber.org/zap" [minlen=4]

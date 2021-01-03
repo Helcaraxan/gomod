@@ -23,6 +23,10 @@
 
 - All library functionalities have been, for now, moved into the `internal` tree while further work
   is being done on the actual API and end-functionality of `gomod`.
+- The `--shared` and `--dependencies` flags on the `gomod graph` command have been removed with the
+  arrival of the new query syntax.
+- The `gomod completion` command has been removed with the introduction of the new query syntax
+  which would require much more complex logic for enabling autocomplete.
 - `gomod` no longer wraps the invocation of `dot`. To get an image as output simply pipe `gomod`'s
   output into the `dot` binary on the command-line. This means that the `--format` and `--visual`
   flags have been removed and the the `--style` flag no longer implies `--visual`.

@@ -26,8 +26,11 @@ func TestGraphGeneration(t *testing.T) {
 	}{
 		"Full": {
 			expectedFileBase: "full",
-			dotArgs:          &graphArgs{},
+			dotArgs: &graphArgs{
+				query: "deps(test(github.com/Helcaraxan/gomod))",
+			},
 			visualArgs: &graphArgs{
+				query: "deps(test(github.com/Helcaraxan/gomod))",
 				style: &printer.StyleOptions{
 					ScaleNodes: true,
 					Cluster:    printer.Full,
@@ -36,22 +39,24 @@ func TestGraphGeneration(t *testing.T) {
 		},
 		"Shared": {
 			expectedFileBase: "shared-dependencies",
-			dotArgs:          &graphArgs{shared: true},
+			dotArgs: &graphArgs{
+				query: "shared(deps(github.com/Helcaraxan/gomod))",
+			},
 			visualArgs: &graphArgs{
-				shared: true,
-				style:  &printer.StyleOptions{},
+				query: "shared(deps(github.com/Helcaraxan/gomod))",
+				style: &printer.StyleOptions{},
 			},
 		},
 		"TargetDependency": {
 			expectedFileBase: "dependency-chains",
 			dotArgs: &graphArgs{
-				annotate:     true,
-				dependencies: []string{"github.com/stretchr/testify", "golang.org/x/sys"},
+				annotate: true,
+				query:    "rdeps(github.com/stretchr/testify)",
 			},
 			visualArgs: &graphArgs{
-				annotate:     true,
-				dependencies: []string{"github.com/stretchr/testify", "golang.org/x/sys"},
-				style:        &printer.StyleOptions{},
+				annotate: true,
+				query:    "rdeps(github.com/stretchr/testify)",
+				style:    &printer.StyleOptions{},
 			},
 		},
 	}
