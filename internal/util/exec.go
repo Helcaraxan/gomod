@@ -28,7 +28,7 @@ func RunCommand(log *zap.Logger, path string, cmd string, args ...string) (stdou
 	execCmd.Stderr = stderrBuffer
 
 	if log.Core().Enabled(zap.DebugLevel) {
-		execCmd.Stdout = io.MultiWriter(execCmd.Stdout, os.Stdout)
+		execCmd.Stdout = io.MultiWriter(execCmd.Stdout, os.Stderr)
 	}
 	if log.Core().Enabled(zap.WarnLevel) {
 		execCmd.Stderr = io.MultiWriter(execCmd.Stderr, os.Stderr)

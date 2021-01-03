@@ -143,6 +143,16 @@ func (g *DepGraph) computeQuerySet(q query.Expr, level Level) (set nodeSet, err 
 				}
 			}
 			return g.matcherFunc(matcher, level), nil
+		case "shared":
+			if len(tq.Args().Args()) != 1 {
+				return nil, fmt.Errorf("the 'shared' function takes only a single argument but received %v (%v)", tq.Args(), tq.Args().Pos())
+			}
+
+			sources, err := g.computeQuerySet(tq.Args().Args()[0], level)
+			if err != nil {
+				return nil, err
+			}
+			return g.sharedFunc(sources, level)
 		default:
 			return nil, fmt.Errorf("unknown function %q", tq.Name())
 		}
@@ -224,6 +234,57 @@ func (g *DepGraph) traversalFunc(name string, iterate func(graph.Node) []graph.N
 				}{dep, next.d + 1})
 				seen[dep.Name()] = true
 			}
+		}
+	}
+	return set, nil
+}
+
+func (g *DepGraph) sharedFunc(sources nodeSet, level Level) (nodeSet, error) {
+	set := nodeSet{}
+	for k, v := range sources {
+		set[k] = v
+	}
+
+	nodesInSet := func(set nodeSet, list []graph.Node) int {
+		var c int
+		for _, n := range list {
+			if set[n.Name()] {
+				c++
+			}
+		}
+		return c
+	}
+
+	var todo []graph.Node
+	for src := range sources {
+		var h string
+		switch level {
+		case LevelModules:
+			h = moduleHash(src)
+		case LevelPackages:
+			h = packageHash(src)
+		}
+		n, _ := g.Graph.GetNode(h)
+
+		if nodesInSet(set, n.Successors().List()) == 0 && nodesInSet(set, n.Predecessors().List()) == 1 {
+			todo = append(todo, n)
+		}
+	}
+
+	for len(todo) > 0 {
+		next := todo[0]
+		todo = todo[1:]
+
+		g.log.Debug("Removing node from set.", zap.String("name", next.Name()))
+		delete(set, next.Name())
+
+		pred := next.Predecessors().List()[0]
+		if err := g.Graph.DeleteNode(next.Hash()); err != nil {
+			return nil, err
+		}
+
+		if nodesInSet(set, pred.Successors().List()) == 0 && nodesInSet(set, pred.Predecessors().List()) == 1 {
+			todo = append(todo, pred)
 		}
 	}
 	return set, nil
