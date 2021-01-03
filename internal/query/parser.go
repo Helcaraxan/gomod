@@ -68,17 +68,14 @@ type parser struct {
 }
 
 func (p *parser) parse() (Expr, error) {
-	var cont bool
-	var err error
 	for p.streamIdx < len(p.stream) {
-		cont, err = p.shift(p.stream[p.streamIdx])
+		r, err := p.shift(p.stream[p.streamIdx])
 		if err != nil {
 			return nil, err
 		}
 
-		for cont {
-			cont, err = p.reduce()
-			if err != nil {
+		if r {
+			if err = p.reduce(); err != nil {
 				return nil, err
 			}
 		}
@@ -93,8 +90,7 @@ func (p *parser) parse() (Expr, error) {
 	}
 
 	for len(p.ruleStack) > 0 {
-		_, err = p.reduce()
-		if err != nil {
+		if err := p.reduce(); err != nil {
 			return nil, err
 		}
 	}
@@ -259,14 +255,14 @@ func (p *parser) shiftOperator(next operatorToken) (bool, error) {
 	return false, nil
 }
 
-func (p *parser) reduce() (bool, error) {
+func (p *parser) reduce() error {
 	if len(p.ruleStack) == 0 {
 		p.log.Debug("Not reducing as rule stack is empty.")
-		return false, nil
+		return nil
 	}
 	p.log.Debug("Reducing.", zap.String("ruleStack", p.ruleStackString()))
 
-	var reduceFunc func() (bool, error)
+	var reduceFunc func() error
 	switch p.ruleStack[len(p.ruleStack)-1] {
 	case funcRule:
 		reduceFunc = p.reduceFuncRule
@@ -281,9 +277,9 @@ func (p *parser) reduce() (bool, error) {
 }
 
 // nolint: gocyclo
-func (p *parser) reduceFuncRule() (bool, error) {
+func (p *parser) reduceFuncRule() error {
 	if len(p.exprStack) < 2 {
-		return false, &parserError{
+		return &parserError{
 			err: ErrEmptyFuncCall,
 			pos: p.stream[p.streamIdx-1].Pos(),
 		}
@@ -294,7 +290,7 @@ func (p *parser) reduceFuncRule() (bool, error) {
 	case *ExprString:
 		// Expected
 	default:
-		return false, &parserError{
+		return &parserError{
 			err: ErrInvalidFuncName,
 			pos: p.stream[p.streamIdx].Pos(),
 		}
@@ -314,12 +310,12 @@ func (p *parser) reduceFuncRule() (bool, error) {
 	p.exprStack = p.exprStack[:len(p.exprStack)-1]
 	p.ruleStack = p.ruleStack[:len(p.ruleStack)-1]
 	p.log.Debug("Reduced func rule.", zap.String("exprStack", p.exprStackString()))
-	return false, nil
+	return nil
 }
 
-func (p *parser) reduceGroupRule() (bool, error) {
+func (p *parser) reduceGroupRule() error {
 	if len(p.exprStack) == 0 {
-		return false, &parserError{
+		return &parserError{
 			err: ErrEmptyParenthesis,
 			pos: p.stream[p.streamIdx].Pos(),
 		}
@@ -327,13 +323,13 @@ func (p *parser) reduceGroupRule() (bool, error) {
 
 	p.ruleStack = p.ruleStack[:len(p.ruleStack)-1]
 	p.log.Debug("Reduced group rule.", zap.String("ruleStack", p.ruleStackString()))
-	return false, nil
+	return nil
 }
 
-func (p *parser) reduceOperatorRule(r rule) func() (bool, error) {
-	return func() (bool, error) {
+func (p *parser) reduceOperatorRule(r rule) func() error {
+	return func() error {
 		if len(p.exprStack) < 2 {
-			return false, &parserError{
+			return &parserError{
 				err: ErrMissingArgument,
 				pos: p.stream[p.streamIdx-1].Pos(),
 			}
@@ -348,7 +344,7 @@ func (p *parser) reduceOperatorRule(r rule) func() (bool, error) {
 		for _, expr := range []Expr{operands.LHS, operands.RHS} {
 			switch expr.(type) {
 			case *ExprBool, *ExprInteger:
-				return false, &parserError{
+				return &parserError{
 					err: ErrInvalidArgument,
 					pos: expr.Pos(),
 				}
@@ -369,13 +365,13 @@ func (p *parser) reduceOperatorRule(r rule) func() (bool, error) {
 		p.exprStack = p.exprStack[:len(p.exprStack)-1]
 		p.ruleStack = p.ruleStack[:len(p.ruleStack)-1]
 		p.log.Debug("Reduced top two arguments.", zap.String("exprStack", p.exprStackString()))
-		return false, nil
+		return nil
 	}
 }
 
-func (p *parser) reduceArgsListRule() (bool, error) {
+func (p *parser) reduceArgsListRule() error {
 	if len(p.exprStack) < 2 {
-		return false, &parserError{
+		return &parserError{
 			err: ErrMissingArgument,
 			pos: p.stream[p.streamIdx-1].Pos(),
 		}
@@ -396,7 +392,7 @@ func (p *parser) reduceArgsListRule() (bool, error) {
 	p.ruleStack = p.ruleStack[:len(p.ruleStack)-1]
 
 	p.log.Debug("Reduced top-two expressions.", zap.String("exprStack", p.exprStackString()))
-	return false, nil
+	return nil
 }
 
 func (p *parser) exprStackLength() int {
