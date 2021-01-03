@@ -8,21 +8,6 @@ var (
 const (
 	gomodShort = "A tool to visualise and analyse a Go project's dependency graph."
 
-	completionShort = "Commands to generate shell completion for various environments."
-
-	completionBashShort = "Generate a bash completion script ready to be sourced."
-	completionBashLong  = `To load 'gomod' completion rules for a single shell simply run
-. <(gomod completion bash)
-
-To load 'gomod' completion for each new bash shell by default add the following to your ~/.bashrc (or equivalent).
-# ~/.bashrc or ~/.profile
-[[ -n "$(which gomod)" ]] && . <(gomod completion bash)
-`
-
-	completionPSShort = "Generate a Powershell completion script ready to be sourced."
-
-	completionZSHShort = "Generates a zsh completion script ready to be sourced."
-
 	graphShort = "Visualise the dependency graph of a Go module."
 	graphLong  = `Generate a visualisation of the dependency network used by the code in your Go
 module.

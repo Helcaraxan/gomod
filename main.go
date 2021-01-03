@@ -6,16 +6,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/Helcaraxan/gomod/internal/analysis"
-	"github.com/Helcaraxan/gomod/internal/completion"
 	"github.com/Helcaraxan/gomod/internal/depgraph"
-	"github.com/Helcaraxan/gomod/internal/depgraph/filters"
 	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/parsers"
 	"github.com/Helcaraxan/gomod/internal/printer"
@@ -54,14 +51,12 @@ func main() {
 			}
 			return nil
 		},
-		BashCompletionFunction: completion.GomodCustomFunc,
 	}
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Silence output from go tool invocations")
 
 	rootCmd.AddCommand(
 		initAnalyseCmd(commonArgs),
-		initCompletionCommand(commonArgs),
 		initGraphCmd(commonArgs),
 		initRevealCmd(commonArgs),
 		initVersionCmd(commonArgs),
@@ -73,73 +68,6 @@ func main() {
 	}
 }
 
-type completionArgs struct {
-	*commonArgs
-
-	rootCmd    *cobra.Command
-	shell      completion.ShellType
-	outputPath string
-}
-
-func initCompletionCommand(cArgs *commonArgs) *cobra.Command {
-	cmdArgs := &completionArgs{
-		commonArgs: cArgs,
-	}
-
-	completionCommand := &cobra.Command{
-		Use:   "completion",
-		Short: completionShort,
-	}
-
-	completionCommand.PersistentFlags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "Output path for the generated completion script.")
-	completionCommand.PersistentFlags().Lookup("output").Annotations = map[string][]string{cobra.BashCompFilenameExt: {"", "sh"}}
-
-	completionCommand.AddCommand(
-		&cobra.Command{
-			Use:   "bash",
-			Short: completionBashShort,
-			Long:  completionBashLong,
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				cmdArgs.shell = completion.BASH
-				cmdArgs.rootCmd = cmd.Root()
-				return runCompletionCommand(cmdArgs)
-			},
-		},
-		&cobra.Command{
-			Use:   "ps",
-			Short: completionPSShort,
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				cmdArgs.shell = completion.POWERSHELL
-				cmdArgs.rootCmd = cmd.Root()
-				return runCompletionCommand(cmdArgs)
-			},
-		},
-		&cobra.Command{
-			Use:   "zsh",
-			Short: completionZSHShort,
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				cmdArgs.shell = completion.ZSH
-				cmdArgs.rootCmd = cmd.Root()
-				return runCompletionCommand(cmdArgs)
-			},
-		},
-	)
-
-	return completionCommand
-}
-
-func runCompletionCommand(args *completionArgs) error {
-	var err error
-	writer := os.Stdout
-	if args.outputPath != "" {
-		if writer, err = os.OpenFile(args.outputPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644); err != nil {
-			args.log.Error("Failed to open file to write completion script.", zap.String("path", args.outputPath), zap.Error(err))
-			return err
-		}
-	}
-	return completion.GenerateCompletionScript(args.log, args.rootCmd, args.shell, writer)
-}
-
 type graphArgs struct {
 	*commonArgs
 
@@ -148,9 +76,7 @@ type graphArgs struct {
 	packages   bool
 	style      *printer.StyleOptions
 
-	query        string
-	shared       bool
-	dependencies []string
+	query string
 }
 
 func initGraphCmd(cArgs *commonArgs) *cobra.Command {
@@ -163,7 +89,7 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 		Use:   "graph <query>",
 		Short: graphShort,
 		Long:  graphLong,
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Flags().Changed("style") {
 				styleOptions, err := parsers.ParseStyleConfiguration(cmdArgs.log, style)
@@ -179,68 +105,31 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 		},
 	}
 
-	graphCmd.Flags().BoolVarP(&cmdArgs.packages, "packages", "p", false, "Operate at package-level instead of module-level on the dependency graph.")
-
-	// Flags controlling output.
 	graphCmd.Flags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the graph's nodes and edges with version information")
 	graphCmd.Flags().StringVarP(&cmdArgs.outputPath, "output", "o", "", "If set dump the output to this location")
+	graphCmd.Flags().BoolVarP(&cmdArgs.packages, "packages", "p", false, "Operate at package-level instead of module-level on the dependency graph.")
 	graphCmd.Flags().StringVar(&style, "style", "", "Set style options that add decorations and optimisations to the produced 'dot' output.")
-
-	// Flags controlling graph filtering.
-	graphCmd.Flags().BoolVarP(&cmdArgs.shared, "shared", "s", false, "Filter out unshared dependencies (i.e. only required by one Go module)")
-	graphCmd.Flags().StringSliceVarP(&cmdArgs.dependencies, "dependencies", "d", nil, "Dependency for which to show the dependency graph")
-
-	graphCmd.Flags().Lookup("output").Annotations = map[string][]string{cobra.BashCompFilenameExt: {"dot"}}
-	graphCmd.Flags().Lookup("dependencies").Annotations = map[string][]string{cobra.BashCompCustom: {"__gomod_graph_dependencies"}}
 
 	return graphCmd
 }
 
 func runGraphCmd(args *graphArgs) error {
-	if args.shared && len(args.dependencies) > 0 {
-		return errors.New("'shared' and 'dependencies' filters cannot be used simultaneously")
-	}
-
 	graph, err := depgraph.GetGraph(args.log, "")
 	if err != nil {
 		return err
 	}
 
-	if args.query != "" {
-		q, err := query.Parse(args.log, args.query)
-		if err != nil {
-			return err
-		}
-		l := depgraph.LevelModules
-		if args.packages {
-			l = depgraph.LevelPackages
-		}
-		if err = graph.ApplyQuery(q, l); err != nil {
-			return err
-		}
-	} else {
-		var transformations []depgraph.Transform
-		if len(args.dependencies) > 0 {
-			args.log.Debug("Configuring filters for dependencies.", zap.Strings("args", args.dependencies))
-			filter := &filters.TargetModules{}
-			for _, dependency := range args.dependencies {
-				specification := strings.Split(dependency+"@", "@")
-				target := &struct{ Module, Version string }{
-					Module:  specification[0],
-					Version: specification[1],
-				}
-				args.log.Debug("Adding filter for dependency.", zap.Any("dependency", target))
-				filter.Targets = append(filter.Targets, target)
-			}
-			transformations = append(transformations, filter)
-		}
-		if args.shared {
-			args.log.Debug("Adding filter for non-shared dependencies.")
-			transformations = append(transformations, &filters.NonSharedModules{})
-		}
-		graph = graph.Transform(transformations...)
+	q, err := query.Parse(args.log, args.query)
+	if err != nil {
+		return err
 	}
-
+	l := depgraph.LevelModules
+	if args.packages {
+		l = depgraph.LevelPackages
+	}
+	if err = graph.ApplyQuery(q, l); err != nil {
+		return err
+	}
 	return printResult(graph, args)
 }
 

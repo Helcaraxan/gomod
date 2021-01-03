@@ -24,16 +24,6 @@ const (
 	LevelPackages
 )
 
-// Transform can be used to transform a Graph instance. The particular transformation will depend on
-// the underlying implementation but it can range from dependency pruning, to adding graph
-// annotations, to edge manipulation.
-type Transform interface {
-	// Apply returns a, potentially, modified copy of the input Graph instance. The actual
-	// modifications depend on the underlying type and implementation of the particular
-	// GraphTransform.
-	Apply(*zap.Logger, *DepGraph) *DepGraph
-}
-
 // NewGraph returns a new Graph instance which will use the specified logger for writing log output.
 // If a nil value is passed a null-logger will be used instead.
 func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *DepGraph {
@@ -48,14 +38,6 @@ func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *DepGraph 
 	}
 	g.Main = g.AddModule(main)
 	return g
-}
-
-func (g *DepGraph) Transform(transformations ...Transform) *DepGraph {
-	ng := g
-	for _, transformation := range transformations {
-		ng = transformation.Apply(g.log, ng)
-	}
-	return ng
 }
 
 func (g *DepGraph) getModule(name string) (*Module, bool) {

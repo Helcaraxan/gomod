@@ -28,10 +28,6 @@ _Release-notes for each version can be found [here](./RELEASE_NOTES.md)_
       - [`gomod graph`](#gomod-graph)
       - [`gomod reveal`](#gomod-reveal)
       - [`gomod analyse`](#gomod-analyse)
-    - [Command-line use](#command-line-use)
-      - [Bash](#bash)
-      - [Powershell](#powershell)
-      - [ZSH](#zsh)
   - [Example output](#example-output)
     - [Full dependency graph](#full-dependency-graph)
     - [Shared dependencies](#shared-dependencies)
@@ -106,65 +102,6 @@ and more.
 
 **NB**: This command can also be invoked as `gomod analyze` for those who intuitively use American
 spelling.
-
-### Command-line use
-
-The sub-commands of `gomod completion` provide you with the benefit of shell auto-completion making
-it easier to cycle through the available sub-commands and flags.
-
-#### Bash
-
-Besides completion for static elements such as commands and flags, the auto-complete functionality
-for Bash also provides some context-specific completion such as the dependency names of your current
-project.
-
-If you only want completion to be added to your current shell you can simply run
-
-```bash
-source <(gomod completion bash)
-```
-
-If you want to have it added by default to each shell instance that you start you can add the
-following to your `.bashrc`, `.profile` (Linux) or `.bash_profile` (MacOS / OSX)
-
-```bash
-# Provide Bash auto-completion for the 'gomod' tool if it's in the PATH.
-if [[ -n "$(which gomod)" ]]; then
-   source <(gomod completion bash)
-fi
-```
-
-#### Powershell
-
-In order to auto-completion by default to each shell instance that you start you can add the
-following to your [PowerShell profile](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-6)
-
-```powershell
-if (Get-Command "gomod" -errorAction SilentlyContinue) {
-   $tmp = New-TemporaryFile
-   gomod completion ps | Out-File $tmp.FullName
-   . $tmp.FullName
-   Remove-Item $tmp.FullName
-}
-```
-
-#### ZSH
-
-If you only want completion to be added to your current shell you can simply run
-
-```zsh
-source <(gomod completion zsh)
-```
-
-If you want to have it added by default to each shell instance that you start you can add the
-following to your `.bashrc`, `.profile` (Linux) or `.bash_profile` (MacOS / OSX)
-
-```zsh
-# Provide ZSH auto-completion for the 'gomod' tool if it's in the PATH.
-if [[ -n "$(which gomod)" ]]; then
-   source <(gomod completion zsh)
-fi
-```
 
 ## Example output
 
