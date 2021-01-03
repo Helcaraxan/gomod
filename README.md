@@ -54,7 +54,7 @@ Querying the graph is done by means of a simple language that supports the follo
 | deps\|rdeps(\<filter\>[, \<int\>]) | Consider all (reverse) dependencies of the elements matches by the nested filter, potentially limited to a certain depth. |
 | test(github.com/foo/bar[/...])     | Consider test-only dependencies matched by the specified pattern                                                          |
 | shared(\<filter\>)                 | Consider only nodes that have more than one predecessor (i.e are a dependency required by more than one source)           |
-| \<filter\> \<operator\> \<filter\> | Perform a set-based operation (`+|union`, `-|sub`, `inter` or `delta`) on the outcomes of the two given filters           |
+| \<filter\> \<operator\> \<filter\> | Perform a set-based operation (`+`, `-`, `inter` or `delta`) on the outcomes of the two given filters                     |
 
 Some examples:
 
@@ -117,8 +117,8 @@ Graph with only the shared dependencies for the `gomod` project.
 
 ### Dependency chains
 
-Specific zoom on the dependency chains leading to the `github.com/stretchr/testify` and
-`golang.org/x/sys` modules with version annotations.
+Specific zoom on the dependency chains leading to the `github.com/stretchr/testify` module with
+version annotations.
 ![Annotated dependency chains for `github.com/stretchr/testify`](./images/dependency-chains.jpg)
 
 ### Hidden `replace`'s
