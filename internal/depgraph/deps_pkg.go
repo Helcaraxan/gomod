@@ -26,7 +26,13 @@ func (g *DepGraph) buildImportGraph() error {
 	for _, node := range pkgs.List() {
 		pkg := node.(*Package)
 
-		for _, imp := range pkg.Info.Imports {
+		imports := pkg.Info.Imports
+		if pkg.parent.Name() == g.Main.Name() {
+			imports = append(imports, pkg.Info.TestImports...)
+			imports = append(imports, pkg.Info.XTestImports...)
+		}
+
+		for _, imp := range imports {
 			if isStandardLib(imp) {
 				continue
 			}

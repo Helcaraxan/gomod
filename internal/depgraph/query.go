@@ -59,11 +59,17 @@ func (g *DepGraph) computeQuerySet(q query.Expr, level Level) (set nodeSet, err 
 		if target := strings.TrimSuffix(tq.Value(), "/..."); target != tq.Value() {
 			matcher = func(hash string) bool {
 				n, _ := g.Graph.GetNode(hash)
+				if p, ok := n.(*Package); ok && strings.HasSuffix(p.Info.Name, "_test") {
+					return false
+				}
 				return !n.(testAnnotated).isTestDependency() && strings.HasPrefix(n.Name(), target)
 			}
 		} else {
 			matcher = func(hash string) bool {
 				n, _ := g.Graph.GetNode(hash)
+				if p, ok := n.(*Package); ok && strings.HasSuffix(p.Info.Name, "_test") {
+					return false
+				}
 				return !n.(testAnnotated).isTestDependency() && n.Name() == target
 			}
 		}
