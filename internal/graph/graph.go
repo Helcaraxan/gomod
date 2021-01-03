@@ -85,6 +85,11 @@ func (g *HierarchicalDigraph) DeleteNode(hash string) error {
 
 	if p := target.Parent(); !nodeIsNil(p) {
 		p.Children().Delete(hash)
+		if p.Children().Len() == 0 {
+			if err := g.DeleteNode(p.Hash()); err != nil {
+				return err
+			}
+		}
 	}
 
 	g.members.Delete(hash)

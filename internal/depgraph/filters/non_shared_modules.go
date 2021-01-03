@@ -11,7 +11,7 @@ type NonSharedModules struct {
 	Excludes []string
 }
 
-func (f *NonSharedModules) Apply(log *zap.Logger, g *depgraph.Graph) *depgraph.Graph {
+func (f *NonSharedModules) Apply(log *zap.Logger, g *depgraph.DepGraph) *depgraph.DepGraph {
 	log.Debug("Pruning modules that only have one predecessor in the dependency graph.")
 	if len(f.Excludes) > 0 {
 		log.Debug("Excluding dependency from prune.", zap.Strings("exclude-list", f.Excludes))
@@ -41,7 +41,7 @@ func (f *NonSharedModules) Apply(log *zap.Logger, g *depgraph.Graph) *depgraph.G
 	}
 }
 
-func pruneUnsharedChain(g *depgraph.Graph, excludeMap map[string]struct{}, leaf graph.Node) {
+func pruneUnsharedChain(g *depgraph.DepGraph, excludeMap map[string]struct{}, leaf graph.Node) {
 	for {
 		if len(leaf.Predecessors().List()) == 0 {
 			_ = g.Graph.DeleteNode(leaf.Hash())

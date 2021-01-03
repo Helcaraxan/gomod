@@ -11,7 +11,7 @@ import (
 	"github.com/Helcaraxan/gomod/internal/util"
 )
 
-func (g *Graph) overlayModuleDependencies() error {
+func (g *DepGraph) overlayModuleDependencies() error {
 	g.log.Debug("Overlaying module-based dependency information over the import dependency graph.")
 
 	raw, _, err := util.RunCommand(g.log, g.Main.Info.Dir, "go", "mod", "graph")
@@ -56,7 +56,7 @@ type moduleDependency struct {
 	targetVersion string
 }
 
-func (g *Graph) parseDependency(depString string) (*moduleDependency, bool) {
+func (g *DepGraph) parseDependency(depString string) (*moduleDependency, bool) {
 	depContent := depRE.FindStringSubmatch(depString)
 	if len(depContent) == 0 {
 		g.log.Warn("Skipping ill-formed line in 'go mod graph' output.", zap.String("line", depString))
@@ -102,7 +102,7 @@ func (g *Graph) parseDependency(depString string) (*moduleDependency, bool) {
 	}, true
 }
 
-func (g *Graph) markIndirects() error {
+func (g *DepGraph) markIndirects() error {
 	for _, node := range g.Graph.GetLevel(int(LevelModules)).List() {
 		module := node.(*Module)
 

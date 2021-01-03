@@ -14,7 +14,7 @@ import (
 	"github.com/Helcaraxan/gomod/internal/util"
 )
 
-func (g *Graph) buildImportGraph() error {
+func (g *DepGraph) buildImportGraph() error {
 	g.log.Debug("Building initial dependency graph based on the import graph.")
 
 	err := g.retrieveTransitiveImports([]string{fmt.Sprintf("%s/...", g.Main.Info.Path)})
@@ -51,10 +51,41 @@ func (g *Graph) buildImportGraph() error {
 		}
 	}
 
+	g.markNonTestDependencies()
+
 	return nil
 }
 
-func (g *Graph) retrieveTransitiveImports(pkgs []string) error {
+func (g *DepGraph) markNonTestDependencies() {
+	var todo []graph.Node
+	seen := map[string]bool{}
+
+	mainPkgs := g.Main.packages.List()
+	for _, mainPkg := range mainPkgs {
+		if strings.HasSuffix(mainPkg.(*Package).Info.Name, "_test") {
+			continue
+		}
+
+		todo = append(todo, mainPkg)
+		seen[mainPkg.Name()] = true
+	}
+
+	for len(todo) > 0 {
+		next := todo[0]
+		todo = todo[1:]
+
+		next.(*Package).isNonTestDependency = true
+		next.Parent().(*Module).isNonTestDependency = true
+		for _, dep := range next.Successors().List() {
+			if !seen[dep.Name()] {
+				todo = append(todo, dep)
+				seen[dep.Name()] = true
+			}
+		}
+	}
+}
+
+func (g *DepGraph) retrieveTransitiveImports(pkgs []string) error {
 	const maxQueryLength = 950 // This is chosen conservatively to ensure we don't exceed maximum command lengths for 'go list' invocations.
 
 	queued := map[string]bool{}
@@ -87,7 +118,7 @@ func (g *Graph) retrieveTransitiveImports(pkgs []string) error {
 	return nil
 }
 
-func (g *Graph) retrievePackageInfo(packages []string) (imports []string, err error) {
+func (g *DepGraph) retrievePackageInfo(packages []string) (imports []string, err error) {
 	stdout, _, err := util.RunCommand(g.log, g.Main.Info.Dir, "go", append([]string{"list", "-json"}, packages...)...)
 	if err != nil {
 		g.log.Error("Failed to list imports for packages.", zap.Strings("packages", packages), zap.Error(err))
@@ -111,12 +142,7 @@ func (g *Graph) retrievePackageInfo(packages []string) (imports []string, err er
 			continue
 		}
 
-		pkg := &Package{
-			Info:         pkgInfo,
-			parent:       parentModule,
-			predecessors: graph.NewNodeRefs(),
-			successors:   graph.NewNodeRefs(),
-		}
+		pkg := NewPackage(pkgInfo, parentModule)
 		_ = g.Graph.AddNode(pkg)
 		g.log.Debug("Added import information for package", zap.String("package", pkg.Name()), zap.String("module", parentModule.Name()))
 
