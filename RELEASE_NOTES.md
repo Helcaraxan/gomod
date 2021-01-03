@@ -12,6 +12,12 @@
 **New features**
 
 - A new `gomod version` enables the printing of the current version of the `gomod` tool.
+- The `gomod graph` command has a whole new query syntax that makes it much easier to trim down the
+  generated graph to the exact content that you need. Check the updated
+  [README section](README.md#gomod-graph) for more details.
+- The `gomod graph` command now support querying the package-level import graph in addition to the
+  already available module-level dependency graph. Simply use the new `--package | -p` flag to move
+  into package mode.
 
 **Breaking changes**
 

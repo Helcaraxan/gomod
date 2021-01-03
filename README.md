@@ -5,36 +5,39 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/42f5920cf5c46650945b/maintainability)](https://codeclimate.com/github/Helcaraxan/gomod/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/42f5920cf5c46650945b/test_coverage)](https://codeclimate.com/github/Helcaraxan/gomod/test_coverage)
 
-`gomod` is a tool that helps Go project maintainers to understand their project's dependencies and
-it can provide useful information to developers "modularising" non-module projects. It helps you by
-visualising your dependency graph and, even more, analyse it for your profit. It will help you
-answer typical questions such as:
+`gomod` is your one-stop-solution for making sense of your project's dependency graph. It supports
+the querying and visualising of the graphs of both your Go module dependencies as well as the
+underlying package import graph. It also comes with built-in analysis tools that extract information
+from the dependency graph that is usually hidden or hard to get to via other means.
 
-- How can I visualise the network of my dependencies?
-- How old are the versions of my dependencies that I depend on?
-- Are different dependencies of my project using potentially conflicting forks of the same module?
+Typical questions that `gomod` will help you answer are:
+
+- Why does my project have this module or package as a dependency.
 - What dependency chains lead to `github.com/foo/bar` and what constraints do they put on versions?
-- Why is dependency `github.com/foo/bar` used at version `1.12.0` and not at version `1.5.0` as I
-  want it to be?
+- How old are the modules that my project depends on, and how much out-of-date are these?
+- Are different dependencies of my project using potentially conflicting forks of the same module?
 
 _Release-notes for each version can be found [here](./RELEASE_NOTES.md)_
 
 ## Table of Contents
 
-- [Detailed features](#detailed-features)
-  - [Dependency analysis commands](#dependency-analysis-commands)
-    - [`gomod graph`](#gomod-graph)
-    - [`gomod reveal`](#gomod-reveal)
-    - [`gomod analyse`](#gomod-analyse)
-  - [Command-line use](#command-line-use)
-    - [Bash](#bash)
-    - [Powershell](#powershell)
-    - [ZSH](#zsh)
-- [Example output](#example-output)
-  - [Shared dependencies](#shared-dependencies)
-  - [Dependency chains](#dependency-chains)
-  - [Hidden `replace`'s](#hidden-replaces)
-  - [Dependency statistics](#dependency-statistics)
+- [Go Modules clarified](#go-modules-clarified)
+  - [Table of Contents](#table-of-contents)
+  - [Detailed features](#detailed-features)
+    - [Dependency analysis commands](#dependency-analysis-commands)
+      - [`gomod graph`](#gomod-graph)
+      - [`gomod reveal`](#gomod-reveal)
+      - [`gomod analyse`](#gomod-analyse)
+    - [Command-line use](#command-line-use)
+      - [Bash](#bash)
+      - [Powershell](#powershell)
+      - [ZSH](#zsh)
+  - [Example output](#example-output)
+    - [Full dependency graph](#full-dependency-graph)
+    - [Shared dependencies](#shared-dependencies)
+    - [Dependency chains](#dependency-chains)
+    - [Hidden `replace`'s](#hidden-replaces)
+    - [Dependency statistics](#dependency-statistics)
 
 ## Detailed features
 
@@ -42,13 +45,47 @@ _Release-notes for each version can be found [here](./RELEASE_NOTES.md)_
 
 #### `gomod graph`
 
-Output your dependency graph in [DOT format] with the possibility to filter out noise, add
-annotations and focus on the pieces of the graph that are of interest to you. You can for example:
+Output your module dependency or package import graph in [DOT format]. You can filter out noise from
+the graph by tailoring your query to your needs. You can also add annotations to provide further
+information on the generated graph. By default `gomod graph` will act on the module graph, however
+by using the `--packages` flag it will consider the package import graph instead.
 
-- Only show dependencies that are required by more than one module.
-- Only show the dependency chains that lead to one or more specified modules.
-- Annotate dependencies with the versions in which they are used and the versions constraint
-  imposed by each edge of the graph.
+Querying the graph is done by means of a simple language that supports the following features:
+
+| Syntax                             | Feature                                                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| github.com/foo/bar[/...]           | Filter based on exact paths or path prefixes.                                                                             |
+| deps\|rdeps(\<filter\>[, \<int\>]) | Consider all (reverse) dependencies of the elements matches by the nested filter, potentially limited to a certain depth. |
+| test(github.com/foo/bar[/...])     | Consider test-only dependencies matched by the specified pattern                                                          |
+| shared(\<filter\>)                 | Consider only nodes that have more than one predecessor (i.e are a dependency required by more than one source)           |
+| \<filter\> \<operator\> \<filter\> | Perform a set-based operation (`+|union`, `-|sub`, `inter` or `delta`) on the outcomes of the two given filters           |
+
+Some examples:
+
+- Print the full dependency graph of this module (not including test-only dependencies):
+
+  ```shell
+  gomod graph 'deps(github.com/Helcaraxan/gomod)'
+  ```
+
+- Print the same graph including test-only dependencies:
+
+  ```shell
+  gomod graph 'deps(test(github.com/Helcaraxan/gomod))'
+  ```
+
+- Show only the dependency graph leading to the `gopkg.in/yaml.v2` and `gopkg.in/yaml.v3` modules:
+
+  ```shell
+  gomod graph 'rdeps(test(gopkg.in/yaml.v2) + test(gopkg.in/yaml.v3))'
+  ```
+
+- Show the same dependency graph as above but limited to the paths shared between both modules. Note
+  that the resulting graph will not include the two targeted modules themselves.
+
+  ```shell
+  gomod graph 'rdeps(test(gopkg.in/yaml.v2)) intersect rdeps(test(gopkg.in/yaml.v3))'
+  ```
 
 If you want to create an image based on the generated text-based DOT content you need to use the
 [`dot`] tool which you will need to install separately.
