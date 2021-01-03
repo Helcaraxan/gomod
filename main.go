@@ -350,7 +350,7 @@ func checkGoModulePresence(log *zap.Logger) error {
 	return errors.New("missing go module")
 }
 
-func printResult(g *depgraph.Graph, args *graphArgs) error {
+func printResult(g *depgraph.DepGraph, args *graphArgs) error {
 	return printer.Print(g.Graph, &printer.PrintConfig{
 		Log:        args.log,
 		OutputPath: args.outputPath,

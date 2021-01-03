@@ -10,7 +10,7 @@ type ArbitraryModules struct {
 	Modules []string
 }
 
-func (f *ArbitraryModules) Apply(log *zap.Logger, g *depgraph.Graph) *depgraph.Graph {
+func (f *ArbitraryModules) Apply(log *zap.Logger, g *depgraph.DepGraph) *depgraph.DepGraph {
 	for _, module := range f.Modules {
 		if err := g.Graph.DeleteNode("module " + module); err != nil {
 			log.Warn("Could not remove module from graph.", zap.String("module", module))

@@ -24,7 +24,7 @@ type TargetModules struct {
 // Apply returns a copy of the dependency graph with all dependencies that are part of chains
 // that need to be modified for the specified dependency to be set to a given target version
 // annotated as such.
-func (f *TargetModules) Apply(log *zap.Logger, g *depgraph.Graph) *depgraph.Graph {
+func (f *TargetModules) Apply(log *zap.Logger, g *depgraph.DepGraph) *depgraph.DepGraph {
 	if len(f.Targets) == 0 {
 		return g
 	}
@@ -52,7 +52,7 @@ type targetDependencyFilter struct {
 	version string
 }
 
-func applyFilter(logger *zap.Logger, g *depgraph.Graph, filter *targetDependencyFilter, keep map[string]struct{}) {
+func applyFilter(logger *zap.Logger, g *depgraph.DepGraph, filter *targetDependencyFilter, keep map[string]struct{}) {
 	filterNode, _ := g.Graph.GetLevel(int(depgraph.LevelModules)).Get("module " + filter.module)
 	if filterNode == nil {
 		return

@@ -95,7 +95,7 @@ var (
 	}
 )
 
-func createTestGraph() *depgraph.Graph {
+func createTestGraph() *depgraph.DepGraph {
 	log := zap.NewNop()
 
 	testGraph := depgraph.NewGraph(log, "", &modules.ModuleInfo{
@@ -104,10 +104,7 @@ func createTestGraph() *depgraph.Graph {
 		GoMod: filepath.Join("testdata", "mainModule", "go.mod"),
 	})
 	for _, module := range []*modules.ModuleInfo{moduleA, moduleB, moduleC, moduleD} {
-		_ = testGraph.Graph.AddNode(depgraph.NewModule(module))
-		if module.Replace != nil {
-			testGraph.Replaces[module.Path] = module.Replace.Path
-		}
+		testGraph.AddModule(module)
 	}
 	return testGraph
 }

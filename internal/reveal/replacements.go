@@ -173,7 +173,7 @@ var (
 	replaceRE       = regexp.MustCompile(`([^\s]+) => ([^\s]+)(?: (v[^\s]+))?`)
 )
 
-func FindReplacements(log *zap.Logger, g *depgraph.Graph) (*Replacements, error) {
+func FindReplacements(log *zap.Logger, g *depgraph.DepGraph) (*Replacements, error) {
 	replacements := &Replacements{
 		main:            g.Main.Name(),
 		topLevel:        map[string]string{},

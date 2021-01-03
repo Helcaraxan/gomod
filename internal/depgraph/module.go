@@ -17,7 +17,8 @@ type Module struct {
 	predecessors graph.NodeRefs
 	successors   graph.NodeRefs
 
-	packages graph.NodeRefs
+	packages            graph.NodeRefs
+	isNonTestDependency bool
 }
 
 type VersionConstraint struct {
@@ -109,4 +110,10 @@ func (m *Module) EdgeAttributes(target graph.Node, annotate bool) []string {
 		annotations = append(annotations, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", c.Target))
 	}
 	return annotations
+}
+
+var _ testAnnotated = &Module{}
+
+func (m Module) isTestDependency() bool {
+	return !m.isNonTestDependency
 }

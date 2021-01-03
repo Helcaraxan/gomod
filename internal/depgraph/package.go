@@ -12,7 +12,17 @@ type Package struct {
 	predecessors graph.NodeRefs
 	successors   graph.NodeRefs
 
-	parent *Module
+	parent              *Module
+	isNonTestDependency bool
+}
+
+func NewPackage(info *modules.PackageInfo, parent *Module) *Package {
+	return &Package{
+		Info:         info,
+		predecessors: graph.NewNodeRefs(),
+		successors:   graph.NewNodeRefs(),
+		parent:       parent,
+	}
 }
 
 // Name returns the import path of the package and not the value declared inside the package with
