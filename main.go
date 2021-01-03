@@ -19,6 +19,7 @@ import (
 	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/parsers"
 	"github.com/Helcaraxan/gomod/internal/printer"
+	"github.com/Helcaraxan/gomod/internal/query"
 	"github.com/Helcaraxan/gomod/internal/reveal"
 )
 
@@ -144,8 +145,10 @@ type graphArgs struct {
 
 	annotate   bool
 	outputPath string
+	packages   bool
 	style      *printer.StyleOptions
 
+	query        string
 	shared       bool
 	dependencies []string
 }
@@ -157,10 +160,11 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 
 	var style string
 	graphCmd := &cobra.Command{
-		Use:   "graph",
+		Use:   "graph <query>",
 		Short: graphShort,
 		Long:  graphLong,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Flags().Changed("style") {
 				styleOptions, err := parsers.ParseStyleConfiguration(cmdArgs.log, style)
 				if err != nil {
@@ -168,9 +172,14 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 				}
 				cmdArgs.style = styleOptions
 			}
+			if len(args) == 1 {
+				cmdArgs.query = args[0]
+			}
 			return runGraphCmd(cmdArgs)
 		},
 	}
+
+	graphCmd.Flags().BoolVarP(&cmdArgs.packages, "packages", "p", false, "Operate at package-level instead of module-level on the dependency graph.")
 
 	// Flags controlling output.
 	graphCmd.Flags().BoolVarP(&cmdArgs.annotate, "annotate", "a", false, "Annotate the graph's nodes and edges with version information")
@@ -197,26 +206,42 @@ func runGraphCmd(args *graphArgs) error {
 		return err
 	}
 
-	var transformations []depgraph.Transform
-	if len(args.dependencies) > 0 {
-		args.log.Debug("Configuring filters for dependencies.", zap.Strings("args", args.dependencies))
-		filter := &filters.TargetModules{}
-		for _, dependency := range args.dependencies {
-			specification := strings.Split(dependency+"@", "@")
-			target := &struct{ Module, Version string }{
-				Module:  specification[0],
-				Version: specification[1],
-			}
-			args.log.Debug("Adding filter for dependency.", zap.Any("dependency", target))
-			filter.Targets = append(filter.Targets, target)
+	if args.query != "" {
+		q, err := query.Parse(args.log, args.query)
+		if err != nil {
+			return err
 		}
-		transformations = append(transformations, filter)
+		l := depgraph.LevelModules
+		if args.packages {
+			l = depgraph.LevelPackages
+		}
+		if err = graph.ApplyQuery(q, l); err != nil {
+			return err
+		}
+	} else {
+		var transformations []depgraph.Transform
+		if len(args.dependencies) > 0 {
+			args.log.Debug("Configuring filters for dependencies.", zap.Strings("args", args.dependencies))
+			filter := &filters.TargetModules{}
+			for _, dependency := range args.dependencies {
+				specification := strings.Split(dependency+"@", "@")
+				target := &struct{ Module, Version string }{
+					Module:  specification[0],
+					Version: specification[1],
+				}
+				args.log.Debug("Adding filter for dependency.", zap.Any("dependency", target))
+				filter.Targets = append(filter.Targets, target)
+			}
+			transformations = append(transformations, filter)
+		}
+		if args.shared {
+			args.log.Debug("Adding filter for non-shared dependencies.")
+			transformations = append(transformations, &filters.NonSharedModules{})
+		}
+		graph = graph.Transform(transformations...)
 	}
-	if args.shared {
-		args.log.Debug("Adding filter for non-shared dependencies.")
-		transformations = append(transformations, &filters.NonSharedModules{})
-	}
-	return printResult(graph.Transform(transformations...), args)
+
+	return printResult(graph, args)
 }
 
 type analyseArgs struct {
@@ -351,10 +376,15 @@ func checkGoModulePresence(log *zap.Logger) error {
 }
 
 func printResult(g *depgraph.DepGraph, args *graphArgs) error {
+	l := printer.LevelModules
+	if args.packages {
+		l = printer.LevelPackages
+	}
 	return printer.Print(g.Graph, &printer.PrintConfig{
-		Log:        args.log,
-		OutputPath: args.outputPath,
-		Style:      args.style,
-		Annotate:   args.annotate,
+		Log:         args.log,
+		Granularity: l,
+		OutputPath:  args.outputPath,
+		Style:       args.style,
+		Annotate:    args.annotate,
 	})
 }
