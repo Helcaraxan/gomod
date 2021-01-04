@@ -12,7 +12,7 @@ import (
 )
 
 func (g *DepGraph) ApplyQuery(q query.Expr, level Level) error {
-	targetSet, err := g.computeQuerySet(q, level)
+	targetSet, err := g.computeSet(q, level)
 	if err != nil {
 		return err
 	}
@@ -28,12 +28,6 @@ func (g *DepGraph) ApplyQuery(q query.Expr, level Level) error {
 	return nil
 }
 
-type testAnnotated interface {
-	isTestDependency() bool
-}
-
-type nodeSet map[string]bool
-
 func (ns nodeSet) String() string {
 	var s []string
 	for n := range ns {
@@ -42,8 +36,7 @@ func (ns nodeSet) String() string {
 	return strings.Join(s, ", ")
 }
 
-// nolint: gocyclo
-func (g *DepGraph) computeQuerySet(q query.Expr, level Level) (set nodeSet, err error) {
+func (g *DepGraph) computeSet(q query.Expr, level Level) (set nodeSet, err error) {
 	set = nodeSet{}
 	defer func() {
 		g.log.Debug("Found nodeset.", zap.Stringer("nodes", set))
@@ -53,154 +46,139 @@ func (g *DepGraph) computeQuerySet(q query.Expr, level Level) (set nodeSet, err 
 	switch tq := q.(type) {
 	case *query.ExprArgsList, *query.ExprBool, *query.ExprInteger:
 		return nil, fmt.Errorf("invalid query on graph %v (%v)", q, q.Pos())
-
 	case *query.ExprString:
-		var matcher func(string) bool
-		if target := strings.TrimSuffix(tq.Value(), "/..."); target != tq.Value() {
-			matcher = func(hash string) bool {
-				n, _ := g.Graph.GetNode(hash)
-				if p, ok := n.(*Package); ok && strings.HasSuffix(p.Info.Name, "_test") {
-					return false
-				}
-				return !n.(testAnnotated).isTestDependency() && strings.HasPrefix(n.Name(), target)
-			}
-		} else {
-			matcher = func(hash string) bool {
-				n, _ := g.Graph.GetNode(hash)
-				if p, ok := n.(*Package); ok && strings.HasSuffix(p.Info.Name, "_test") {
-					return false
-				}
-				return !n.(testAnnotated).isTestDependency() && n.Name() == target
-			}
-		}
-		return g.matcherFunc(matcher, level), nil
-
+		return g.computeSetHashMatch(tq, false, level), nil
 	case query.BinaryExpr:
-		lhs, err := g.computeQuerySet(tq.Operands().LHS, level)
-		if err != nil {
-			return nil, err
-		}
-		rhs, err := g.computeQuerySet(tq.Operands().RHS, level)
-		if err != nil {
-			return nil, err
-		}
-
-		switch tq.(type) {
-		case *query.ExprDelta:
-			for n := range lhs {
-				if !rhs[n] {
-					set[n] = true
-				}
-			}
-			for n := range rhs {
-				if !lhs[n] {
-					set[n] = true
-				}
-			}
-
-		case *query.ExprIntersect:
-			for n := range lhs {
-				if rhs[n] {
-					set[n] = true
-				}
-			}
-
-		case *query.ExprSubtract:
-			for n := range lhs {
-				if !rhs[n] {
-					set[n] = true
-				}
-			}
-
-		case *query.ExprUnion:
-			for n := range lhs {
-				set[n] = true
-			}
-			for n := range rhs {
-				set[n] = true
-			}
-		}
-
+		return g.computeSetBinaryOp(tq, level)
 	case *query.ExprFunc:
-		switch tq.Name() {
-		case "deps":
-			return g.traversalFunc("deps", func(n graph.Node) []graph.Node { return n.Successors().List() }, tq.Args(), level)
-		case "rdeps":
-			return g.traversalFunc("rdeps", func(n graph.Node) []graph.Node { return n.Predecessors().List() }, tq.Args(), level)
-		case "test":
-			if len(tq.Args().Args()) != 1 {
-				return nil, fmt.Errorf("the 'test' function takes only a single string argument but received %v (%v)", tq.Args(), tq.Args().Pos())
-			}
-			ts, ok := tq.Args().Args()[0].(*query.ExprString)
-			if !ok {
-				return nil, fmt.Errorf("the 'test' function takes only a single string argument but received %v (%v)", tq.Args(), tq.Args().Pos())
-			}
-
-			var matcher func(string) bool
-			if target := strings.TrimSuffix(ts.Value(), "/..."); target != ts.Value() {
-				matcher = func(hash string) bool {
-					n, _ := g.Graph.GetNode(hash)
-					return strings.HasPrefix(n.Name(), target)
-				}
-			} else {
-				matcher = func(hash string) bool {
-					n, _ := g.Graph.GetNode(hash)
-					return n.Name() == target
-				}
-			}
-			return g.matcherFunc(matcher, level), nil
-		case "shared":
-			if len(tq.Args().Args()) != 1 {
-				return nil, fmt.Errorf("the 'shared' function takes only a single argument but received %v (%v)", tq.Args(), tq.Args().Pos())
-			}
-
-			sources, err := g.computeQuerySet(tq.Args().Args()[0], level)
-			if err != nil {
-				return nil, err
-			}
-			return g.sharedFunc(sources, level)
-		default:
-			return nil, fmt.Errorf("unknown function %q", tq.Name())
-		}
+		return g.computeSetFunc(tq, level)
 	}
 
 	return set, nil
 }
 
-func (g *DepGraph) matcherFunc(matcher func(hash string) bool, level Level) nodeSet {
+func (g *DepGraph) computeSetHashMatch(expr *query.ExprString, withTest bool, level Level) nodeSet {
+	var matcher func(hash string) bool
+	if target := strings.TrimSuffix(expr.Value(), "/..."); target != expr.Value() {
+		matcher = func(name string) bool {
+			return strings.HasPrefix(name, target)
+		}
+	} else {
+		matcher = func(name string) bool {
+			return name == target
+		}
+	}
+
 	set := nodeSet{}
 	for _, node := range g.Graph.GetLevel(int(level)).List() {
-		if matcher(node.Hash()) {
-			set[node.Name()] = true
+		p, ok := node.(*Package)
+		switch {
+		case !withTest && ((ok && strings.HasSuffix(p.Info.Name, "_test")) || node.(testAnnotated).isTestDependency()):
+			g.log.Debug("Discarded node as it is a test dependency.", zap.String("name", node.Name()))
+		case !matcher(node.Name()):
+			g.log.Debug("Discarded node as its name did not match the filter.", zap.String("name", node.Name()))
+		default:
 			g.log.Debug("Match found.", zap.String("name", node.Name()))
-		} else {
-			g.log.Debug("Discarded node.", zap.String("name", node.Name()))
+			set[node.Name()] = true
 		}
+	}
+
+	if len(set) == 0 {
+		g.log.Warn("Empty query result.", zap.Stringer("query", expr))
 	}
 	return set
 }
 
-func (g *DepGraph) traversalFunc(name string, iterate func(graph.Node) []graph.Node, args query.ArgsListExpr, level Level) (nodeSet, error) {
-	if len(args.Args()) == 0 {
-		return nil, fmt.Errorf("the '%s' function takes at least one argument but received none (%v)", name, args.Pos())
-	} else if len(args.Args()) > 2 {
-		return nil, fmt.Errorf("the '%s' function takes 2 arguments at most but received %d (%v)", name, len(args.Args()), args.Pos())
-	}
+func (g *DepGraph) computeSetBinaryOp(expr query.BinaryExpr, level Level) (set nodeSet, err error) {
+	defer func() {
+		if err == nil && len(set) == 0 {
+			g.log.Warn("Empty query result.", zap.Stringer("query", expr))
+		}
+	}()
 
-	sources, err := g.computeQuerySet(args.Args()[0], level)
+	lhs, err := g.computeSet(expr.Operands().LHS, level)
 	if err != nil {
 		return nil, err
+	}
+	rhs, err := g.computeSet(expr.Operands().RHS, level)
+	if err != nil {
+		return nil, err
+	}
+
+	switch expr.(type) {
+	case *query.ExprDelta:
+		return lhs.delta(rhs), nil
+	case *query.ExprIntersect:
+		return lhs.inter(rhs), nil
+	case *query.ExprSubtract:
+		return lhs.subtract(rhs), nil
+	case *query.ExprUnion:
+		return lhs.union(rhs), nil
+	}
+	return nil, fmt.Errorf("unexpected operator expression %v", expr)
+}
+
+func (g *DepGraph) computeSetFunc(expr query.FuncExpr, level Level) (nodeSet, error) {
+	args := expr.Args()
+
+	switch expr.Name() {
+	case "deps":
+		return g.computeSetGraphTraversal(expr, forwards, level)
+	case "rdeps":
+		return g.computeSetGraphTraversal(expr, backwards, level)
+	case "test":
+		if len(args.Args()) != 1 {
+			return nil, fmt.Errorf("the 'test' function takes only a single string argument but received %v (%v)", args, args.Pos())
+		}
+		ts, ok := args.Args()[0].(*query.ExprString)
+		if !ok {
+			return nil, fmt.Errorf("the 'test' function takes only a single string argument but received %v (%v)", args, args.Pos())
+		}
+		return g.computeSetHashMatch(ts, true, level), nil
+	case "shared":
+		return g.sharedFunc(expr, level)
+	default:
+		return nil, fmt.Errorf("unknown function %q", expr.Name())
+	}
+}
+
+type traversalDirection uint8
+
+const (
+	forwards traversalDirection = iota
+	backwards
+)
+
+func (g *DepGraph) computeSetGraphTraversal(expr query.FuncExpr, direction traversalDirection, level Level) (nodeSet, error) {
+	args := expr.Args()
+	if len(args.Args()) == 0 {
+		return nil, fmt.Errorf("function takes at least one argument but received none (%v)", args.Pos())
+	} else if len(args.Args()) > 2 {
+		return nil, fmt.Errorf("function takes at most 2 arguments but received %d (%v)", len(args.Args()), args.Pos())
 	}
 
 	maxDepth := math.MaxInt64
 	if len(args.Args()) == 2 {
 		v, ok := args.Args()[1].(*query.ExprInteger)
 		if !ok {
-			return nil, fmt.Errorf("the '%s' function takes an integer as second argument but got %v (%v)", name, args.Args()[1], args.Args()[1].Pos())
+			return nil, fmt.Errorf("function's second argument must be an integer but got %v (%v)", args.Args()[1], args.Args()[1].Pos())
 		}
 		maxDepth = v.Value()
 	}
 	g.log.Debug("Maximum depths for traversals set.", zap.Int("maxDepth", maxDepth))
+
+	var iterateFunc func(graph.Node) []graph.Node
+	switch direction {
+	case forwards:
+		iterateFunc = func(n graph.Node) []graph.Node { return n.Successors().List() }
+	case backwards:
+		iterateFunc = func(n graph.Node) []graph.Node { return n.Predecessors().List() }
+	}
+
+	sources, err := g.computeSet(args.Args()[0], level)
+	if err != nil {
+		return nil, err
+	}
 
 	set := nodeSet{}
 	for src := range sources {
@@ -228,7 +206,7 @@ func (g *DepGraph) traversalFunc(name string, iterate func(graph.Node) []graph.N
 				continue
 			}
 
-			for _, dep := range iterate(next.n) {
+			for _, dep := range iterateFunc(next.n) {
 				if seen[dep.Name()] {
 					continue
 				}
@@ -245,10 +223,15 @@ func (g *DepGraph) traversalFunc(name string, iterate func(graph.Node) []graph.N
 	return set, nil
 }
 
-func (g *DepGraph) sharedFunc(sources nodeSet, level Level) (nodeSet, error) {
-	set := nodeSet{}
-	for k, v := range sources {
-		set[k] = v
+func (g *DepGraph) sharedFunc(expr query.FuncExpr, level Level) (nodeSet, error) {
+	args := expr.Args()
+	if len(args.Args()) != 1 {
+		return nil, fmt.Errorf("the 'shared' function takes only a single argument but received %v (%v)", args, args.Pos())
+	}
+
+	set, err := g.computeSet(args.Args()[0], level)
+	if err != nil {
+		return nil, err
 	}
 
 	nodesInSet := func(set nodeSet, list []graph.Node) int {
@@ -262,7 +245,7 @@ func (g *DepGraph) sharedFunc(sources nodeSet, level Level) (nodeSet, error) {
 	}
 
 	var todo []graph.Node
-	for src := range sources {
+	for src := range set {
 		var h string
 		switch level {
 		case LevelModules:
@@ -293,5 +276,61 @@ func (g *DepGraph) sharedFunc(sources nodeSet, level Level) (nodeSet, error) {
 			todo = append(todo, pred)
 		}
 	}
+
+	if len(set) == 0 {
+		g.log.Warn("Empty query result.", zap.Stringer("query", expr))
+	}
 	return set, nil
+}
+
+type testAnnotated interface {
+	isTestDependency() bool
+}
+
+type nodeSet map[string]bool
+
+func (ns nodeSet) union(rhs nodeSet) nodeSet {
+	set := nodeSet{}
+	for k := range ns {
+		set[k] = true
+	}
+	for k := range rhs {
+		set[k] = true
+	}
+	return set
+}
+
+func (ns nodeSet) subtract(rhs nodeSet) nodeSet {
+	set := nodeSet{}
+	for k := range ns {
+		if !rhs[k] {
+			set[k] = true
+		}
+	}
+	return set
+}
+
+func (ns nodeSet) inter(rhs nodeSet) nodeSet {
+	set := nodeSet{}
+	for k := range ns {
+		if rhs[k] {
+			set[k] = true
+		}
+	}
+	return set
+}
+
+func (ns nodeSet) delta(rhs nodeSet) nodeSet {
+	set := nodeSet{}
+	for k := range ns {
+		if !rhs[k] {
+			set[k] = true
+		}
+	}
+	for k := range rhs {
+		if !ns[k] {
+			set[k] = true
+		}
+	}
+	return set
 }
