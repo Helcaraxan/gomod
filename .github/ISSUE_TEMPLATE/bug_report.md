@@ -8,10 +8,8 @@ labels: bug
 
 ## Checklist
 
-- [ ] Your description contains all necessary context to understand and reproduce the bug you are
-      reporting.
-- [ ] You have filled in the three sections below and deleted their corresponding placeholders
-      texts.
+- [ ] Your description contains all necessary context to understand and reproduce the bug you are reporting.
+- [ ] You have filled in the three sections below and deleted their corresponding placeholders texts.
 
 ## Description
 
