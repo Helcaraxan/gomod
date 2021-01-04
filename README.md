@@ -51,8 +51,8 @@ Querying the graph is done by means of a simple language that supports the follo
 | Syntax                             | Feature                                                                                                                   |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | github.com/foo/bar[/...]           | Filter based on exact paths or path prefixes.                                                                             |
+| github.com/foo/bar[/...]:test      | Include test-only dependencies matched by the specified pattern                                                           |
 | deps\|rdeps(\<filter\>[, \<int\>]) | Consider all (reverse) dependencies of the elements matches by the nested filter, potentially limited to a certain depth. |
-| test(github.com/foo/bar[/...])     | Consider test-only dependencies matched by the specified pattern                                                          |
 | shared(\<filter\>)                 | Consider only nodes that have more than one predecessor (i.e are a dependency required by more than one source)           |
 | \<filter\> \<operator\> \<filter\> | Perform a set-based operation (`+`, `-`, `inter` or `delta`) on the outcomes of the two given filters                     |
 
@@ -64,23 +64,24 @@ Some examples:
   gomod graph 'deps(github.com/Helcaraxan/gomod)'
   ```
 
-- Print the same graph including test-only dependencies:
+- Print the graph of all dependencies, including test-only ones, that are required by more than one
+  source.
 
   ```shell
-  gomod graph 'deps(test(github.com/Helcaraxan/gomod))'
+  gomod graph 'shared(deps(github.com/Helcaraxan/gomod:test))'
   ```
 
 - Show only the dependency graph leading to the `gopkg.in/yaml.v2` and `gopkg.in/yaml.v3` modules:
 
   ```shell
-  gomod graph 'rdeps(test(gopkg.in/yaml.v2) + test(gopkg.in/yaml.v3))'
+  gomod graph 'rdeps(gopkg.in/yaml.v2:test + gopkg.in/yaml.v3:test)'
   ```
 
 - Show the same dependency graph as above but limited to the paths shared between both modules. Note
   that the resulting graph will not include the two targeted modules themselves.
 
   ```shell
-  gomod graph 'rdeps(test(gopkg.in/yaml.v2)) intersect rdeps(test(gopkg.in/yaml.v3))'
+  gomod graph 'rdeps(gopkg.in/yaml.v2:test) inter rdeps(gopkg.in/yaml.v3:test)'
   ```
 
 If you want to create an image based on the generated text-based DOT content you need to use the
