@@ -101,16 +101,7 @@ func (p *parser) parse() (Expr, error) {
 			pos: pos(0, 0),
 		}
 	}
-
-	switch p.exprStack[0].(type) {
-	case *ExprInteger, *ExprBool:
-		return nil, &parserError{
-			err: ErrInvalidArgument,
-			pos: pos(0, p.stream[len(p.stream)-1].Pos().end),
-		}
-	default:
-		return p.exprStack[0], nil
-	}
+	return p.exprStack[0], nil
 }
 
 type rule uint8

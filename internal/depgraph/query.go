@@ -1,6 +1,7 @@
 package depgraph
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -10,6 +11,21 @@ import (
 	"github.com/Helcaraxan/gomod/internal/graph"
 	"github.com/Helcaraxan/gomod/internal/query"
 )
+
+var ErrInvalidQuery = errors.New("invalid query")
+
+type queryErr struct {
+	err  string
+	expr query.Expr
+}
+
+func (e queryErr) Error() string {
+	return fmt.Sprintf("%v: %v - %s", e.expr.Pos(), e.expr, e.err)
+}
+
+func (e queryErr) Unwrap() error {
+	return ErrInvalidQuery
+}
 
 func (g *DepGraph) ApplyQuery(q query.Expr, level Level) error {
 	targetSet, err := g.computeSet(q, level)
@@ -36,25 +52,31 @@ func (ns nodeSet) String() string {
 	return strings.Join(s, ", ")
 }
 
-func (g *DepGraph) computeSet(q query.Expr, level Level) (set nodeSet, err error) {
+func (g *DepGraph) computeSet(expr query.Expr, level Level) (set nodeSet, err error) {
 	set = nodeSet{}
 	defer func() {
 		g.log.Debug("Found nodeset.", zap.Stringer("nodes", set))
 	}()
 
-	g.log.Debug("Computing matching nodes.", zap.Stringer("query", q))
-	switch tq := q.(type) {
+	g.log.Debug("Computing matching nodes.", zap.Stringer("query", expr))
+	switch tq := expr.(type) {
 	case *query.ExprArgsList, *query.ExprBool, *query.ExprInteger:
-		return nil, fmt.Errorf("invalid query on graph %v (%v)", q, q.Pos())
+		return nil, &queryErr{
+			err:  "cannot process integers, booleans or lists",
+			expr: tq,
+		}
 	case *query.ExprString:
 		return g.computeSetNameMatch(tq, level)
 	case query.BinaryExpr:
 		return g.computeSetBinaryOp(tq, level)
 	case *query.ExprFunc:
 		return g.computeSetFunc(tq, level)
+	default:
+		return nil, &queryErr{
+			err:  "unexpected query expression",
+			expr: expr,
+		}
 	}
-
-	return set, nil
 }
 
 func (g *DepGraph) computeSetNameMatch(expr *query.ExprString, level Level) (nodeSet, error) {
@@ -62,13 +84,19 @@ func (g *DepGraph) computeSetNameMatch(expr *query.ExprString, level Level) (nod
 
 	parts := strings.Split(expr.Value(), ":")
 	if len(parts) > 2 {
-		return nil, fmt.Errorf("query '%v' contains more than one ':'", expr)
+		return nil, &queryErr{
+			err:  fmt.Sprintf("expression contains more than one ':' character"),
+			expr: expr,
+		}
 	} else if len(parts) == 2 {
 		switch parts[1] {
 		case "test":
 			withTestDeps = true
 		default:
-			return nil, fmt.Errorf("undefined annotation '%s' in path query '%v'", parts[1], expr)
+			return nil, &queryErr{
+				err:  fmt.Sprintf("undefined path annotation '%s'", parts[1]),
+				expr: expr,
+			}
 		}
 	}
 	q := parts[0]
@@ -130,7 +158,10 @@ func (g *DepGraph) computeSetBinaryOp(expr query.BinaryExpr, level Level) (set n
 	case *query.ExprUnion:
 		return lhs.union(rhs), nil
 	}
-	return nil, fmt.Errorf("unexpected operator expression %v", expr)
+	return nil, &queryErr{
+		err:  fmt.Sprintf("unknown operator"),
+		expr: expr,
+	}
 }
 
 func (g *DepGraph) computeSetFunc(expr query.FuncExpr, level Level) (nodeSet, error) {
@@ -142,7 +173,10 @@ func (g *DepGraph) computeSetFunc(expr query.FuncExpr, level Level) (nodeSet, er
 	case "shared":
 		return g.sharedFunc(expr, level)
 	default:
-		return nil, fmt.Errorf("unknown function %q", expr.Name())
+		return nil, &queryErr{
+			err:  fmt.Sprintf("unknown function %q", expr.Name()),
+			expr: expr,
+		}
 	}
 }
 
@@ -156,16 +190,25 @@ const (
 func (g *DepGraph) computeSetGraphTraversal(expr query.FuncExpr, direction traversalDirection, level Level) (nodeSet, error) {
 	args := expr.Args()
 	if len(args.Args()) == 0 {
-		return nil, fmt.Errorf("function takes at least one argument but received none (%v)", args.Pos())
+		return nil, &queryErr{
+			err:  "expected at least one argument but received none",
+			expr: expr,
+		}
 	} else if len(args.Args()) > 2 {
-		return nil, fmt.Errorf("function takes at most 2 arguments but received %d (%v)", len(args.Args()), args.Pos())
+		return nil, &queryErr{
+			err:  fmt.Sprintf("expected at most 2 arguments but received %d", len(args.Args())),
+			expr: expr,
+		}
 	}
 
 	maxDepth := math.MaxInt64
 	if len(args.Args()) == 2 {
 		v, ok := args.Args()[1].(*query.ExprInteger)
 		if !ok {
-			return nil, fmt.Errorf("function's second argument must be an integer but got %v (%v)", args.Args()[1], args.Args()[1].Pos())
+			return nil, &queryErr{
+				err:  fmt.Sprintf("expected an integer as second argument but got '%v'", args.Args()[0]),
+				expr: expr,
+			}
 		}
 		maxDepth = v.Value()
 	}
@@ -230,7 +273,10 @@ func (g *DepGraph) computeSetGraphTraversal(expr query.FuncExpr, direction trave
 func (g *DepGraph) sharedFunc(expr query.FuncExpr, level Level) (nodeSet, error) {
 	args := expr.Args()
 	if len(args.Args()) != 1 {
-		return nil, fmt.Errorf("the 'shared' function takes only a single argument but received %v (%v)", args, args.Pos())
+		return nil, &queryErr{
+			err:  fmt.Sprintf("expected a single argument but received '%v'", len(args.Args())),
+			expr: expr,
+		}
 	}
 
 	set, err := g.computeSet(args.Args()[0], level)
@@ -272,10 +318,6 @@ func (g *DepGraph) sharedFunc(expr query.FuncExpr, level Level) (nodeSet, error)
 		delete(set, next.Name())
 
 		pred := next.Predecessors().List()[0]
-		if err := g.Graph.DeleteNode(next.Hash()); err != nil {
-			return nil, err
-		}
-
 		if nodesInSet(set, pred.Successors().List()) == 0 && nodesInSet(set, pred.Predecessors().List()) == 1 {
 			todo = append(todo, pred)
 		}

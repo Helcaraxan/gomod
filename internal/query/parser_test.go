@@ -2,24 +2,13 @@ package query
 
 import (
 	"errors"
-	"fmt"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/Helcaraxan/gomod/internal/logger"
+	"github.com/Helcaraxan/gomod/internal/testutil"
 )
-
-type syncBuffer struct {
-	strings.Builder
-}
-
-func (s *syncBuffer) Sync() error { return nil }
 
 func TestParser(t *testing.T) {
 	t.Parallel()
@@ -167,17 +156,7 @@ func TestParser(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out := &syncBuffer{Builder: strings.Builder{}}
-			defer func() {
-				if t.Failed() {
-					fmt.Fprintf(os.Stderr, out.String())
-				}
-			}()
-
-			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), out, zapcore.DebugLevel))
-			fmt.Fprintf(out, "--- Test %s ---", t.Name())
-
-			expr, err := Parse(log, testcase.input)
+			expr, err := Parse(testutil.TestLogger(t), testcase.input)
 			require.NoError(t, err)
 			assert.Equal(t, testcase.expectedExpr.String(), expr.String())
 		})
@@ -213,14 +192,6 @@ func TestParserErrors(t *testing.T) {
 			input:       "1(foo, 1, false)",
 			expectedErr: ErrInvalidFuncName,
 		},
-		"BooleanExpression": {
-			input:       "true",
-			expectedErr: ErrInvalidArgument,
-		},
-		"IntegerExpresssion": {
-			input:       "42",
-			expectedErr: ErrInvalidArgument,
-		},
 		"UnexpectedComma": {
 			input:       ",",
 			expectedErr: ErrUnexpectedComma,
@@ -252,17 +223,7 @@ func TestParserErrors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out := &syncBuffer{Builder: strings.Builder{}}
-			defer func() {
-				if t.Failed() {
-					fmt.Fprintf(os.Stderr, out.String())
-				}
-			}()
-
-			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), out, zapcore.DebugLevel))
-			fmt.Fprintf(out, "--- Test %s ---", t.Name())
-
-			expr, err := Parse(log, testcase.input)
+			expr, err := Parse(testutil.TestLogger(t), testcase.input)
 			assert.True(t, errors.Is(err, testcase.expectedErr), err)
 			assert.Nil(t, expr)
 		})
