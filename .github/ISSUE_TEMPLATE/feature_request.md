@@ -8,19 +8,14 @@ labels: "feature request"
 
 ## Checklist
 
-- [ ] The feature / improvement you are suggesting overlaps with the purpose of `gomod`:
-      facilitating the management of Go modules and their dependencies.
-- [ ] You have examined various alternatives to the new feature / improvement you are suggesting
-      and are describing the results in the description below.
-- [ ] You have filled in the three sections below and deleted their corresponding placeholders
-      texts.
+- [ ] The feature / improvement you are suggesting overlaps with the purpose of `gomod`: facilitating the management of Go modules and their dependencies.
+- [ ] You have examined various alternatives to the new feature / improvement you are suggesting and are describing the results in the description below.
+- [ ] You have filled in the three sections below and deleted their corresponding placeholders texts.
 
 ## Description
 
-- 💡 _Describe the problem you want this project to solve via a new feature, not the feature
-  itself._
-- 📈 _Describe the improvement you'd like to see, not how you want to
-  implement it._
+- 💡 _Describe the problem you want this project to solve via a new feature, not the feature itself._
+- 📈 _Describe the improvement you'd like to see, not how you want to implement it._
 
 ## Implementation suggestions
 
