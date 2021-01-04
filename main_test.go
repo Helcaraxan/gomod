@@ -27,10 +27,10 @@ func TestGraphGeneration(t *testing.T) {
 		"Full": {
 			expectedFileBase: "full",
 			dotArgs: &graphArgs{
-				query: "deps(test(github.com/Helcaraxan/gomod))",
+				query: "deps(github.com/Helcaraxan/gomod:test)",
 			},
 			visualArgs: &graphArgs{
-				query: "deps(test(github.com/Helcaraxan/gomod))",
+				query: "deps(github.com/Helcaraxan/gomod:test)",
 				style: &printer.StyleOptions{
 					ScaleNodes: true,
 					Cluster:    printer.Full,

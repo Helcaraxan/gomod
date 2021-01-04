@@ -47,7 +47,7 @@ func (g *DepGraph) computeSet(q query.Expr, level Level) (set nodeSet, err error
 	case *query.ExprArgsList, *query.ExprBool, *query.ExprInteger:
 		return nil, fmt.Errorf("invalid query on graph %v (%v)", q, q.Pos())
 	case *query.ExprString:
-		return g.computeSetHashMatch(tq, false, level), nil
+		return g.computeSetNameMatch(tq, level)
 	case query.BinaryExpr:
 		return g.computeSetBinaryOp(tq, level)
 	case *query.ExprFunc:
@@ -57,9 +57,24 @@ func (g *DepGraph) computeSet(q query.Expr, level Level) (set nodeSet, err error
 	return set, nil
 }
 
-func (g *DepGraph) computeSetHashMatch(expr *query.ExprString, withTest bool, level Level) nodeSet {
+func (g *DepGraph) computeSetNameMatch(expr *query.ExprString, level Level) (nodeSet, error) {
+	var withTestDeps bool
+
+	parts := strings.Split(expr.Value(), ":")
+	if len(parts) > 2 {
+		return nil, fmt.Errorf("query '%v' contains more than one ':'", expr)
+	} else if len(parts) == 2 {
+		switch parts[1] {
+		case "test":
+			withTestDeps = true
+		default:
+			return nil, fmt.Errorf("undefined annotation '%s' in path query '%v'", parts[1], expr)
+		}
+	}
+	q := parts[0]
+
 	var matcher func(hash string) bool
-	if target := strings.TrimSuffix(expr.Value(), "/..."); target != expr.Value() {
+	if target := strings.TrimSuffix(q, "/..."); target != q {
 		matcher = func(name string) bool {
 			return strings.HasPrefix(name, target)
 		}
@@ -73,7 +88,7 @@ func (g *DepGraph) computeSetHashMatch(expr *query.ExprString, withTest bool, le
 	for _, node := range g.Graph.GetLevel(int(level)).List() {
 		p, ok := node.(*Package)
 		switch {
-		case !withTest && ((ok && strings.HasSuffix(p.Info.Name, "_test")) || node.(testAnnotated).isTestDependency()):
+		case !withTestDeps && ((ok && strings.HasSuffix(p.Info.Name, "_test")) || node.(testAnnotated).isTestDependency()):
 			g.log.Debug("Discarded node as it is a test dependency.", zap.String("name", node.Name()))
 		case !matcher(node.Name()):
 			g.log.Debug("Discarded node as its name did not match the filter.", zap.String("name", node.Name()))
@@ -86,7 +101,7 @@ func (g *DepGraph) computeSetHashMatch(expr *query.ExprString, withTest bool, le
 	if len(set) == 0 {
 		g.log.Warn("Empty query result.", zap.Stringer("query", expr))
 	}
-	return set
+	return set, nil
 }
 
 func (g *DepGraph) computeSetBinaryOp(expr query.BinaryExpr, level Level) (set nodeSet, err error) {
@@ -119,22 +134,11 @@ func (g *DepGraph) computeSetBinaryOp(expr query.BinaryExpr, level Level) (set n
 }
 
 func (g *DepGraph) computeSetFunc(expr query.FuncExpr, level Level) (nodeSet, error) {
-	args := expr.Args()
-
 	switch expr.Name() {
 	case "deps":
 		return g.computeSetGraphTraversal(expr, forwards, level)
 	case "rdeps":
 		return g.computeSetGraphTraversal(expr, backwards, level)
-	case "test":
-		if len(args.Args()) != 1 {
-			return nil, fmt.Errorf("the 'test' function takes only a single string argument but received %v (%v)", args, args.Pos())
-		}
-		ts, ok := args.Args()[0].(*query.ExprString)
-		if !ok {
-			return nil, fmt.Errorf("the 'test' function takes only a single string argument but received %v (%v)", args, args.Pos())
-		}
-		return g.computeSetHashMatch(ts, true, level), nil
 	case "shared":
 		return g.sharedFunc(expr, level)
 	default:
