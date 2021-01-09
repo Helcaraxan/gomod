@@ -18,6 +18,8 @@
 - The `gomod graph` command now support querying the package-level import graph in addition to the
   already available module-level dependency graph. Simply use the new `--package | -p` flag to move
   into package mode.
+- The `--verbose` flag now takes optional string arguments to toggle debug output for specific parts
+  of `gomod`'s logic.
 
 **Breaking changes**
 

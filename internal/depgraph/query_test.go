@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/internal/graph"
 	"github.com/Helcaraxan/gomod/internal/modules"
@@ -27,10 +26,9 @@ type queryTestEdge struct {
 	e string
 }
 
-func instantiateQueryTestGraph(t *testing.T, log *zap.Logger, testGraph queryTestGraph) DepGraph {
+func instantiateQueryTestGraph(t *testing.T, testGraph queryTestGraph) DepGraph {
 	g := DepGraph{
-		Graph: graph.NewHierarchicalDigraph(),
-		log:   log,
+		Graph: graph.NewHierarchicalDigraph(testutil.TestLogger(t).Log()),
 	}
 
 	nodes := map[string]graph.Node{}
@@ -110,13 +108,12 @@ func TestQueryInvalid(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			log := testutil.TestLogger(t)
 			g := DepGraph{
-				Graph: graph.NewHierarchicalDigraph(),
-				log:   log,
+				Graph: graph.NewHierarchicalDigraph(log.Log()),
 			}
 
 			q, err := query.Parse(log, testcase.query)
 			require.NoError(t, err)
-			set, err := g.computeSet(q, LevelModules)
+			set, err := g.computeSet(log.Log(), q, LevelModules)
 			require.True(t, errors.Is(err, ErrInvalidQuery))
 			assert.Contains(t, err.Error(), testcase.expectedErrString)
 			assert.Empty(t, set)
@@ -201,13 +198,13 @@ func TestQueryNameMatch(t *testing.T) {
 			t.Parallel()
 
 			log := testutil.TestLogger(t)
-			g := instantiateQueryTestGraph(t, log, testcase.graph)
+			g := instantiateQueryTestGraph(t, testcase.graph)
 
 			q, err := query.Parse(log, testcase.query)
 			require.NoError(t, err)
 			require.IsType(t, &query.ExprString{}, q)
 
-			set, err := g.computeSet(q, LevelModules)
+			set, err := g.computeSet(log.Log(), q, LevelModules)
 			require.NoError(t, err)
 			assert.Equal(t, testcase.expectedSet, set)
 		})
@@ -282,13 +279,13 @@ func TestQueryBinaryOp(t *testing.T) {
 			t.Parallel()
 
 			log := testutil.TestLogger(t)
-			g := instantiateQueryTestGraph(t, log, testcase.graph)
+			g := instantiateQueryTestGraph(t, testcase.graph)
 
 			q, err := query.Parse(log, testcase.query)
 			require.NoError(t, err)
 			require.Implements(t, (*query.BinaryExpr)(nil), q)
 
-			set, err := g.computeSet(q, LevelModules)
+			set, err := g.computeSet(log.Log(), q, LevelModules)
 			require.NoError(t, err)
 			assert.Equal(t, testcase.expectedSet, set)
 		})
@@ -413,13 +410,13 @@ func TestQueryFuncs(t *testing.T) {
 			t.Parallel()
 
 			log := testutil.TestLogger(t)
-			g := instantiateQueryTestGraph(t, log, testcase.graph)
+			g := instantiateQueryTestGraph(t, testcase.graph)
 
 			q, err := query.Parse(log, testcase.query)
 			require.NoError(t, err)
 			require.Implements(t, (*query.FuncExpr)(nil), q)
 
-			set, err := g.computeSet(q, LevelModules)
+			set, err := g.computeSet(log.Log(), q, LevelModules)
 			require.NoError(t, err)
 			assert.Equal(t, testcase.expectedSet, set)
 		})

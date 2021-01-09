@@ -7,6 +7,24 @@ var (
 
 const (
 	gomodShort = "A tool to visualise and analyse a Go project's dependency graph."
+	gomodLong  = `A CLI tool for interacting with your Go project's dependency graph on various
+levels. See the online documentation or the '--help' for specific sub-commands to discover all the
+supported workflows.
+
+NB: The '--verbose' flag available on each command takes an optional list of strings that allow you 
+    to only get verbose output for specific pieces of logic. The available domains are:
+     * init -> Code that runs before any actual dependency processing happens.
+     * graph -> Interactions on the underlying graph representation used by 'gomod'.
+     * modinfo -> Retrieval of information about all modules involved in the dependency graph.
+     * pkginfo -> Retrieval of information about all packages involves in the dependency graph.
+     * moddeps -> Retrieval of information about module-level dependency graph (e.g versions).
+     * parser -> Parsing of user-specified dependency queries.
+     * query -> Execution of a parsed user-query on the dependency graph.
+     * printer -> Printing of the queried dependency graph.
+     * all -> Covers all domains above.
+    Without any arguments the behaviour defaults to enabling verbosity on all domains, the
+    equivalent of passing 'all' as argument.
+`
 
 	graphShort = "Visualise the dependency graph of a Go module."
 	graphLong  = `Generate a visualisation of the dependency network used by the code in your Go

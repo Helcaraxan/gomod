@@ -21,39 +21,44 @@ import (
 )
 
 type commonArgs struct {
-	log *zap.Logger
+	log *logger.Builder
 }
 
 func main() {
+	var verbose []string
+
 	commonArgs := &commonArgs{
-		log: zap.NewNop(),
+		log: logger.NewBuilder(os.Stderr),
 	}
 
-	var verbose, quiet bool
 	rootCmd := &cobra.Command{
 		Use:   "gomod",
 		Short: gomodShort,
+		Long:  gomodLong,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
-			zapOut := os.Stderr
-			zapEnc := logger.NewGoModEncoder()
-			zapLevel := zapcore.InfoLevel
-			if verbose {
-				zapLevel = zapcore.DebugLevel
-			} else if quiet {
-				zapLevel = zapcore.ErrorLevel
+			for _, domain := range verbose {
+				commonArgs.log.SetDomainLevel(domain, zapcore.DebugLevel)
 			}
-			commonArgs.log = zap.New(zapcore.NewCore(zapEnc, zapOut, zapLevel))
 
-			if err := checkToolDependencies(commonArgs.log); err != nil {
+			log := commonArgs.log.Domain(logger.InitDomain)
+			if err := checkToolDependencies(log); err != nil {
 				return err
-			} else if err := checkGoModulePresence(commonArgs.log); err != nil {
+			} else if err = checkGoModulePresence(log); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Silence output from go tool invocations")
+
+	rootCmd.PersistentFlags().StringSliceVarP(
+		&verbose,
+		"verbose",
+		"v",
+		nil,
+		"Verbose output. Takes optional arguments to only add verbosity for specific domains. See 'gomod --help' for more information.",
+	)
+	v := rootCmd.Flag("verbose")
+	v.NoOptDefVal = "all"
 
 	rootCmd.AddCommand(
 		initAnalyseCmd(commonArgs),
@@ -63,7 +68,7 @@ func main() {
 	)
 
 	if err := rootCmd.Execute(); err != nil {
-		commonArgs.log.Debug("Exited with an error.", zap.Error(err))
+		commonArgs.log.Log().Debug("Exited with an error.", zap.Error(err))
 		os.Exit(1)
 	}
 }
@@ -92,7 +97,7 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Flags().Changed("style") {
-				styleOptions, err := parsers.ParseStyleConfiguration(cmdArgs.log, style)
+				styleOptions, err := parsers.ParseStyleConfiguration(cmdArgs.log.Domain(logger.InitDomain), style)
 				if err != nil {
 					return err
 				}
@@ -127,9 +132,10 @@ func runGraphCmd(args *graphArgs) error {
 	if args.packages {
 		l = depgraph.LevelPackages
 	}
-	if err = graph.ApplyQuery(q, l); err != nil {
+	if err = graph.ApplyQuery(args.log, q, l); err != nil {
 		return err
 	}
+	args.log.Log().Debug("Printing graph.")
 	return printResult(graph, args)
 }
 
@@ -158,7 +164,7 @@ func runAnalyseCmd(args *analyseArgs) error {
 	if err != nil {
 		return err
 	}
-	analysisResult, err := analysis.Analyse(args.log, graph)
+	analysisResult, err := analysis.Analyse(args.log.Log(), graph)
 	if err != nil {
 		return err
 	}
@@ -195,11 +201,11 @@ func runRevealCmd(args *revealArgs) error {
 	if err != nil {
 		return err
 	}
-	replacements, err := reveal.FindReplacements(args.log, graph)
+	replacements, err := reveal.FindReplacements(args.log.Log(), graph)
 	if err != nil {
 		return err
 	}
-	return replacements.Print(args.log, os.Stdout, args.sources, args.targets)
+	return replacements.Print(args.log.Log(), os.Stdout, args.sources, args.targets)
 }
 
 type versionArgs struct {
@@ -227,7 +233,7 @@ func runVersionCmd(args *versionArgs) error {
 	return nil
 }
 
-func checkToolDependencies(log *zap.Logger) error {
+func checkToolDependencies(log *logger.Logger) error {
 	tools := []string{
 		"go",
 	}
@@ -245,7 +251,7 @@ func checkToolDependencies(log *zap.Logger) error {
 	return nil
 }
 
-func checkGoModulePresence(log *zap.Logger) error {
+func checkGoModulePresence(log *logger.Logger) error {
 	path, err := os.Getwd()
 	if err != nil {
 		log.Error("Could not determine the current working directory.", zap.Error(err))
@@ -270,7 +276,7 @@ func printResult(g *depgraph.DepGraph, args *graphArgs) error {
 		l = printer.LevelPackages
 	}
 	return printer.Print(g.Graph, &printer.PrintConfig{
-		Log:         args.log,
+		Log:         args.log.Domain(logger.PrinterDomain),
 		Granularity: l,
 		OutputPath:  args.outputPath,
 		Style:       args.style,

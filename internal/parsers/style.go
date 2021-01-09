@@ -6,10 +6,11 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/printer"
 )
 
-func ParseStyleConfiguration(logger *zap.Logger, config string) (*printer.StyleOptions, error) {
+func ParseStyleConfiguration(log *logger.Logger, config string) (*printer.StyleOptions, error) {
 	styleOptions := &printer.StyleOptions{}
 	for _, setting := range strings.Split(config, ",") {
 		if setting == "" {
@@ -28,11 +29,11 @@ func ParseStyleConfiguration(logger *zap.Logger, config string) (*printer.StyleO
 		var err error
 		switch configKey {
 		case "scale_nodes":
-			err = parseStyleScaleNodes(logger, styleOptions, configValue)
+			err = parseStyleScaleNodes(log, styleOptions, configValue)
 		case "cluster":
-			err = parseStyleCluster(logger, styleOptions, configValue)
+			err = parseStyleCluster(log, styleOptions, configValue)
 		default:
-			logger.Error("Skipping unknown style option.", zap.String("option", configKey))
+			log.Error("Skipping unknown style option.", zap.String("option", configKey))
 			err = errors.New("invalid config")
 		}
 		if err != nil {
@@ -42,20 +43,20 @@ func ParseStyleConfiguration(logger *zap.Logger, config string) (*printer.StyleO
 	return styleOptions, nil
 }
 
-func parseStyleScaleNodes(logger *zap.Logger, styleOptions *printer.StyleOptions, raw string) error {
+func parseStyleScaleNodes(log *logger.Logger, styleOptions *printer.StyleOptions, raw string) error {
 	switch strings.ToLower(raw) {
 	case "", "true", "on", "yes":
 		styleOptions.ScaleNodes = true
 	case "false", "off", "no":
 		styleOptions.ScaleNodes = false
 	default:
-		logger.Error("Could not set 'scale_nodes' style. Accepted values are 'true' and 'false'.", zap.String("value", raw))
+		log.Error("Could not set 'scale_nodes' style. Accepted values are 'true' and 'false'.", zap.String("value", raw))
 		return errors.New("invalid 'scale_nodes' value")
 	}
 	return nil
 }
 
-func parseStyleCluster(logger *zap.Logger, styleOptions *printer.StyleOptions, raw string) error {
+func parseStyleCluster(log *logger.Logger, styleOptions *printer.StyleOptions, raw string) error {
 	switch strings.ToLower(raw) {
 	case "off", "false", "no":
 		styleOptions.Cluster = printer.Off
@@ -64,7 +65,7 @@ func parseStyleCluster(logger *zap.Logger, styleOptions *printer.StyleOptions, r
 	case "full":
 		styleOptions.Cluster = printer.Full
 	default:
-		logger.Error("Could not set 'cluster' style. Accepted values are 'off', 'shared' and 'full'.", zap.String("value", raw))
+		log.Error("Could not set 'cluster' style. Accepted values are 'off', 'shared' and 'full'.", zap.String("value", raw))
 		return errors.New("invalid 'cluster' value")
 	}
 	return nil

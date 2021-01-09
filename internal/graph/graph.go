@@ -2,6 +2,11 @@ package graph
 
 import (
 	"errors"
+	"fmt"
+
+	"go.uber.org/zap"
+
+	"github.com/Helcaraxan/gomod/internal/logger"
 )
 
 var (
@@ -13,12 +18,27 @@ var (
 	ErrEdgeCrossLevel    = errors.New("edges not allowed between nodes of different hierarchical levels")
 )
 
+type graphErr struct {
+	err error
+	ctx string
+}
+
+func (e graphErr) Error() string {
+	return fmt.Sprintf("%s: %v", e.ctx, e.err)
+}
+
+func (e graphErr) Unwrap() error {
+	return e.err
+}
+
 type HierarchicalDigraph struct {
+	log     *logger.Logger
 	members NodeRefs
 }
 
-func NewHierarchicalDigraph() *HierarchicalDigraph {
+func NewHierarchicalDigraph(log *logger.Logger) *HierarchicalDigraph {
 	return &HierarchicalDigraph{
+		log:     log,
 		members: NewNodeRefs(),
 	}
 }
@@ -26,7 +46,10 @@ func NewHierarchicalDigraph() *HierarchicalDigraph {
 func (g HierarchicalDigraph) GetNode(hash string) (Node, error) {
 	n, _ := g.members.Get(hash)
 	if n == nil {
-		return nil, ErrNodeNotFound
+		return nil, &graphErr{
+			err: ErrNodeNotFound,
+			ctx: fmt.Sprintf("node hash %q", hash),
+		}
 	}
 	return n, nil
 }
@@ -37,14 +60,21 @@ func (g *HierarchicalDigraph) AddNode(node Node) error {
 	} else if nodeIsNil(node) {
 		return ErrNilNode
 	}
+	g.log.Debug("Adding node to graph.", zap.Stringer("node", node))
 
 	if n, _ := g.members.Get(node.Hash()); n != nil {
-		return ErrNodeAlreadyExists
+		return &graphErr{
+			err: ErrNodeAlreadyExists,
+			ctx: fmt.Sprintf("node hash %q", node.Hash()),
+		}
 	}
 
 	if p := node.Parent(); !nodeIsNil(p) {
 		if n, _ := g.members.Get(p.Hash()); nodeIsNil(n) {
-			return ErrNodeNotFound
+			return &graphErr{
+				err: ErrNodeNotFound,
+				ctx: fmt.Sprintf("node hash %q", node.Hash()),
+			}
 		}
 		p.Children().Add(node)
 	}
@@ -57,10 +87,16 @@ func (g *HierarchicalDigraph) DeleteNode(hash string) error {
 	if g == nil {
 		return ErrNilGraph
 	}
+	g.log.Debug("Deleting node from graph.", zap.String("hash", hash))
+	g.log.AddIndent()
+	defer g.log.RemoveIndent()
 
 	target, _ := g.members.Get(hash)
 	if target == nil {
-		return ErrNodeNotFound
+		return &graphErr{
+			err: ErrNodeNotFound,
+			ctx: fmt.Sprintf("node hash %q", hash),
+		}
 	}
 
 	if target.Children() != nil {
@@ -108,21 +144,37 @@ func (g *HierarchicalDigraph) AddEdge(src Node, dst Node) error {
 	}
 
 	if _, w := g.members.Get(src.Hash()); w == 0 {
-		return ErrNodeNotFound
+		return &graphErr{
+			err: ErrNodeNotFound,
+			ctx: fmt.Sprintf("node hash %q", src.Hash()),
+		}
 	} else if _, w := g.members.Get(dst.Hash()); w == 0 {
-		return ErrNodeNotFound
+		return &graphErr{
+			err: ErrNodeNotFound,
+			ctx: fmt.Sprintf("node hash %q", dst.Hash()),
+		}
 	}
 
 	if nodeDepth(src) != nodeDepth(dst) {
-		return ErrEdgeCrossLevel
+		return &graphErr{
+			err: ErrEdgeCrossLevel,
+			ctx: fmt.Sprintf("node %q (%d) - node %q (%d)", src.Hash(), nodeDepth(src), dst.Hash(), nodeDepth(dst)),
+		}
 	}
 
-	for !nodeIsNil(src) && !nodeIsNil(dst) && src.Hash() != dst.Hash() {
+	for {
+		if nodeIsNil(src) || nodeIsNil(dst) || src.Hash() == dst.Hash() {
+			break
+		}
+
+		g.log.Debug("Adding edge to graph.", zap.String("source-hash", src.Hash()), zap.String("target-hash", dst.Hash()))
 		src.Successors().Add(dst)
 		dst.Predecessors().Add(src)
 
 		src = src.Parent()
 		dst = dst.Parent()
+		g.log.AddIndent()
+		defer g.log.RemoveIndent()
 	}
 	return nil
 }
@@ -135,9 +187,15 @@ func (g *HierarchicalDigraph) DeleteEdge(src Node, dst Node) error {
 	}
 
 	if _, w := g.members.Get(src.Hash()); w == 0 {
-		return ErrNodeNotFound
+		return &graphErr{
+			err: ErrNodeNotFound,
+			ctx: fmt.Sprintf("node hash %q", src.Hash()),
+		}
 	} else if _, w := g.members.Get(dst.Hash()); w == 0 {
-		return ErrNodeNotFound
+		return &graphErr{
+			err: ErrNodeNotFound,
+			ctx: fmt.Sprintf("node hash %q", dst.Hash()),
+		}
 	}
 
 	if src.Children() != nil {

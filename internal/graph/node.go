@@ -3,11 +3,13 @@ package graph
 import (
 	"reflect"
 	"sort"
+	"strings"
 )
 
 type Node interface {
 	Name() string
 	Hash() string
+	String() string
 
 	Predecessors() *NodeRefs
 	Successors() *NodeRefs
@@ -41,6 +43,14 @@ func NewNodeRefs() NodeRefs {
 		nodeMap:  map[string]Node{},
 		weights:  map[string]int{},
 	}
+}
+
+func (n NodeRefs) String() string {
+	var ns []string
+	for _, m := range n.nodeList {
+		ns = append(ns, m.Name())
+	}
+	return strings.Join(ns, ", ")
 }
 
 func (n NodeRefs) Len() int {

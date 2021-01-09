@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 
@@ -15,8 +16,11 @@ type testNode struct {
 	children NodeRefs
 }
 
-func (n *testNode) Name() string            { return n.name }
-func (n *testNode) Hash() string            { return n.name }
+func (n *testNode) Name() string { return n.name }
+func (n *testNode) Hash() string { return n.name }
+func (n *testNode) String() string {
+	return fmt.Sprintf("%s, preds: [%s], succs: [%s]", n.name, n.preds, n.succs)
+}
 func (n *testNode) Predecessors() *NodeRefs { return &n.preds }
 func (n *testNode) Successors() *NodeRefs   { return &n.succs }
 func (n *testNode) Parent() Node            { return n.parent }

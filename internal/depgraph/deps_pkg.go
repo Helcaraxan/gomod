@@ -10,14 +10,16 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/internal/graph"
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/modules"
 	"github.com/Helcaraxan/gomod/internal/util"
 )
 
-func (g *DepGraph) buildImportGraph() error {
-	g.log.Debug("Building initial dependency graph based on the import graph.")
+func (g *DepGraph) buildImportGraph(dl *logger.Builder) error {
+	log := dl.Domain(logger.PackageInfoDomain)
+	log.Debug("Building initial dependency graph based on the import graph.")
 
-	err := g.retrieveTransitiveImports([]string{fmt.Sprintf("%s/...", g.Main.Info.Path)})
+	err := g.retrieveTransitiveImports(log, []string{fmt.Sprintf("%s/...", g.Main.Info.Path)})
 	if err != nil {
 		return err
 	}
@@ -39,11 +41,11 @@ func (g *DepGraph) buildImportGraph() error {
 
 			targetNode, _ := pkgs.Get(packageHash(imp))
 			if targetNode == nil {
-				g.log.Error("Detected import of unknown package.", zap.String("package", imp))
+				log.Error("Detected import of unknown package.", zap.String("package", imp))
 				continue
 			}
 
-			g.log.Debug(
+			log.Debug(
 				"Adding package dependency.",
 				zap.String("source", pkg.Name()),
 				zap.String("source-module", pkg.Parent().Name()),
@@ -91,7 +93,7 @@ func (g *DepGraph) markNonTestDependencies() {
 	}
 }
 
-func (g *DepGraph) retrieveTransitiveImports(pkgs []string) error {
+func (g *DepGraph) retrieveTransitiveImports(log *logger.Logger, pkgs []string) error {
 	const maxQueryLength = 950 // This is chosen conservatively to ensure we don't exceed maximum command lengths for 'go list' invocations.
 
 	queued := map[string]bool{}
@@ -109,7 +111,7 @@ func (g *DepGraph) retrieveTransitiveImports(pkgs []string) error {
 		query := pkgs[:cursor]
 		pkgs = pkgs[cursor:]
 
-		imports, err := g.retrievePackageInfo(query)
+		imports, err := g.retrievePackageInfo(log, query)
 		if err != nil {
 			return err
 		}
@@ -124,10 +126,10 @@ func (g *DepGraph) retrieveTransitiveImports(pkgs []string) error {
 	return nil
 }
 
-func (g *DepGraph) retrievePackageInfo(packages []string) (imports []string, err error) {
-	stdout, _, err := util.RunCommand(g.log, g.Main.Info.Dir, "go", append([]string{"list", "-json"}, packages...)...)
+func (g *DepGraph) retrievePackageInfo(log *logger.Logger, pkgs []string) (imports []string, err error) {
+	stdout, _, err := util.RunCommand(log, g.Main.Info.Dir, "go", append([]string{"list", "-json"}, pkgs...)...)
 	if err != nil {
-		g.log.Error("Failed to list imports for packages.", zap.Strings("packages", packages), zap.Error(err))
+		log.Error("Failed to list imports for packages.", zap.Strings("packages", pkgs), zap.Error(err))
 		return nil, err
 	}
 	dec := json.NewDecoder(bytes.NewReader(stdout))
@@ -138,19 +140,19 @@ func (g *DepGraph) retrievePackageInfo(packages []string) (imports []string, err
 			if err == io.EOF {
 				break
 			} else {
-				g.log.Error("Failed to parse go list output.", zap.Error(err))
+				log.Error("Failed to parse go list output.", zap.Error(err))
 				return nil, err
 			}
 		}
 		parentModule, ok := g.getModule(pkgInfo.Module.Path)
 		if !ok {
-			g.log.Error("Encountered package in unknown module.", zap.String("package", pkgInfo.ImportPath), zap.String("module", pkgInfo.Module.Path))
+			log.Error("Encountered package in unknown module.", zap.String("package", pkgInfo.ImportPath), zap.String("module", pkgInfo.Module.Path))
 			continue
 		}
 
 		pkg := NewPackage(pkgInfo, parentModule)
 		_ = g.Graph.AddNode(pkg)
-		g.log.Debug("Added import information for package", zap.String("package", pkg.Name()), zap.String("module", parentModule.Name()))
+		log.Debug("Added import information for package", zap.String("package", pkg.Name()), zap.String("module", parentModule.Name()))
 
 		importCandidates := make([]string, len(pkgInfo.Imports))
 		copy(importCandidates, pkgInfo.Imports)

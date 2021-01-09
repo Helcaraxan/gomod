@@ -1,16 +1,13 @@
 package parsers
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/printer"
+	"github.com/Helcaraxan/gomod/internal/testutil"
 )
 
 func TestVisualConfig(t *testing.T) {
@@ -118,8 +115,8 @@ func TestVisualConfig(t *testing.T) {
 	for name := range testcases {
 		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
-			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zap.DebugLevel))
-			config, err := ParseStyleConfiguration(log, testcase.optionValue)
+			log := testutil.TestLogger(t)
+			config, err := ParseStyleConfiguration(log.Log(), testcase.optionValue)
 			if testcase.expectedError {
 				assert.Error(t, err)
 			} else {
