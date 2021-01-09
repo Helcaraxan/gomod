@@ -1,6 +1,6 @@
 # Release notes
 
-## Next release
+## 0.6.0
 
 **High-level overview**
 
