@@ -338,6 +338,11 @@ type testAnnotated interface {
 	isTestDependency() bool
 }
 
+var (
+	_ testAnnotated = &Module{}
+	_ testAnnotated = &Package{}
+)
+
 type nodeSet map[string]bool
 
 func (ns nodeSet) union(rhs nodeSet) nodeSet {
