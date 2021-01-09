@@ -1,5 +1,4 @@
 ---
-
 rules:
   braces:
     min-spaces-inside: 0
@@ -21,7 +20,7 @@ rules:
   comments:
     level: warning
     require-starting-space: true
-    min-spaces-from-content: 2
+    min-spaces-from-content: 1
   comments-indentation:
     level: warning
   document-end: disable

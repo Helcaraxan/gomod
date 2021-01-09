@@ -1,7 +1,7 @@
 ---
 name: Premerge
 
-on:  # yamllint disable rule:truthy
+on: # yamllint disable rule:truthy
   push:
     branches:
       - master
@@ -12,28 +12,25 @@ on:  # yamllint disable rule:truthy
 jobs:
   lint:
     name: Lint
-    runs-on:
-      - ubuntu-20.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Install Go
         uses: actions/setup-go@v1
         with:
           go-version: 1.15
-      - name: Install required tools
-        run: sudo apt-get install -y graphviz
       - name: Install Python
         uses: actions/setup-python@v1
       - name: Check out repository
         uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Run linters
         run: ./ci/lint.sh
 
   test:
     name: Test
-    runs-on:
-      - ubuntu-20.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Install Go
         uses: actions/setup-go@v1
