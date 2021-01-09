@@ -59,18 +59,22 @@ func (g *DepGraph) buildImportGraph(dl *logger.Builder) error {
 		}
 	}
 
-	g.markNonTestDependencies()
+	if err = g.markNonTestDependencies(log); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (g *DepGraph) markNonTestDependencies() {
+func (g *DepGraph) markNonTestDependencies(log *logger.Logger) error {
+	log.Debug("Marking non-test dependencies.")
+
 	var todo []graph.Node
 	seen := map[string]bool{}
 
-	mainPkgs := g.Main.packages.List()
-	for _, mainPkg := range mainPkgs {
+	for _, mainPkg := range g.Main.packages.List() {
 		if strings.HasSuffix(mainPkg.(*Package).Info.Name, "_test") {
+			log.Debug("Skipping main module package as it is a test-only package.", zap.String("package", mainPkg.Name()))
 			continue
 		}
 
@@ -82,15 +86,27 @@ func (g *DepGraph) markNonTestDependencies() {
 		next := todo[0]
 		todo = todo[1:]
 
+		log.Debug("Marking package as non-test dependency.", zap.String("package", next.Name()))
 		next.(*Package).isNonTestDependency = true
 		next.Parent().(*Module).isNonTestDependency = true
-		for _, dep := range next.Successors().List() {
+
+		for _, imp := range next.(*Package).Info.Imports {
+			if isStandardLib(imp) {
+				continue
+			}
+
+			dep, err := g.Graph.GetNode(packageHash(imp))
+			if err != nil {
+				return err
+			}
+
 			if !seen[dep.Name()] {
 				todo = append(todo, dep)
 				seen[dep.Name()] = true
 			}
 		}
 	}
+	return nil
 }
 
 func (g *DepGraph) retrieveTransitiveImports(log *logger.Logger, pkgs []string) error {
