@@ -60,7 +60,12 @@ func (p *Package) Parent() graph.Node {
 }
 
 func (p *Package) NodeAttributes(annotate bool) []string {
-	return nil
+	var annotations []string
+
+	text, background := hashToColourHSV(p.Parent().Hash(), p.isTestDependency())
+	annotations = append(annotations, fmt.Sprintf(`fontcolor="%s"`, text), fmt.Sprintf(`fillcolor="%s"`, background))
+
+	return annotations
 }
 
 func (p *Package) EdgeAttributes(target graph.Node, annotate bool) []string {

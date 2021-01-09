@@ -45,9 +45,21 @@ An example query:
 
 gomod graph -p 'deps(foo.com/bar/...) inter deps(test(test.io/pkg/tool))'
 
-The generated graph's visual aspect (when run through the 'dot' tool) can be
-tuned with the '--style' flag. You can specify any formatting options as
-'<option>=<value>[,<option>=<value>]' out of the following list:
+The generated graph is colour and format coded:
+- Each module, or group of packages belonging to the same module, has a distinct
+  colour.
+- Test-only dependencies are recognisable by the use of a lighter
+  colour-palette.
+- Test-only edges are recognisable by a light blue colour.
+- Edges reflecting indirect module dependencies are marked with dashed instead
+  of continuous lines.
+
+Other visual aspects (when run through the 'dot' tool) can be tuned with the
+'--style' flag. You can specify any formatting options as
+
+  '<option>=<value>[,<option>=<value>]'
+
+out of the following list:
 
 - 'scale_nodes': one of 'true' or 'false' (default 'false'). This will scale the
                  size of each node of the graph based on the number of inbound

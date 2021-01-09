@@ -1,418 +1,418 @@
 strict digraph {
-  node [shape=box,style=rounded]
+  node [shape=box,style="rounded,filled"]
   start=0
   splines=ortho
-  "cloud.google.com/go/bigquery"
-  "cloud.google.com/go/datastore"
-  "cloud.google.com/go/firestore"
-  "cloud.google.com/go/pubsub"
-  "cloud.google.com/go/storage"
-  "cloud.google.com/go"
-  "github.com/BurntSushi/toml"
-  "github.com/Helcaraxan/gomod"
-  "github.com/alecthomas/template"
-  "github.com/alecthomas/units"
-  "github.com/armon/go-metrics"
-  "github.com/beorn7/perks"
-  "github.com/bketelsen/crypt"
-  "github.com/cpuguy83/go-md2man/v2"
-  "github.com/davecgh/go-spew"
-  "github.com/go-kit/kit"
-  "github.com/go-logfmt/logfmt"
-  "github.com/go-stack/stack"
-  "github.com/gogo/protobuf"
-  "github.com/golang/glog"
-  "github.com/golang/mock"
-  "github.com/golang/protobuf"
-  "github.com/google/btree"
-  "github.com/google/go-cmp"
-  "github.com/googleapis/gax-go/v2"
-  "github.com/grpc-ecosystem/grpc-gateway"
-  "github.com/hashicorp/consul/api"
-  "github.com/hashicorp/consul/sdk"
-  "github.com/hashicorp/go-cleanhttp"
-  "github.com/hashicorp/go-immutable-radix"
-  "github.com/hashicorp/go-msgpack"
-  "github.com/hashicorp/go-multierror"
-  "github.com/hashicorp/go-rootcerts"
-  "github.com/hashicorp/go-uuid"
-  "github.com/hashicorp/golang-lru"
-  "github.com/hashicorp/hcl"
-  "github.com/hashicorp/mdns"
-  "github.com/hashicorp/memberlist"
-  "github.com/hashicorp/serf"
-  "github.com/kisielk/errcheck"
-  "github.com/kisielk/gotool"
-  "github.com/kr/logfmt"
-  "github.com/kr/pretty"
-  "github.com/matttproud/golang_protobuf_extensions"
-  "github.com/miekg/dns"
-  "github.com/mitchellh/cli"
-  "github.com/mitchellh/go-homedir"
-  "github.com/mitchellh/mapstructure"
-  "github.com/pascaldekloe/goe"
-  "github.com/pkg/errors"
-  "github.com/pmezard/go-difflib"
-  "github.com/prometheus/client_golang"
-  "github.com/prometheus/client_model"
-  "github.com/prometheus/common"
-  "github.com/prometheus/procfs"
-  "github.com/prometheus/tsdb"
-  "github.com/rogpeppe/go-internal"
-  "github.com/sirupsen/logrus"
-  "github.com/smartystreets/goconvey"
-  "github.com/spf13/cast"
-  "github.com/spf13/cobra"
-  "github.com/spf13/pflag"
-  "github.com/spf13/viper"
-  "github.com/stretchr/objx"
-  "github.com/stretchr/testify"
-  "go.opencensus.io"
-  "go.uber.org/atomic"
-  "go.uber.org/multierr"
-  "go.uber.org/zap"
-  "golang.org/x/crypto"
-  "golang.org/x/exp"
-  "golang.org/x/image"
-  "golang.org/x/lint"
-  "golang.org/x/mobile"
-  "golang.org/x/mod"
-  "golang.org/x/net"
-  "golang.org/x/oauth2"
-  "golang.org/x/sync"
-  "golang.org/x/sys"
-  "golang.org/x/text"
-  "golang.org/x/tools"
-  "google.golang.org/api"
-  "google.golang.org/appengine"
-  "google.golang.org/genproto"
-  "google.golang.org/grpc"
-  "gopkg.in/alecthomas/kingpin.v2"
-  "gopkg.in/check.v1"
-  "gopkg.in/errgo.v2"
-  "gopkg.in/resty.v1"
-  "gopkg.in/yaml.v2"
-  "gopkg.in/yaml.v3"
-  "honnef.co/go/tools"
-  "cloud.google.com/go" -> "cloud.google.com/go/bigquery" [minlen=7]
-  "cloud.google.com/go" -> "cloud.google.com/go/datastore" [minlen=7]
-  "cloud.google.com/go" -> "cloud.google.com/go/pubsub" [minlen=7]
-  "cloud.google.com/go" -> "github.com/golang/mock" [minlen=7]
-  "cloud.google.com/go" -> "github.com/golang/protobuf" [minlen=5]
-  "cloud.google.com/go" -> "github.com/google/go-cmp" [minlen=7]
-  "cloud.google.com/go" -> "github.com/googleapis/gax-go/v2" [minlen=7]
-  "cloud.google.com/go" -> "go.opencensus.io" [minlen=6]
-  "cloud.google.com/go" -> "golang.org/x/exp" [minlen=8]
-  "cloud.google.com/go" -> "golang.org/x/lint" [minlen=6]
-  "cloud.google.com/go" -> "golang.org/x/net" [minlen=6]
-  "cloud.google.com/go" -> "golang.org/x/oauth2" [minlen=6]
-  "cloud.google.com/go" -> "golang.org/x/text" [minlen=5]
-  "cloud.google.com/go" -> "golang.org/x/tools" [minlen=7]
-  "cloud.google.com/go" -> "google.golang.org/api" [minlen=6]
-  "cloud.google.com/go" -> "google.golang.org/genproto" [minlen=7]
-  "cloud.google.com/go" -> "google.golang.org/grpc" [minlen=6]
-  "cloud.google.com/go" -> "honnef.co/go/tools" [minlen=6]
-  "cloud.google.com/go/bigquery" -> "cloud.google.com/go" [minlen=5]
-  "cloud.google.com/go/bigquery" -> "github.com/golang/protobuf" [minlen=6]
-  "cloud.google.com/go/bigquery" -> "github.com/google/go-cmp" [minlen=6]
-  "cloud.google.com/go/bigquery" -> "github.com/googleapis/gax-go/v2" [minlen=6]
-  "cloud.google.com/go/bigquery" -> "google.golang.org/api" [minlen=5]
-  "cloud.google.com/go/bigquery" -> "google.golang.org/genproto" [minlen=6]
-  "cloud.google.com/go/bigquery" -> "google.golang.org/grpc" [minlen=5]
-  "cloud.google.com/go/datastore" -> "cloud.google.com/go" [minlen=5]
-  "cloud.google.com/go/datastore" -> "github.com/golang/protobuf" [minlen=6]
-  "cloud.google.com/go/datastore" -> "github.com/google/go-cmp" [minlen=6]
-  "cloud.google.com/go/datastore" -> "github.com/googleapis/gax-go/v2" [minlen=6]
-  "cloud.google.com/go/datastore" -> "golang.org/x/sys" [minlen=8,style=dashed]
-  "cloud.google.com/go/datastore" -> "google.golang.org/api" [minlen=5]
-  "cloud.google.com/go/datastore" -> "google.golang.org/appengine" [minlen=7,style=dashed]
-  "cloud.google.com/go/datastore" -> "google.golang.org/genproto" [minlen=6]
-  "cloud.google.com/go/datastore" -> "google.golang.org/grpc" [minlen=5]
-  "cloud.google.com/go/firestore" -> "cloud.google.com/go" [minlen=6]
-  "cloud.google.com/go/firestore" -> "cloud.google.com/go/storage" [style=dashed]
-  "cloud.google.com/go/firestore" -> "github.com/golang/protobuf" [minlen=6]
-  "cloud.google.com/go/firestore" -> "github.com/google/go-cmp" [minlen=6]
-  "cloud.google.com/go/firestore" -> "github.com/googleapis/gax-go/v2" [minlen=6]
-  "cloud.google.com/go/firestore" -> "golang.org/x/exp" [minlen=7,style=dashed]
-  "cloud.google.com/go/firestore" -> "golang.org/x/lint" [minlen=5,style=dashed]
-  "cloud.google.com/go/firestore" -> "golang.org/x/tools" [minlen=8,style=dashed]
-  "cloud.google.com/go/firestore" -> "google.golang.org/api" [minlen=5]
-  "cloud.google.com/go/firestore" -> "google.golang.org/genproto" [minlen=6]
-  "cloud.google.com/go/firestore" -> "google.golang.org/grpc" [minlen=5]
-  "cloud.google.com/go/pubsub" -> "cloud.google.com/go" [minlen=5]
-  "cloud.google.com/go/pubsub" -> "github.com/golang/protobuf" [minlen=6]
-  "cloud.google.com/go/pubsub" -> "github.com/google/go-cmp" [minlen=7]
-  "cloud.google.com/go/pubsub" -> "github.com/googleapis/gax-go/v2" [minlen=7]
-  "cloud.google.com/go/pubsub" -> "go.opencensus.io" [minlen=6]
-  "cloud.google.com/go/pubsub" -> "golang.org/x/oauth2" [minlen=7]
-  "cloud.google.com/go/pubsub" -> "golang.org/x/sync" [minlen=6]
-  "cloud.google.com/go/pubsub" -> "google.golang.org/api" [minlen=6]
-  "cloud.google.com/go/pubsub" -> "google.golang.org/genproto" [minlen=7]
-  "cloud.google.com/go/pubsub" -> "google.golang.org/grpc" [minlen=6]
-  "cloud.google.com/go/storage" -> "cloud.google.com/go" [minlen=5]
-  "cloud.google.com/go/storage" -> "github.com/golang/protobuf" [minlen=6]
-  "cloud.google.com/go/storage" -> "github.com/google/go-cmp" [minlen=7]
-  "cloud.google.com/go/storage" -> "github.com/googleapis/gax-go/v2" [minlen=6]
-  "cloud.google.com/go/storage" -> "golang.org/x/oauth2" [minlen=7]
-  "cloud.google.com/go/storage" -> "google.golang.org/api" [minlen=5]
-  "cloud.google.com/go/storage" -> "google.golang.org/genproto" [minlen=7]
-  "cloud.google.com/go/storage" -> "google.golang.org/grpc" [minlen=6]
+  "cloud.google.com/go/bigquery" [fontcolor="0.000 0.000 0.000",fillcolor="0.400 0.320 1.000"]
+  "cloud.google.com/go/datastore" [fontcolor="0.000 0.000 0.000",fillcolor="0.353 0.329 1.000"]
+  "cloud.google.com/go/firestore" [fontcolor="0.000 0.000 0.000",fillcolor="0.459 0.308 1.000"]
+  "cloud.google.com/go/pubsub" [fontcolor="0.000 0.000 0.000",fillcolor="0.745 0.251 1.000"]
+  "cloud.google.com/go/storage" [fontcolor="0.000 0.000 0.000",fillcolor="0.165 0.367 1.000"]
+  "cloud.google.com/go" [fontcolor="0.000 0.000 0.000",fillcolor="0.761 0.248 1.000"]
+  "github.com/BurntSushi/toml" [fontcolor="0.000 0.000 0.000",fillcolor="0.404 0.319 1.000"]
+  "github.com/Helcaraxan/gomod" [fontcolor="0.000 0.000 0.000",fillcolor="0.824 0.753 1.000"]
+  "github.com/alecthomas/template" [fontcolor="0.000 0.000 0.000",fillcolor="0.365 0.327 1.000"]
+  "github.com/alecthomas/units" [fontcolor="0.000 0.000 0.000",fillcolor="0.749 0.250 1.000"]
+  "github.com/armon/go-metrics" [fontcolor="0.000 0.000 0.000",fillcolor="0.678 0.264 1.000"]
+  "github.com/beorn7/perks" [fontcolor="0.000 0.000 0.000",fillcolor="0.835 0.233 1.000"]
+  "github.com/bketelsen/crypt" [fontcolor="0.000 0.000 0.000",fillcolor="0.702 0.260 1.000"]
+  "github.com/cpuguy83/go-md2man/v2" [fontcolor="0.000 0.000 0.000",fillcolor="0.392 0.322 1.000"]
+  "github.com/davecgh/go-spew" [fontcolor="0.000 0.000 0.000",fillcolor="0.451 0.865 1.000"]
+  "github.com/go-kit/kit" [fontcolor="0.000 0.000 0.000",fillcolor="0.980 0.204 1.000"]
+  "github.com/go-logfmt/logfmt" [fontcolor="0.000 0.000 0.000",fillcolor="0.980 0.204 1.000"]
+  "github.com/go-stack/stack" [fontcolor="0.000 0.000 0.000",fillcolor="0.980 0.204 1.000"]
+  "github.com/gogo/protobuf" [fontcolor="0.000 0.000 0.000",fillcolor="0.106 0.379 1.000"]
+  "github.com/golang/glog" [fontcolor="0.000 0.000 0.000",fillcolor="0.008 0.398 1.000"]
+  "github.com/golang/mock" [fontcolor="0.000 0.000 0.000",fillcolor="0.161 0.368 1.000"]
+  "github.com/golang/protobuf" [fontcolor="0.000 0.000 0.000",fillcolor="0.200 0.360 1.000"]
+  "github.com/google/btree" [fontcolor="0.000 0.000 0.000",fillcolor="0.212 0.358 1.000"]
+  "github.com/google/go-cmp" [fontcolor="0.000 0.000 0.000",fillcolor="0.337 0.333 1.000"]
+  "github.com/googleapis/gax-go/v2" [fontcolor="0.000 0.000 0.000",fillcolor="0.627 0.275 1.000"]
+  "github.com/grpc-ecosystem/grpc-gateway" [fontcolor="0.000 0.000 0.000",fillcolor="0.996 0.201 1.000"]
+  "github.com/hashicorp/consul/api" [fontcolor="0.000 0.000 0.000",fillcolor="0.965 0.207 1.000"]
+  "github.com/hashicorp/consul/sdk" [fontcolor="0.000 0.000 0.000",fillcolor="0.063 0.387 1.000"]
+  "github.com/hashicorp/go-cleanhttp" [fontcolor="0.000 0.000 0.000",fillcolor="0.329 0.334 1.000"]
+  "github.com/hashicorp/go-immutable-radix" [fontcolor="0.000 0.000 0.000",fillcolor="0.235 0.353 1.000"]
+  "github.com/hashicorp/go-msgpack" [fontcolor="0.000 0.000 0.000",fillcolor="0.075 0.385 1.000"]
+  "github.com/hashicorp/go-multierror" [fontcolor="0.000 0.000 0.000",fillcolor="0.902 0.220 1.000"]
+  "github.com/hashicorp/go-rootcerts" [fontcolor="0.000 0.000 0.000",fillcolor="0.282 0.344 1.000"]
+  "github.com/hashicorp/go-uuid" [fontcolor="0.000 0.000 0.000",fillcolor="0.941 0.212 1.000"]
+  "github.com/hashicorp/golang-lru" [fontcolor="0.000 0.000 0.000",fillcolor="0.914 0.217 1.000"]
+  "github.com/hashicorp/hcl" [fontcolor="0.000 0.000 0.000",fillcolor="0.439 0.312 1.000"]
+  "github.com/hashicorp/mdns" [fontcolor="0.000 0.000 0.000",fillcolor="0.180 0.364 1.000"]
+  "github.com/hashicorp/memberlist" [fontcolor="0.000 0.000 0.000",fillcolor="0.302 0.340 1.000"]
+  "github.com/hashicorp/serf" [fontcolor="0.000 0.000 0.000",fillcolor="0.635 0.273 1.000"]
+  "github.com/kisielk/errcheck" [fontcolor="0.000 0.000 0.000",fillcolor="0.600 0.280 1.000"]
+  "github.com/kisielk/gotool" [fontcolor="0.000 0.000 0.000",fillcolor="0.184 0.363 1.000"]
+  "github.com/kr/logfmt" [fontcolor="0.000 0.000 0.000",fillcolor="0.471 0.306 1.000"]
+  "github.com/kr/pretty" [fontcolor="0.000 0.000 0.000",fillcolor="0.180 0.364 1.000"]
+  "github.com/matttproud/golang_protobuf_extensions" [fontcolor="0.000 0.000 0.000",fillcolor="0.655 0.269 1.000"]
+  "github.com/miekg/dns" [fontcolor="0.000 0.000 0.000",fillcolor="0.149 0.370 1.000"]
+  "github.com/mitchellh/cli" [fontcolor="0.000 0.000 0.000",fillcolor="0.859 0.228 1.000"]
+  "github.com/mitchellh/go-homedir" [fontcolor="0.000 0.000 0.000",fillcolor="0.965 0.207 1.000"]
+  "github.com/mitchellh/mapstructure" [fontcolor="0.000 0.000 0.000",fillcolor="0.906 0.219 1.000"]
+  "github.com/pascaldekloe/goe" [fontcolor="0.000 0.000 0.000",fillcolor="0.663 0.267 1.000"]
+  "github.com/pkg/errors" [fontcolor="0.000 0.000 0.000",fillcolor="0.541 0.292 1.000"]
+  "github.com/pmezard/go-difflib" [fontcolor="0.000 0.000 0.000",fillcolor="0.149 0.955 1.000"]
+  "github.com/prometheus/client_golang" [fontcolor="0.000 0.000 0.000",fillcolor="0.102 0.380 1.000"]
+  "github.com/prometheus/client_model" [fontcolor="0.000 0.000 0.000",fillcolor="0.016 0.397 1.000"]
+  "github.com/prometheus/common" [fontcolor="0.000 0.000 0.000",fillcolor="0.384 0.323 1.000"]
+  "github.com/prometheus/procfs" [fontcolor="0.000 0.000 0.000",fillcolor="0.961 0.208 1.000"]
+  "github.com/prometheus/tsdb" [fontcolor="0.000 0.000 0.000",fillcolor="0.945 0.211 1.000"]
+  "github.com/rogpeppe/go-internal" [fontcolor="0.000 0.000 0.000",fillcolor="0.702 0.260 1.000"]
+  "github.com/sirupsen/logrus" [fontcolor="0.000 0.000 0.000",fillcolor="0.592 0.282 1.000"]
+  "github.com/smartystreets/goconvey" [fontcolor="0.000 0.000 0.000",fillcolor="0.918 0.216 1.000"]
+  "github.com/spf13/cast" [fontcolor="0.000 0.000 0.000",fillcolor="0.843 0.231 1.000"]
+  "github.com/spf13/cobra" [fontcolor="0.000 0.000 0.000",fillcolor="0.988 0.704 1.000"]
+  "github.com/spf13/pflag" [fontcolor="0.000 0.000 0.000",fillcolor="0.549 0.835 1.000"]
+  "github.com/spf13/viper" [fontcolor="0.000 0.000 0.000",fillcolor="0.533 0.293 1.000"]
+  "github.com/stretchr/objx" [fontcolor="0.000 0.000 0.000",fillcolor="0.941 0.212 1.000"]
+  "github.com/stretchr/testify" [fontcolor="0.000 0.000 0.000",fillcolor="0.569 0.829 1.000"]
+  "go.opencensus.io" [fontcolor="0.000 0.000 0.000",fillcolor="0.671 0.266 1.000"]
+  "go.uber.org/atomic" [fontcolor="0.000 0.000 0.000",fillcolor="0.949 0.715 1.000"]
+  "go.uber.org/multierr" [fontcolor="0.000 0.000 0.000",fillcolor="0.345 0.896 1.000"]
+  "go.uber.org/zap" [fontcolor="0.000 0.000 0.000",fillcolor="1.000 0.700 1.000"]
+  "golang.org/x/crypto" [fontcolor="0.000 0.000 0.000",fillcolor="0.055 0.389 1.000"]
+  "golang.org/x/exp" [fontcolor="0.000 0.000 0.000",fillcolor="0.039 0.392 1.000"]
+  "golang.org/x/image" [fontcolor="0.000 0.000 0.000",fillcolor="0.047 0.391 1.000"]
+  "golang.org/x/lint" [fontcolor="0.000 0.000 0.000",fillcolor="0.400 0.320 1.000"]
+  "golang.org/x/mobile" [fontcolor="0.000 0.000 0.000",fillcolor="0.522 0.296 1.000"]
+  "golang.org/x/mod" [fontcolor="0.000 0.000 0.000",fillcolor="0.949 0.210 1.000"]
+  "golang.org/x/net" [fontcolor="0.000 0.000 0.000",fillcolor="0.871 0.226 1.000"]
+  "golang.org/x/oauth2" [fontcolor="0.000 0.000 0.000",fillcolor="0.573 0.285 1.000"]
+  "golang.org/x/sync" [fontcolor="0.000 0.000 0.000",fillcolor="0.278 0.344 1.000"]
+  "golang.org/x/sys" [fontcolor="0.000 0.000 0.000",fillcolor="0.361 0.328 1.000"]
+  "golang.org/x/text" [fontcolor="0.000 0.000 0.000",fillcolor="0.478 0.304 1.000"]
+  "golang.org/x/tools" [fontcolor="0.000 0.000 0.000",fillcolor="0.706 0.259 1.000"]
+  "google.golang.org/api" [fontcolor="0.000 0.000 0.000",fillcolor="0.753 0.249 1.000"]
+  "google.golang.org/appengine" [fontcolor="0.000 0.000 0.000",fillcolor="0.012 0.398 1.000"]
+  "google.golang.org/genproto" [fontcolor="0.000 0.000 0.000",fillcolor="0.855 0.229 1.000"]
+  "google.golang.org/grpc" [fontcolor="0.000 0.000 0.000",fillcolor="0.694 0.261 1.000"]
+  "gopkg.in/alecthomas/kingpin.v2" [fontcolor="0.000 0.000 0.000",fillcolor="0.498 0.300 1.000"]
+  "gopkg.in/check.v1" [fontcolor="0.000 0.000 0.000",fillcolor="0.604 0.279 1.000"]
+  "gopkg.in/errgo.v2" [fontcolor="0.000 0.000 0.000",fillcolor="0.027 0.395 1.000"]
+  "gopkg.in/resty.v1" [fontcolor="0.000 0.000 0.000",fillcolor="0.306 0.339 1.000"]
+  "gopkg.in/yaml.v2" [fontcolor="0.000 0.000 0.000",fillcolor="0.957 0.209 1.000"]
+  "gopkg.in/yaml.v3" [fontcolor="0.000 0.000 1.000",fillcolor="0.647 0.806 1.000"]
+  "honnef.co/go/tools" [fontcolor="0.000 0.000 0.000",fillcolor="0.420 0.316 1.000"]
+  "cloud.google.com/go" -> "cloud.google.com/go/bigquery" [minlen=7,color=lightblue]
+  "cloud.google.com/go" -> "cloud.google.com/go/datastore" [minlen=7,color=lightblue]
+  "cloud.google.com/go" -> "cloud.google.com/go/pubsub" [minlen=7,color=lightblue]
+  "cloud.google.com/go" -> "github.com/golang/mock" [minlen=7,color=lightblue]
+  "cloud.google.com/go" -> "github.com/golang/protobuf" [minlen=5,color=lightblue]
+  "cloud.google.com/go" -> "github.com/google/go-cmp" [minlen=7,color=lightblue]
+  "cloud.google.com/go" -> "github.com/googleapis/gax-go/v2" [minlen=7,color=lightblue]
+  "cloud.google.com/go" -> "go.opencensus.io" [minlen=6,color=lightblue]
+  "cloud.google.com/go" -> "golang.org/x/exp" [minlen=8,color=lightblue]
+  "cloud.google.com/go" -> "golang.org/x/lint" [minlen=6,color=lightblue]
+  "cloud.google.com/go" -> "golang.org/x/net" [minlen=6,color=lightblue]
+  "cloud.google.com/go" -> "golang.org/x/oauth2" [minlen=6,color=lightblue]
+  "cloud.google.com/go" -> "golang.org/x/text" [minlen=5,color=lightblue]
+  "cloud.google.com/go" -> "golang.org/x/tools" [minlen=7,color=lightblue]
+  "cloud.google.com/go" -> "google.golang.org/api" [minlen=6,color=lightblue]
+  "cloud.google.com/go" -> "google.golang.org/genproto" [minlen=7,color=lightblue]
+  "cloud.google.com/go" -> "google.golang.org/grpc" [minlen=6,color=lightblue]
+  "cloud.google.com/go" -> "honnef.co/go/tools" [minlen=6,color=lightblue]
+  "cloud.google.com/go/bigquery" -> "cloud.google.com/go" [minlen=5,color=lightblue]
+  "cloud.google.com/go/bigquery" -> "github.com/golang/protobuf" [minlen=6,color=lightblue]
+  "cloud.google.com/go/bigquery" -> "github.com/google/go-cmp" [minlen=6,color=lightblue]
+  "cloud.google.com/go/bigquery" -> "github.com/googleapis/gax-go/v2" [minlen=6,color=lightblue]
+  "cloud.google.com/go/bigquery" -> "google.golang.org/api" [minlen=5,color=lightblue]
+  "cloud.google.com/go/bigquery" -> "google.golang.org/genproto" [minlen=6,color=lightblue]
+  "cloud.google.com/go/bigquery" -> "google.golang.org/grpc" [minlen=5,color=lightblue]
+  "cloud.google.com/go/datastore" -> "cloud.google.com/go" [minlen=5,color=lightblue]
+  "cloud.google.com/go/datastore" -> "github.com/golang/protobuf" [minlen=6,color=lightblue]
+  "cloud.google.com/go/datastore" -> "github.com/google/go-cmp" [minlen=6,color=lightblue]
+  "cloud.google.com/go/datastore" -> "github.com/googleapis/gax-go/v2" [minlen=6,color=lightblue]
+  "cloud.google.com/go/datastore" -> "golang.org/x/sys" [minlen=8,style=dashed,color=lightblue]
+  "cloud.google.com/go/datastore" -> "google.golang.org/api" [minlen=5,color=lightblue]
+  "cloud.google.com/go/datastore" -> "google.golang.org/appengine" [minlen=7,style=dashed,color=lightblue]
+  "cloud.google.com/go/datastore" -> "google.golang.org/genproto" [minlen=6,color=lightblue]
+  "cloud.google.com/go/datastore" -> "google.golang.org/grpc" [minlen=5,color=lightblue]
+  "cloud.google.com/go/firestore" -> "cloud.google.com/go" [minlen=6,color=lightblue]
+  "cloud.google.com/go/firestore" -> "cloud.google.com/go/storage" [style=dashed,color=lightblue]
+  "cloud.google.com/go/firestore" -> "github.com/golang/protobuf" [minlen=6,color=lightblue]
+  "cloud.google.com/go/firestore" -> "github.com/google/go-cmp" [minlen=6,color=lightblue]
+  "cloud.google.com/go/firestore" -> "github.com/googleapis/gax-go/v2" [minlen=6,color=lightblue]
+  "cloud.google.com/go/firestore" -> "golang.org/x/exp" [minlen=7,style=dashed,color=lightblue]
+  "cloud.google.com/go/firestore" -> "golang.org/x/lint" [minlen=5,style=dashed,color=lightblue]
+  "cloud.google.com/go/firestore" -> "golang.org/x/tools" [minlen=8,style=dashed,color=lightblue]
+  "cloud.google.com/go/firestore" -> "google.golang.org/api" [minlen=5,color=lightblue]
+  "cloud.google.com/go/firestore" -> "google.golang.org/genproto" [minlen=6,color=lightblue]
+  "cloud.google.com/go/firestore" -> "google.golang.org/grpc" [minlen=5,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "cloud.google.com/go" [minlen=5,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "github.com/golang/protobuf" [minlen=6,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "github.com/google/go-cmp" [minlen=7,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "github.com/googleapis/gax-go/v2" [minlen=7,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "go.opencensus.io" [minlen=6,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "golang.org/x/oauth2" [minlen=7,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "golang.org/x/sync" [minlen=6,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "google.golang.org/api" [minlen=6,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "google.golang.org/genproto" [minlen=7,color=lightblue]
+  "cloud.google.com/go/pubsub" -> "google.golang.org/grpc" [minlen=6,color=lightblue]
+  "cloud.google.com/go/storage" -> "cloud.google.com/go" [minlen=5,color=lightblue]
+  "cloud.google.com/go/storage" -> "github.com/golang/protobuf" [minlen=6,color=lightblue]
+  "cloud.google.com/go/storage" -> "github.com/google/go-cmp" [minlen=7,color=lightblue]
+  "cloud.google.com/go/storage" -> "github.com/googleapis/gax-go/v2" [minlen=6,color=lightblue]
+  "cloud.google.com/go/storage" -> "golang.org/x/oauth2" [minlen=7,color=lightblue]
+  "cloud.google.com/go/storage" -> "google.golang.org/api" [minlen=5,color=lightblue]
+  "cloud.google.com/go/storage" -> "google.golang.org/genproto" [minlen=7,color=lightblue]
+  "cloud.google.com/go/storage" -> "google.golang.org/grpc" [minlen=6,color=lightblue]
   "github.com/Helcaraxan/gomod" -> "github.com/spf13/cobra"
   "github.com/Helcaraxan/gomod" -> "github.com/stretchr/testify" [minlen=4]
   "github.com/Helcaraxan/gomod" -> "go.uber.org/zap" [minlen=3]
   "github.com/Helcaraxan/gomod" -> "gopkg.in/yaml.v3" [minlen=5]
-  "github.com/bketelsen/crypt" -> "cloud.google.com/go/firestore"
-  "github.com/bketelsen/crypt" -> "github.com/google/btree" [minlen=4,style=dashed]
-  "github.com/bketelsen/crypt" -> "github.com/hashicorp/consul/api"
-  "github.com/bketelsen/crypt" -> "golang.org/x/crypto" [minlen=8]
-  "github.com/bketelsen/crypt" -> "google.golang.org/api" [minlen=4]
-  "github.com/bketelsen/crypt" -> "google.golang.org/grpc" [minlen=5]
+  "github.com/bketelsen/crypt" -> "cloud.google.com/go/firestore" [color=lightblue]
+  "github.com/bketelsen/crypt" -> "github.com/google/btree" [minlen=4,style=dashed,color=lightblue]
+  "github.com/bketelsen/crypt" -> "github.com/hashicorp/consul/api" [color=lightblue]
+  "github.com/bketelsen/crypt" -> "golang.org/x/crypto" [minlen=8,color=lightblue]
+  "github.com/bketelsen/crypt" -> "google.golang.org/api" [minlen=4,color=lightblue]
+  "github.com/bketelsen/crypt" -> "google.golang.org/grpc" [minlen=5,color=lightblue]
   "github.com/cpuguy83/go-md2man/v2" -> "github.com/pmezard/go-difflib" [style=dashed]
-  "github.com/go-logfmt/logfmt" -> "github.com/kr/logfmt"
-  "github.com/gogo/protobuf" -> "github.com/kisielk/errcheck"
-  "github.com/golang/mock" -> "golang.org/x/tools"
-  "github.com/googleapis/gax-go/v2" -> "google.golang.org/grpc"
-  "github.com/grpc-ecosystem/grpc-gateway" -> "github.com/golang/glog" [minlen=3]
-  "github.com/grpc-ecosystem/grpc-gateway" -> "github.com/golang/protobuf" [minlen=3]
-  "github.com/grpc-ecosystem/grpc-gateway" -> "github.com/kr/pretty" [minlen=6,style=dashed]
-  "github.com/grpc-ecosystem/grpc-gateway" -> "golang.org/x/net" [minlen=3]
-  "github.com/grpc-ecosystem/grpc-gateway" -> "golang.org/x/sys" [minlen=3,style=dashed]
-  "github.com/grpc-ecosystem/grpc-gateway" -> "google.golang.org/genproto" [minlen=2]
-  "github.com/grpc-ecosystem/grpc-gateway" -> "google.golang.org/grpc" [minlen=2]
-  "github.com/grpc-ecosystem/grpc-gateway" -> "gopkg.in/check.v1" [minlen=6,style=dashed]
-  "github.com/grpc-ecosystem/grpc-gateway" -> "gopkg.in/resty.v1"
-  "github.com/grpc-ecosystem/grpc-gateway" -> "gopkg.in/yaml.v2" [style=dashed]
-  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/consul/sdk"
-  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/go-cleanhttp" [minlen=2]
-  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/go-rootcerts"
-  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/go-uuid" [minlen=2]
-  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/serf"
-  "github.com/hashicorp/consul/api" -> "github.com/mitchellh/mapstructure" [minlen=2]
-  "github.com/hashicorp/consul/api" -> "github.com/pascaldekloe/goe" [minlen=3]
+  "github.com/go-logfmt/logfmt" -> "github.com/kr/logfmt" [color=lightblue]
+  "github.com/gogo/protobuf" -> "github.com/kisielk/errcheck" [color=lightblue]
+  "github.com/golang/mock" -> "golang.org/x/tools" [color=lightblue]
+  "github.com/googleapis/gax-go/v2" -> "google.golang.org/grpc" [color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "github.com/golang/glog" [minlen=3,color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "github.com/golang/protobuf" [minlen=3,color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "github.com/kr/pretty" [minlen=6,style=dashed,color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "golang.org/x/net" [minlen=3,color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "golang.org/x/sys" [minlen=3,style=dashed,color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "google.golang.org/genproto" [minlen=2,color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "google.golang.org/grpc" [minlen=2,color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "gopkg.in/check.v1" [minlen=6,style=dashed,color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "gopkg.in/resty.v1" [color=lightblue]
+  "github.com/grpc-ecosystem/grpc-gateway" -> "gopkg.in/yaml.v2" [style=dashed,color=lightblue]
+  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/consul/sdk" [color=lightblue]
+  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/go-cleanhttp" [minlen=2,color=lightblue]
+  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/go-rootcerts" [color=lightblue]
+  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/go-uuid" [minlen=2,color=lightblue]
+  "github.com/hashicorp/consul/api" -> "github.com/hashicorp/serf" [color=lightblue]
+  "github.com/hashicorp/consul/api" -> "github.com/mitchellh/mapstructure" [minlen=2,color=lightblue]
+  "github.com/hashicorp/consul/api" -> "github.com/pascaldekloe/goe" [minlen=3,color=lightblue]
   "github.com/hashicorp/consul/api" -> "github.com/stretchr/testify" [minlen=2]
-  "github.com/hashicorp/consul/sdk" -> "github.com/hashicorp/go-cleanhttp"
-  "github.com/hashicorp/consul/sdk" -> "github.com/hashicorp/go-uuid"
-  "github.com/hashicorp/consul/sdk" -> "github.com/pkg/errors"
-  "github.com/hashicorp/go-immutable-radix" -> "github.com/hashicorp/go-uuid"
-  "github.com/hashicorp/go-immutable-radix" -> "github.com/hashicorp/golang-lru"
-  "github.com/hashicorp/go-rootcerts" -> "github.com/mitchellh/go-homedir"
+  "github.com/hashicorp/consul/sdk" -> "github.com/hashicorp/go-cleanhttp" [color=lightblue]
+  "github.com/hashicorp/consul/sdk" -> "github.com/hashicorp/go-uuid" [color=lightblue]
+  "github.com/hashicorp/consul/sdk" -> "github.com/pkg/errors" [color=lightblue]
+  "github.com/hashicorp/go-immutable-radix" -> "github.com/hashicorp/go-uuid" [color=lightblue]
+  "github.com/hashicorp/go-immutable-radix" -> "github.com/hashicorp/golang-lru" [color=lightblue]
+  "github.com/hashicorp/go-rootcerts" -> "github.com/mitchellh/go-homedir" [color=lightblue]
   "github.com/hashicorp/hcl" -> "github.com/davecgh/go-spew"
-  "github.com/hashicorp/mdns" -> "github.com/miekg/dns"
-  "github.com/hashicorp/mdns" -> "golang.org/x/crypto" [minlen=2,style=dashed]
-  "github.com/hashicorp/mdns" -> "golang.org/x/net" [minlen=2,style=dashed]
-  "github.com/hashicorp/mdns" -> "golang.org/x/sync" [minlen=5,style=dashed]
-  "github.com/hashicorp/mdns" -> "golang.org/x/sys" [minlen=3,style=dashed]
-  "github.com/hashicorp/memberlist" -> "github.com/armon/go-metrics"
+  "github.com/hashicorp/mdns" -> "github.com/miekg/dns" [color=lightblue]
+  "github.com/hashicorp/mdns" -> "golang.org/x/crypto" [minlen=2,style=dashed,color=lightblue]
+  "github.com/hashicorp/mdns" -> "golang.org/x/net" [minlen=2,style=dashed,color=lightblue]
+  "github.com/hashicorp/mdns" -> "golang.org/x/sync" [minlen=5,style=dashed,color=lightblue]
+  "github.com/hashicorp/mdns" -> "golang.org/x/sys" [minlen=3,style=dashed,color=lightblue]
+  "github.com/hashicorp/memberlist" -> "github.com/armon/go-metrics" [color=lightblue]
   "github.com/hashicorp/memberlist" -> "github.com/davecgh/go-spew" [minlen=2,style=dashed]
-  "github.com/hashicorp/memberlist" -> "github.com/google/btree"
-  "github.com/hashicorp/memberlist" -> "github.com/hashicorp/go-immutable-radix" [style=dashed]
-  "github.com/hashicorp/memberlist" -> "github.com/hashicorp/go-msgpack"
-  "github.com/hashicorp/memberlist" -> "github.com/hashicorp/go-multierror"
-  "github.com/hashicorp/memberlist" -> "github.com/miekg/dns"
-  "github.com/hashicorp/memberlist" -> "github.com/pascaldekloe/goe" [style=dashed]
+  "github.com/hashicorp/memberlist" -> "github.com/google/btree" [color=lightblue]
+  "github.com/hashicorp/memberlist" -> "github.com/hashicorp/go-immutable-radix" [style=dashed,color=lightblue]
+  "github.com/hashicorp/memberlist" -> "github.com/hashicorp/go-msgpack" [color=lightblue]
+  "github.com/hashicorp/memberlist" -> "github.com/hashicorp/go-multierror" [color=lightblue]
+  "github.com/hashicorp/memberlist" -> "github.com/miekg/dns" [color=lightblue]
+  "github.com/hashicorp/memberlist" -> "github.com/pascaldekloe/goe" [style=dashed,color=lightblue]
   "github.com/hashicorp/memberlist" -> "github.com/pmezard/go-difflib" [minlen=2,style=dashed]
   "github.com/hashicorp/memberlist" -> "github.com/stretchr/testify"
-  "github.com/hashicorp/memberlist" -> "golang.org/x/crypto" [minlen=2,style=dashed]
-  "github.com/hashicorp/memberlist" -> "golang.org/x/net" [minlen=2,style=dashed]
-  "github.com/hashicorp/memberlist" -> "golang.org/x/sync" [minlen=5,style=dashed]
-  "github.com/hashicorp/memberlist" -> "golang.org/x/sys" [minlen=3,style=dashed]
-  "github.com/hashicorp/serf" -> "github.com/armon/go-metrics" [minlen=2]
-  "github.com/hashicorp/serf" -> "github.com/hashicorp/go-msgpack" [minlen=2]
-  "github.com/hashicorp/serf" -> "github.com/hashicorp/go-uuid" [minlen=3,style=dashed]
-  "github.com/hashicorp/serf" -> "github.com/hashicorp/mdns"
-  "github.com/hashicorp/serf" -> "github.com/hashicorp/memberlist"
-  "github.com/hashicorp/serf" -> "github.com/mitchellh/cli"
-  "github.com/hashicorp/serf" -> "github.com/mitchellh/mapstructure"
+  "github.com/hashicorp/memberlist" -> "golang.org/x/crypto" [minlen=2,style=dashed,color=lightblue]
+  "github.com/hashicorp/memberlist" -> "golang.org/x/net" [minlen=2,style=dashed,color=lightblue]
+  "github.com/hashicorp/memberlist" -> "golang.org/x/sync" [minlen=5,style=dashed,color=lightblue]
+  "github.com/hashicorp/memberlist" -> "golang.org/x/sys" [minlen=3,style=dashed,color=lightblue]
+  "github.com/hashicorp/serf" -> "github.com/armon/go-metrics" [minlen=2,color=lightblue]
+  "github.com/hashicorp/serf" -> "github.com/hashicorp/go-msgpack" [minlen=2,color=lightblue]
+  "github.com/hashicorp/serf" -> "github.com/hashicorp/go-uuid" [minlen=3,style=dashed,color=lightblue]
+  "github.com/hashicorp/serf" -> "github.com/hashicorp/mdns" [color=lightblue]
+  "github.com/hashicorp/serf" -> "github.com/hashicorp/memberlist" [color=lightblue]
+  "github.com/hashicorp/serf" -> "github.com/mitchellh/cli" [color=lightblue]
+  "github.com/hashicorp/serf" -> "github.com/mitchellh/mapstructure" [color=lightblue]
   "github.com/hashicorp/serf" -> "github.com/stretchr/testify" [minlen=2,style=dashed]
-  "github.com/hashicorp/serf" -> "golang.org/x/net" [minlen=3,style=dashed]
-  "github.com/kisielk/errcheck" -> "github.com/kisielk/gotool"
-  "github.com/kisielk/errcheck" -> "golang.org/x/tools"
-  "github.com/mitchellh/cli" -> "github.com/hashicorp/go-multierror" [style=dashed]
-  "github.com/mitchellh/cli" -> "golang.org/x/sys" [style=dashed]
-  "github.com/prometheus/client_golang" -> "github.com/beorn7/perks" [minlen=3]
-  "github.com/prometheus/client_golang" -> "github.com/go-logfmt/logfmt" [minlen=3,style=dashed]
-  "github.com/prometheus/client_golang" -> "github.com/golang/protobuf" [minlen=3]
-  "github.com/prometheus/client_golang" -> "github.com/prometheus/client_model" [minlen=3]
-  "github.com/prometheus/client_golang" -> "github.com/prometheus/common" [minlen=4]
-  "github.com/prometheus/client_golang" -> "github.com/prometheus/procfs" [minlen=3]
-  "github.com/prometheus/client_golang" -> "github.com/prometheus/tsdb" [minlen=5]
-  "github.com/prometheus/client_model" -> "github.com/golang/protobuf"
-  "github.com/prometheus/client_model" -> "golang.org/x/sync" [style=dashed]
-  "github.com/prometheus/common" -> "github.com/alecthomas/template" [minlen=4,style=dashed]
-  "github.com/prometheus/common" -> "github.com/alecthomas/units" [minlen=4,style=dashed]
-  "github.com/prometheus/common" -> "github.com/beorn7/perks" [minlen=4,style=dashed]
-  "github.com/prometheus/common" -> "github.com/go-kit/kit" [minlen=4]
-  "github.com/prometheus/common" -> "github.com/go-logfmt/logfmt" [minlen=4,style=dashed]
-  "github.com/prometheus/common" -> "github.com/go-stack/stack" [minlen=4,style=dashed]
-  "github.com/prometheus/common" -> "github.com/gogo/protobuf" [minlen=4,style=dashed]
-  "github.com/prometheus/common" -> "github.com/golang/protobuf" [minlen=4]
-  "github.com/prometheus/common" -> "github.com/kr/logfmt" [minlen=4,style=dashed]
-  "github.com/prometheus/common" -> "github.com/matttproud/golang_protobuf_extensions" [minlen=4]
-  "github.com/prometheus/common" -> "github.com/pkg/errors" [minlen=7]
-  "github.com/prometheus/common" -> "github.com/prometheus/client_golang"
-  "github.com/prometheus/common" -> "github.com/prometheus/client_model" [minlen=4]
-  "github.com/prometheus/common" -> "github.com/prometheus/procfs" [minlen=4,style=dashed]
-  "github.com/prometheus/common" -> "github.com/sirupsen/logrus" [minlen=6]
-  "github.com/prometheus/common" -> "golang.org/x/net" [minlen=7,style=dashed]
-  "github.com/prometheus/common" -> "golang.org/x/sync" [minlen=7,style=dashed]
-  "github.com/prometheus/common" -> "golang.org/x/sys" [minlen=8]
-  "github.com/prometheus/common" -> "gopkg.in/alecthomas/kingpin.v2" [minlen=4]
-  "github.com/prometheus/common" -> "gopkg.in/yaml.v2" [minlen=6]
-  "github.com/prometheus/procfs" -> "golang.org/x/sync"
-  "github.com/prometheus/tsdb" -> "github.com/alecthomas/template" [minlen=6,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/alecthomas/units" [minlen=6,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/beorn7/perks" [minlen=4,style=dashed]
+  "github.com/hashicorp/serf" -> "golang.org/x/net" [minlen=3,style=dashed,color=lightblue]
+  "github.com/kisielk/errcheck" -> "github.com/kisielk/gotool" [color=lightblue]
+  "github.com/kisielk/errcheck" -> "golang.org/x/tools" [color=lightblue]
+  "github.com/mitchellh/cli" -> "github.com/hashicorp/go-multierror" [style=dashed,color=lightblue]
+  "github.com/mitchellh/cli" -> "golang.org/x/sys" [style=dashed,color=lightblue]
+  "github.com/prometheus/client_golang" -> "github.com/beorn7/perks" [minlen=3,color=lightblue]
+  "github.com/prometheus/client_golang" -> "github.com/go-logfmt/logfmt" [minlen=3,style=dashed,color=lightblue]
+  "github.com/prometheus/client_golang" -> "github.com/golang/protobuf" [minlen=3,color=lightblue]
+  "github.com/prometheus/client_golang" -> "github.com/prometheus/client_model" [minlen=3,color=lightblue]
+  "github.com/prometheus/client_golang" -> "github.com/prometheus/common" [minlen=4,color=lightblue]
+  "github.com/prometheus/client_golang" -> "github.com/prometheus/procfs" [minlen=3,color=lightblue]
+  "github.com/prometheus/client_golang" -> "github.com/prometheus/tsdb" [minlen=5,color=lightblue]
+  "github.com/prometheus/client_model" -> "github.com/golang/protobuf" [color=lightblue]
+  "github.com/prometheus/client_model" -> "golang.org/x/sync" [style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/alecthomas/template" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/alecthomas/units" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/beorn7/perks" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/go-kit/kit" [minlen=4,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/go-logfmt/logfmt" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/go-stack/stack" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/gogo/protobuf" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/golang/protobuf" [minlen=4,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/kr/logfmt" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/matttproud/golang_protobuf_extensions" [minlen=4,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/pkg/errors" [minlen=7,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/prometheus/client_golang" [color=lightblue]
+  "github.com/prometheus/common" -> "github.com/prometheus/client_model" [minlen=4,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/prometheus/procfs" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "github.com/sirupsen/logrus" [minlen=6,color=lightblue]
+  "github.com/prometheus/common" -> "golang.org/x/net" [minlen=7,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "golang.org/x/sync" [minlen=7,style=dashed,color=lightblue]
+  "github.com/prometheus/common" -> "golang.org/x/sys" [minlen=8,color=lightblue]
+  "github.com/prometheus/common" -> "gopkg.in/alecthomas/kingpin.v2" [minlen=4,color=lightblue]
+  "github.com/prometheus/common" -> "gopkg.in/yaml.v2" [minlen=6,color=lightblue]
+  "github.com/prometheus/procfs" -> "golang.org/x/sync" [color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/alecthomas/template" [minlen=6,style=dashed,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/alecthomas/units" [minlen=6,style=dashed,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/beorn7/perks" [minlen=4,style=dashed,color=lightblue]
   "github.com/prometheus/tsdb" -> "github.com/davecgh/go-spew" [minlen=6,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/go-kit/kit" [minlen=6]
-  "github.com/prometheus/tsdb" -> "github.com/go-logfmt/logfmt" [minlen=4,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/go-stack/stack" [minlen=6,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/gogo/protobuf" [minlen=6,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/golang/protobuf" [minlen=4,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/kr/logfmt" [minlen=6,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/matttproud/golang_protobuf_extensions" [minlen=6,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/pkg/errors" [minlen=7]
+  "github.com/prometheus/tsdb" -> "github.com/go-kit/kit" [minlen=6,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/go-logfmt/logfmt" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/go-stack/stack" [minlen=6,style=dashed,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/gogo/protobuf" [minlen=6,style=dashed,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/golang/protobuf" [minlen=4,style=dashed,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/kr/logfmt" [minlen=6,style=dashed,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/matttproud/golang_protobuf_extensions" [minlen=6,style=dashed,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/pkg/errors" [minlen=7,color=lightblue]
   "github.com/prometheus/tsdb" -> "github.com/pmezard/go-difflib" [minlen=6,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/prometheus/client_golang" [minlen=3]
-  "github.com/prometheus/tsdb" -> "github.com/prometheus/client_model" [minlen=4]
-  "github.com/prometheus/tsdb" -> "github.com/prometheus/common" [minlen=5,style=dashed]
-  "github.com/prometheus/tsdb" -> "github.com/prometheus/procfs" [minlen=4,style=dashed]
+  "github.com/prometheus/tsdb" -> "github.com/prometheus/client_golang" [minlen=3,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/prometheus/client_model" [minlen=4,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/prometheus/common" [minlen=5,style=dashed,color=lightblue]
+  "github.com/prometheus/tsdb" -> "github.com/prometheus/procfs" [minlen=4,style=dashed,color=lightblue]
   "github.com/prometheus/tsdb" -> "github.com/stretchr/testify" [minlen=8,style=dashed]
-  "github.com/prometheus/tsdb" -> "golang.org/x/sync" [minlen=9]
-  "github.com/prometheus/tsdb" -> "golang.org/x/sys" [minlen=10]
-  "github.com/prometheus/tsdb" -> "gopkg.in/alecthomas/kingpin.v2" [minlen=6]
-  "github.com/rogpeppe/go-internal" -> "gopkg.in/errgo.v2"
+  "github.com/prometheus/tsdb" -> "golang.org/x/sync" [minlen=9,color=lightblue]
+  "github.com/prometheus/tsdb" -> "golang.org/x/sys" [minlen=10,color=lightblue]
+  "github.com/prometheus/tsdb" -> "gopkg.in/alecthomas/kingpin.v2" [minlen=6,color=lightblue]
+  "github.com/rogpeppe/go-internal" -> "gopkg.in/errgo.v2" [color=lightblue]
   "github.com/sirupsen/logrus" -> "github.com/davecgh/go-spew" [minlen=2,style=dashed]
   "github.com/sirupsen/logrus" -> "github.com/pmezard/go-difflib" [minlen=2,style=dashed]
-  "github.com/sirupsen/logrus" -> "github.com/stretchr/objx" [minlen=2,style=dashed]
+  "github.com/sirupsen/logrus" -> "github.com/stretchr/objx" [minlen=2,style=dashed,color=lightblue]
   "github.com/sirupsen/logrus" -> "github.com/stretchr/testify"
-  "github.com/sirupsen/logrus" -> "golang.org/x/crypto"
-  "github.com/sirupsen/logrus" -> "golang.org/x/sys" [minlen=3]
-  "github.com/smartystreets/goconvey" -> "golang.org/x/tools"
+  "github.com/sirupsen/logrus" -> "golang.org/x/crypto" [color=lightblue]
+  "github.com/sirupsen/logrus" -> "golang.org/x/sys" [minlen=3,color=lightblue]
+  "github.com/smartystreets/goconvey" -> "golang.org/x/tools" [color=lightblue]
   "github.com/spf13/cast" -> "github.com/davecgh/go-spew" [minlen=2,style=dashed]
   "github.com/spf13/cast" -> "github.com/pmezard/go-difflib" [minlen=2,style=dashed]
   "github.com/spf13/cast" -> "github.com/stretchr/testify"
-  "github.com/spf13/cobra" -> "github.com/cpuguy83/go-md2man/v2"
-  "github.com/spf13/cobra" -> "github.com/mitchellh/go-homedir" [minlen=5]
+  "github.com/spf13/cobra" -> "github.com/cpuguy83/go-md2man/v2" [color=lightblue]
+  "github.com/spf13/cobra" -> "github.com/mitchellh/go-homedir" [minlen=5,color=lightblue]
   "github.com/spf13/cobra" -> "github.com/spf13/pflag" [minlen=2]
-  "github.com/spf13/cobra" -> "github.com/spf13/viper"
-  "github.com/spf13/cobra" -> "gopkg.in/yaml.v2" [minlen=3]
-  "github.com/spf13/viper" -> "github.com/bketelsen/crypt"
-  "github.com/spf13/viper" -> "github.com/gogo/protobuf" [minlen=4,style=dashed]
-  "github.com/spf13/viper" -> "github.com/grpc-ecosystem/grpc-gateway" [style=dashed]
-  "github.com/spf13/viper" -> "github.com/hashicorp/hcl"
-  "github.com/spf13/viper" -> "github.com/mitchellh/mapstructure" [minlen=4]
-  "github.com/spf13/viper" -> "github.com/prometheus/client_golang" [style=dashed]
-  "github.com/spf13/viper" -> "github.com/smartystreets/goconvey" [style=dashed]
-  "github.com/spf13/viper" -> "github.com/spf13/cast"
+  "github.com/spf13/cobra" -> "github.com/spf13/viper" [color=lightblue]
+  "github.com/spf13/cobra" -> "gopkg.in/yaml.v2" [minlen=3,color=lightblue]
+  "github.com/spf13/viper" -> "github.com/bketelsen/crypt" [color=lightblue]
+  "github.com/spf13/viper" -> "github.com/gogo/protobuf" [minlen=4,style=dashed,color=lightblue]
+  "github.com/spf13/viper" -> "github.com/grpc-ecosystem/grpc-gateway" [style=dashed,color=lightblue]
+  "github.com/spf13/viper" -> "github.com/hashicorp/hcl" [color=lightblue]
+  "github.com/spf13/viper" -> "github.com/mitchellh/mapstructure" [minlen=4,color=lightblue]
+  "github.com/spf13/viper" -> "github.com/prometheus/client_golang" [style=dashed,color=lightblue]
+  "github.com/spf13/viper" -> "github.com/smartystreets/goconvey" [style=dashed,color=lightblue]
+  "github.com/spf13/viper" -> "github.com/spf13/cast" [color=lightblue]
   "github.com/spf13/viper" -> "github.com/spf13/pflag"
   "github.com/spf13/viper" -> "github.com/stretchr/testify" [minlen=8]
   "github.com/spf13/viper" -> "go.uber.org/atomic" [minlen=3,style=dashed]
   "github.com/spf13/viper" -> "go.uber.org/multierr" [minlen=2,style=dashed]
   "github.com/spf13/viper" -> "go.uber.org/zap" [style=dashed]
-  "github.com/spf13/viper" -> "gopkg.in/yaml.v2" [minlen=6]
+  "github.com/spf13/viper" -> "gopkg.in/yaml.v2" [minlen=6,color=lightblue]
   "github.com/stretchr/testify" -> "github.com/davecgh/go-spew"
   "github.com/stretchr/testify" -> "github.com/pmezard/go-difflib"
-  "github.com/stretchr/testify" -> "github.com/stretchr/objx"
+  "github.com/stretchr/testify" -> "github.com/stretchr/objx" [color=lightblue]
   "github.com/stretchr/testify" -> "gopkg.in/yaml.v3"
-  "go.opencensus.io" -> "github.com/golang/protobuf" [minlen=3]
-  "go.opencensus.io" -> "github.com/google/go-cmp" [minlen=3]
-  "go.opencensus.io" -> "github.com/hashicorp/golang-lru" [minlen=6]
-  "go.opencensus.io" -> "golang.org/x/net" [minlen=3]
-  "go.opencensus.io" -> "golang.org/x/sys" [minlen=4,style=dashed]
-  "go.opencensus.io" -> "golang.org/x/text" [minlen=4,style=dashed]
-  "go.opencensus.io" -> "google.golang.org/genproto" [minlen=2,style=dashed]
-  "go.opencensus.io" -> "google.golang.org/grpc" [minlen=2]
+  "go.opencensus.io" -> "github.com/golang/protobuf" [minlen=3,color=lightblue]
+  "go.opencensus.io" -> "github.com/google/go-cmp" [minlen=3,color=lightblue]
+  "go.opencensus.io" -> "github.com/hashicorp/golang-lru" [minlen=6,color=lightblue]
+  "go.opencensus.io" -> "golang.org/x/net" [minlen=3,color=lightblue]
+  "go.opencensus.io" -> "golang.org/x/sys" [minlen=4,style=dashed,color=lightblue]
+  "go.opencensus.io" -> "golang.org/x/text" [minlen=4,style=dashed,color=lightblue]
+  "go.opencensus.io" -> "google.golang.org/genproto" [minlen=2,style=dashed,color=lightblue]
+  "go.opencensus.io" -> "google.golang.org/grpc" [minlen=2,color=lightblue]
   "go.uber.org/atomic" -> "github.com/davecgh/go-spew" [minlen=2,style=dashed]
   "go.uber.org/atomic" -> "github.com/stretchr/testify"
-  "go.uber.org/atomic" -> "golang.org/x/lint"
-  "go.uber.org/atomic" -> "golang.org/x/tools" [minlen=2,style=dashed]
+  "go.uber.org/atomic" -> "golang.org/x/lint" [color=lightblue]
+  "go.uber.org/atomic" -> "golang.org/x/tools" [minlen=2,style=dashed,color=lightblue]
   "go.uber.org/multierr" -> "github.com/stretchr/testify" [minlen=2]
   "go.uber.org/multierr" -> "go.uber.org/atomic"
-  "go.uber.org/multierr" -> "golang.org/x/lint" [minlen=2]
-  "go.uber.org/multierr" -> "golang.org/x/tools" [minlen=3,style=dashed]
-  "go.uber.org/multierr" -> "honnef.co/go/tools"
-  "go.uber.org/zap" -> "github.com/pkg/errors"
+  "go.uber.org/multierr" -> "golang.org/x/lint" [minlen=2,color=lightblue]
+  "go.uber.org/multierr" -> "golang.org/x/tools" [minlen=3,style=dashed,color=lightblue]
+  "go.uber.org/multierr" -> "honnef.co/go/tools" [color=lightblue]
+  "go.uber.org/zap" -> "github.com/pkg/errors" [color=lightblue]
   "go.uber.org/zap" -> "github.com/stretchr/testify" [minlen=2]
   "go.uber.org/zap" -> "go.uber.org/atomic" [minlen=2]
   "go.uber.org/zap" -> "go.uber.org/multierr"
-  "go.uber.org/zap" -> "golang.org/x/lint" [minlen=2]
-  "go.uber.org/zap" -> "gopkg.in/yaml.v2"
-  "go.uber.org/zap" -> "honnef.co/go/tools" [minlen=2]
-  "golang.org/x/crypto" -> "golang.org/x/net"
-  "golang.org/x/crypto" -> "golang.org/x/sys" [minlen=2]
-  "golang.org/x/exp" -> "golang.org/x/image" [minlen=2]
-  "golang.org/x/exp" -> "golang.org/x/mobile"
-  "golang.org/x/exp" -> "golang.org/x/mod" [minlen=3]
-  "golang.org/x/exp" -> "golang.org/x/sys" [minlen=6]
-  "golang.org/x/exp" -> "golang.org/x/tools" [minlen=5]
-  "golang.org/x/image" -> "golang.org/x/text"
-  "golang.org/x/lint" -> "golang.org/x/tools"
-  "golang.org/x/mobile" -> "golang.org/x/exp"
-  "golang.org/x/mobile" -> "golang.org/x/image" [minlen=3]
-  "golang.org/x/mobile" -> "golang.org/x/sys" [minlen=7,style=dashed]
-  "golang.org/x/mod" -> "golang.org/x/crypto"
-  "golang.org/x/net" -> "golang.org/x/crypto" [minlen=4]
-  "golang.org/x/net" -> "golang.org/x/sys" [minlen=4]
-  "golang.org/x/net" -> "golang.org/x/text" [minlen=3]
-  "golang.org/x/oauth2" -> "cloud.google.com/go"
-  "golang.org/x/oauth2" -> "golang.org/x/net" [minlen=7]
-  "golang.org/x/oauth2" -> "golang.org/x/sync" [minlen=5,style=dashed]
-  "golang.org/x/oauth2" -> "google.golang.org/appengine" [minlen=6]
-  "golang.org/x/text" -> "golang.org/x/tools"
-  "golang.org/x/tools" -> "golang.org/x/net"
-  "golang.org/x/tools" -> "golang.org/x/sync" [minlen=4]
-  "google.golang.org/api" -> "cloud.google.com/go" [minlen=4,style=dashed]
-  "google.golang.org/api" -> "github.com/golang/protobuf" [minlen=6,style=dashed]
-  "google.golang.org/api" -> "github.com/google/go-cmp" [minlen=7]
-  "google.golang.org/api" -> "github.com/googleapis/gax-go/v2" [minlen=7]
-  "google.golang.org/api" -> "github.com/hashicorp/golang-lru" [minlen=7,style=dashed]
-  "google.golang.org/api" -> "go.opencensus.io" [minlen=6]
-  "google.golang.org/api" -> "golang.org/x/lint" [minlen=6]
-  "google.golang.org/api" -> "golang.org/x/net" [minlen=7,style=dashed]
-  "google.golang.org/api" -> "golang.org/x/oauth2" [minlen=7]
-  "google.golang.org/api" -> "golang.org/x/sync" [minlen=7]
-  "google.golang.org/api" -> "golang.org/x/sys" [minlen=8]
-  "google.golang.org/api" -> "golang.org/x/text" [minlen=6,style=dashed]
-  "google.golang.org/api" -> "golang.org/x/tools" [minlen=8]
-  "google.golang.org/api" -> "google.golang.org/appengine" [minlen=7]
-  "google.golang.org/api" -> "google.golang.org/genproto" [minlen=7]
-  "google.golang.org/api" -> "google.golang.org/grpc" [minlen=6]
-  "google.golang.org/api" -> "honnef.co/go/tools" [minlen=6]
-  "google.golang.org/appengine" -> "github.com/golang/protobuf"
-  "google.golang.org/appengine" -> "golang.org/x/crypto" [minlen=4,style=dashed]
-  "google.golang.org/appengine" -> "golang.org/x/net" [minlen=3]
-  "google.golang.org/appengine" -> "golang.org/x/sys" [minlen=4,style=dashed]
-  "google.golang.org/appengine" -> "golang.org/x/text" [minlen=3]
-  "google.golang.org/appengine" -> "golang.org/x/tools" [minlen=4,style=dashed]
-  "google.golang.org/genproto" -> "github.com/golang/protobuf" [minlen=2]
-  "google.golang.org/genproto" -> "golang.org/x/exp" [minlen=3]
-  "google.golang.org/genproto" -> "golang.org/x/lint" [minlen=2]
-  "google.golang.org/genproto" -> "golang.org/x/tools" [minlen=6]
-  "google.golang.org/genproto" -> "google.golang.org/grpc"
-  "google.golang.org/genproto" -> "honnef.co/go/tools" [minlen=2]
-  "google.golang.org/grpc" -> "cloud.google.com/go" [minlen=3,style=dashed]
-  "google.golang.org/grpc" -> "github.com/BurntSushi/toml" [minlen=7,style=dashed]
-  "google.golang.org/grpc" -> "github.com/golang/glog" [minlen=7]
-  "google.golang.org/grpc" -> "github.com/golang/mock" [minlen=7]
-  "google.golang.org/grpc" -> "github.com/golang/protobuf" [minlen=6]
-  "google.golang.org/grpc" -> "github.com/google/go-cmp" [minlen=7]
-  "google.golang.org/grpc" -> "golang.org/x/lint" [minlen=6]
-  "google.golang.org/grpc" -> "golang.org/x/net" [minlen=7]
-  "google.golang.org/grpc" -> "golang.org/x/oauth2" [minlen=7]
-  "google.golang.org/grpc" -> "golang.org/x/sync" [minlen=7,style=dashed]
-  "google.golang.org/grpc" -> "golang.org/x/sys" [minlen=8]
-  "google.golang.org/grpc" -> "golang.org/x/tools" [minlen=8]
-  "google.golang.org/grpc" -> "google.golang.org/appengine" [minlen=7,style=dashed]
-  "google.golang.org/grpc" -> "google.golang.org/genproto" [minlen=7]
-  "google.golang.org/grpc" -> "honnef.co/go/tools" [minlen=6]
-  "gopkg.in/errgo.v2" -> "github.com/kr/pretty" [style=dashed]
-  "gopkg.in/errgo.v2" -> "gopkg.in/check.v1"
-  "gopkg.in/resty.v1" -> "golang.org/x/net"
-  "gopkg.in/yaml.v2" -> "gopkg.in/check.v1"
-  "gopkg.in/yaml.v3" -> "gopkg.in/check.v1"
-  "honnef.co/go/tools" -> "github.com/BurntSushi/toml"
-  "honnef.co/go/tools" -> "github.com/kisielk/gotool"
-  "honnef.co/go/tools" -> "github.com/rogpeppe/go-internal"
-  "honnef.co/go/tools" -> "golang.org/x/mod"
-  "honnef.co/go/tools" -> "golang.org/x/tools" [minlen=5]
+  "go.uber.org/zap" -> "golang.org/x/lint" [minlen=2,color=lightblue]
+  "go.uber.org/zap" -> "gopkg.in/yaml.v2" [color=lightblue]
+  "go.uber.org/zap" -> "honnef.co/go/tools" [minlen=2,color=lightblue]
+  "golang.org/x/crypto" -> "golang.org/x/net" [color=lightblue]
+  "golang.org/x/crypto" -> "golang.org/x/sys" [minlen=2,color=lightblue]
+  "golang.org/x/exp" -> "golang.org/x/image" [minlen=2,color=lightblue]
+  "golang.org/x/exp" -> "golang.org/x/mobile" [color=lightblue]
+  "golang.org/x/exp" -> "golang.org/x/mod" [minlen=3,color=lightblue]
+  "golang.org/x/exp" -> "golang.org/x/sys" [minlen=6,color=lightblue]
+  "golang.org/x/exp" -> "golang.org/x/tools" [minlen=5,color=lightblue]
+  "golang.org/x/image" -> "golang.org/x/text" [color=lightblue]
+  "golang.org/x/lint" -> "golang.org/x/tools" [color=lightblue]
+  "golang.org/x/mobile" -> "golang.org/x/exp" [color=lightblue]
+  "golang.org/x/mobile" -> "golang.org/x/image" [minlen=3,color=lightblue]
+  "golang.org/x/mobile" -> "golang.org/x/sys" [minlen=7,style=dashed,color=lightblue]
+  "golang.org/x/mod" -> "golang.org/x/crypto" [color=lightblue]
+  "golang.org/x/net" -> "golang.org/x/crypto" [minlen=4,color=lightblue]
+  "golang.org/x/net" -> "golang.org/x/sys" [minlen=4,color=lightblue]
+  "golang.org/x/net" -> "golang.org/x/text" [minlen=3,color=lightblue]
+  "golang.org/x/oauth2" -> "cloud.google.com/go" [color=lightblue]
+  "golang.org/x/oauth2" -> "golang.org/x/net" [minlen=7,color=lightblue]
+  "golang.org/x/oauth2" -> "golang.org/x/sync" [minlen=5,style=dashed,color=lightblue]
+  "golang.org/x/oauth2" -> "google.golang.org/appengine" [minlen=6,color=lightblue]
+  "golang.org/x/text" -> "golang.org/x/tools" [color=lightblue]
+  "golang.org/x/tools" -> "golang.org/x/net" [color=lightblue]
+  "golang.org/x/tools" -> "golang.org/x/sync" [minlen=4,color=lightblue]
+  "google.golang.org/api" -> "cloud.google.com/go" [minlen=4,style=dashed,color=lightblue]
+  "google.golang.org/api" -> "github.com/golang/protobuf" [minlen=6,style=dashed,color=lightblue]
+  "google.golang.org/api" -> "github.com/google/go-cmp" [minlen=7,color=lightblue]
+  "google.golang.org/api" -> "github.com/googleapis/gax-go/v2" [minlen=7,color=lightblue]
+  "google.golang.org/api" -> "github.com/hashicorp/golang-lru" [minlen=7,style=dashed,color=lightblue]
+  "google.golang.org/api" -> "go.opencensus.io" [minlen=6,color=lightblue]
+  "google.golang.org/api" -> "golang.org/x/lint" [minlen=6,color=lightblue]
+  "google.golang.org/api" -> "golang.org/x/net" [minlen=7,style=dashed,color=lightblue]
+  "google.golang.org/api" -> "golang.org/x/oauth2" [minlen=7,color=lightblue]
+  "google.golang.org/api" -> "golang.org/x/sync" [minlen=7,color=lightblue]
+  "google.golang.org/api" -> "golang.org/x/sys" [minlen=8,color=lightblue]
+  "google.golang.org/api" -> "golang.org/x/text" [minlen=6,style=dashed,color=lightblue]
+  "google.golang.org/api" -> "golang.org/x/tools" [minlen=8,color=lightblue]
+  "google.golang.org/api" -> "google.golang.org/appengine" [minlen=7,color=lightblue]
+  "google.golang.org/api" -> "google.golang.org/genproto" [minlen=7,color=lightblue]
+  "google.golang.org/api" -> "google.golang.org/grpc" [minlen=6,color=lightblue]
+  "google.golang.org/api" -> "honnef.co/go/tools" [minlen=6,color=lightblue]
+  "google.golang.org/appengine" -> "github.com/golang/protobuf" [color=lightblue]
+  "google.golang.org/appengine" -> "golang.org/x/crypto" [minlen=4,style=dashed,color=lightblue]
+  "google.golang.org/appengine" -> "golang.org/x/net" [minlen=3,color=lightblue]
+  "google.golang.org/appengine" -> "golang.org/x/sys" [minlen=4,style=dashed,color=lightblue]
+  "google.golang.org/appengine" -> "golang.org/x/text" [minlen=3,color=lightblue]
+  "google.golang.org/appengine" -> "golang.org/x/tools" [minlen=4,style=dashed,color=lightblue]
+  "google.golang.org/genproto" -> "github.com/golang/protobuf" [minlen=2,color=lightblue]
+  "google.golang.org/genproto" -> "golang.org/x/exp" [minlen=3,color=lightblue]
+  "google.golang.org/genproto" -> "golang.org/x/lint" [minlen=2,color=lightblue]
+  "google.golang.org/genproto" -> "golang.org/x/tools" [minlen=6,color=lightblue]
+  "google.golang.org/genproto" -> "google.golang.org/grpc" [color=lightblue]
+  "google.golang.org/genproto" -> "honnef.co/go/tools" [minlen=2,color=lightblue]
+  "google.golang.org/grpc" -> "cloud.google.com/go" [minlen=3,style=dashed,color=lightblue]
+  "google.golang.org/grpc" -> "github.com/BurntSushi/toml" [minlen=7,style=dashed,color=lightblue]
+  "google.golang.org/grpc" -> "github.com/golang/glog" [minlen=7,color=lightblue]
+  "google.golang.org/grpc" -> "github.com/golang/mock" [minlen=7,color=lightblue]
+  "google.golang.org/grpc" -> "github.com/golang/protobuf" [minlen=6,color=lightblue]
+  "google.golang.org/grpc" -> "github.com/google/go-cmp" [minlen=7,color=lightblue]
+  "google.golang.org/grpc" -> "golang.org/x/lint" [minlen=6,color=lightblue]
+  "google.golang.org/grpc" -> "golang.org/x/net" [minlen=7,color=lightblue]
+  "google.golang.org/grpc" -> "golang.org/x/oauth2" [minlen=7,color=lightblue]
+  "google.golang.org/grpc" -> "golang.org/x/sync" [minlen=7,style=dashed,color=lightblue]
+  "google.golang.org/grpc" -> "golang.org/x/sys" [minlen=8,color=lightblue]
+  "google.golang.org/grpc" -> "golang.org/x/tools" [minlen=8,color=lightblue]
+  "google.golang.org/grpc" -> "google.golang.org/appengine" [minlen=7,style=dashed,color=lightblue]
+  "google.golang.org/grpc" -> "google.golang.org/genproto" [minlen=7,color=lightblue]
+  "google.golang.org/grpc" -> "honnef.co/go/tools" [minlen=6,color=lightblue]
+  "gopkg.in/errgo.v2" -> "github.com/kr/pretty" [style=dashed,color=lightblue]
+  "gopkg.in/errgo.v2" -> "gopkg.in/check.v1" [color=lightblue]
+  "gopkg.in/resty.v1" -> "golang.org/x/net" [color=lightblue]
+  "gopkg.in/yaml.v2" -> "gopkg.in/check.v1" [color=lightblue]
+  "gopkg.in/yaml.v3" -> "gopkg.in/check.v1" [color=lightblue]
+  "honnef.co/go/tools" -> "github.com/BurntSushi/toml" [color=lightblue]
+  "honnef.co/go/tools" -> "github.com/kisielk/gotool" [color=lightblue]
+  "honnef.co/go/tools" -> "github.com/rogpeppe/go-internal" [color=lightblue]
+  "honnef.co/go/tools" -> "golang.org/x/mod" [color=lightblue]
+  "honnef.co/go/tools" -> "golang.org/x/tools" [minlen=5,color=lightblue]
 }
