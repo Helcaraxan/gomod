@@ -99,36 +99,30 @@ func (g *HierarchicalDigraph) DeleteNode(hash string) error {
 		}
 	}
 
-	if target.Children() != nil {
-		for _, child := range target.Children().List() {
-			if err := g.DeleteNode(child.Hash()); err != nil {
-				return err
-			}
-		}
-	}
-
 	for _, pred := range target.Predecessors().List() {
-		if err := g.DeleteEdge(pred, target); err != nil {
-			return err
-		}
+		g.disconnectNodeFromTarget(pred, target)
 	}
 
 	for _, succ := range target.Successors().List() {
-		if err := g.DeleteEdge(target, succ); err != nil {
+		g.disconnectNodeFromTarget(target, succ)
+	}
+
+	g.deleteNode(target)
+
+	for !nodeIsNil(target) {
+		p := target.Parent()
+		if nodeIsNil(p) || p.Children().Len() > 0 {
+			break
+		}
+
+		g.log.AddIndent()
+		defer g.log.RemoveIndent()
+
+		if err := g.DeleteNode(p.Hash()); err != nil {
 			return err
 		}
+		target = target.Parent()
 	}
-
-	if p := target.Parent(); !nodeIsNil(p) {
-		p.Children().Delete(hash)
-		if p.Children().Len() == 0 {
-			if err := g.DeleteNode(p.Hash()); err != nil {
-				return err
-			}
-		}
-	}
-
-	g.members.Delete(hash)
 	return nil
 }
 
@@ -137,10 +131,6 @@ func (g *HierarchicalDigraph) AddEdge(src Node, dst Node) error {
 		return ErrNilGraph
 	} else if nodeIsNil(src) || nodeIsNil(dst) {
 		return ErrNilNode
-	}
-
-	if src.Hash() == dst.Hash() {
-		return ErrEdgeSelf
 	}
 
 	if _, w := g.members.Get(src.Hash()); w == 0 {
@@ -198,24 +188,21 @@ func (g *HierarchicalDigraph) DeleteEdge(src Node, dst Node) error {
 		}
 	}
 
-	if src.Children() != nil {
-		for _, child := range src.Children().List() {
-			for _, succ := range child.Successors().List() {
-				if sp := succ.Parent(); !nodeIsNil(sp) && sp == dst {
-					if err := g.DeleteEdge(child, succ); err != nil {
-						return err
-					}
-				}
-			}
-		}
-	}
+	g.disconnectNodeFromTarget(src, dst)
 
-	for !nodeIsNil(src) && !nodeIsNil(dst) && src.Hash() != dst.Hash() {
-		src.Successors().Delete(dst.Hash())
-		dst.Predecessors().Delete(src.Hash())
+	for {
+		g.log.AddIndent()
+		defer g.log.RemoveIndent()
 
 		src = src.Parent()
 		dst = dst.Parent()
+		if nodeIsNil(src) || nodeIsNil(dst) || src.Hash() == dst.Hash() {
+			break
+		}
+
+		g.log.Debug("Unregistring edge from node parents.", zap.String("source-hash", src.Hash()), zap.String("target-hash", dst.Hash()))
+		src.Successors().Delete(dst.Hash())
+		dst.Predecessors().Delete(src.Hash())
 	}
 	return nil
 }
@@ -228,4 +215,54 @@ func (g HierarchicalDigraph) GetLevel(level int) NodeRefs {
 		}
 	}
 	return refs
+}
+
+func (g HierarchicalDigraph) disconnectNodeFromTarget(n Node, target Node) {
+	g.log.Debug("Disconnecting nodes.", zap.String("source-hash", n.Hash()), zap.String("target-hash", target.Hash()))
+	g.log.AddIndent()
+	defer g.log.RemoveIndent()
+
+	if n.Children() != nil && n.Children().Len() > 0 {
+		for _, child := range n.Children().List() {
+			g.disconnectNodeFromTarget(child, target)
+		}
+	}
+
+	for _, succ := range n.Successors().List() {
+		if isChild(succ, target) {
+			g.log.Debug("Deleting edge from graph.", zap.String("source-hash", n.Hash()), zap.String("target-hash", succ.Hash()))
+			n.Successors().Wipe(succ.Hash())
+			succ.Predecessors().Wipe(n.Hash())
+			g.log.Debug("New successors.", zap.String("hash", n.Hash()), zap.Stringer("succs", n.Successors()))
+		}
+	}
+}
+
+func (g HierarchicalDigraph) deleteNode(n Node) {
+	if n.Children() != nil && n.Children().Len() > 0 {
+		g.log.AddIndent()
+		for _, child := range n.Children().List() {
+			g.deleteNode(child)
+		}
+		g.log.RemoveIndent()
+	}
+
+	g.log.Debug("Removing node from members list.", zap.String("hash", n.Hash()))
+	g.members.Delete(n.Hash())
+	if p := n.Parent(); !nodeIsNil(p) {
+		p.Children().Delete(n.Hash())
+	}
+}
+
+func isChild(n Node, p Node) bool {
+	if nodeIsNil(p) {
+		return false
+	}
+	for !nodeIsNil(n) {
+		if n.Hash() == p.Hash() {
+			return true
+		}
+		n = n.Parent()
+	}
+	return false
 }

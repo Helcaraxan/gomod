@@ -99,6 +99,26 @@ func (n *NodeRefs) Delete(hash string) {
 	}
 }
 
+func (n *NodeRefs) Wipe(hash string) {
+	if n == nil {
+		return
+	}
+
+	if _, ok := n.nodeMap[hash]; !ok {
+		return
+	}
+
+	delete(n.nodeMap, hash)
+	delete(n.weights, hash)
+
+	for idx := range n.nodeList {
+		if n.nodeList[idx].Hash() == hash {
+			n.nodeList = append(n.nodeList[:idx], n.nodeList[idx+1:]...)
+			break
+		}
+	}
+}
+
 func (n NodeRefs) List() []Node {
 	sort.Slice(n.nodeList, func(i int, j int) bool { return n.nodeList[i].Name() < n.nodeList[j].Name() })
 	listCopy := make([]Node, len(n.nodeList))
