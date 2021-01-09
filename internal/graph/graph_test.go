@@ -174,6 +174,8 @@ func TestGraphEdges(t *testing.T) {
 		assert.NoError(t, g.DeleteNode(n2.name))
 		_, w := n1.Successors().Get(n2.name)
 		assert.Equal(t, 0, w)
+		_, err := g.GetNode(nc2.Hash())
+		assert.True(t, errors.Is(err, ErrNodeNotFound))
 
 		assert.NoError(t, g.AddNode(n2))
 		assert.NoError(t, g.AddEdge(n1, n2))
@@ -181,7 +183,7 @@ func TestGraphEdges(t *testing.T) {
 		assert.NoError(t, g.DeleteNode(nc1.name))
 		_, w = n2.Predecessors().Get(n1.name)
 		assert.Equal(t, 0, w)
-		_, err := g.GetNode(n1.name)
+		_, err = g.GetNode(n1.name)
 		assert.True(t, errors.Is(err, ErrNodeNotFound))
 	})
 }

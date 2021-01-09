@@ -55,7 +55,7 @@ func main() {
 		"verbose",
 		"v",
 		nil,
-		"Verbose output. Takes optional arguments to only add verbosity for specific domains. See 'gomod --help' for more information.",
+		"Verbose output. See 'gomod --help' for more information.",
 	)
 	v := rootCmd.Flag("verbose")
 	v.NoOptDefVal = "all"
