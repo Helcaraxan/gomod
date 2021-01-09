@@ -229,7 +229,7 @@ func initVersionCmd(cArgs *commonArgs) *cobra.Command {
 }
 
 func runVersionCmd(args *versionArgs) error {
-	fmt.Printf("gomod - version: %s - timestamp: %s\n", toolVersion, toolDate)
+	fmt.Printf("%s - built on %s from %s\n", version, date, commit)
 	return nil
 }
 

@@ -17,8 +17,6 @@ Typical questions that `gomod` will help you answer are:
 - How old are the modules that my project depends on, and how much out-of-date are these?
 - Are different dependencies of my project using potentially conflicting forks of the same module?
 
-_Release-notes for each version can be found [here](./RELEASE_NOTES.md)_
-
 ## Table of Contents
 
 - [Go Modules clarified](#go-modules-clarified)

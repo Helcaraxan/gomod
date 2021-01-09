@@ -4,6 +4,7 @@
 
 # Build and test artefacts
 bin/
+dist/
 c.out
 graph.dot
 graph.pdf

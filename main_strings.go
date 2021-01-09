@@ -1,8 +1,9 @@
 package main
 
 var (
-	toolVersion = "devel"
-	toolDate    = "unknown"
+	version = "devel-release"
+	commit  = "unknown-hash"
+	date    = "unknown-date"
 )
 
 const (

@@ -1,0 +1,35 @@
+---
+project_name: gomod
+before:
+  hooks:
+    - go mod download
+builds:
+  - env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.date={{.CommitDate}}
+      - -X main.commit={{.ShortCommit}}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 6
+      - 7
+    mod_timestamp: "{{.CommitTimestamp}}"
+archives:
+  - name_template: "{{.Binary}}-{{.Os}}-{{.Arch}}"
+    format: binary
+release:
+  name_template: "v{{.Version}}"
+  github:
+    owner: Helcaraxan
+    name: gomod
+  prerelease: auto
