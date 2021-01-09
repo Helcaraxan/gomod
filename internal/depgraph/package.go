@@ -66,3 +66,7 @@ func (p *Package) NodeAttributes(annotate bool) []string {
 func (p *Package) EdgeAttributes(target graph.Node, annotate bool) []string {
 	return nil
 }
+
+func (p *Package) isTestDependency() bool {
+	return !p.isNonTestDependency
+}
