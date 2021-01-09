@@ -9,10 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/testutil"
 )
 
@@ -53,9 +50,9 @@ func TestModuleInformationRetrieval(t *testing.T) {
 			testDefinition := &testcase{}
 			testDir := testutil.SetupTestModule(t, filepath.Join(cwd, "testdata", file.Name()), testDefinition)
 
-			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zap.DebugLevel))
+			log := testutil.TestLogger(t)
 
-			main, modules, testErr := GetDependencies(log, testDir)
+			main, modules, testErr := GetDependencies(log.Log(), testDir)
 			if testDefinition.ExpectedError {
 				assert.Error(t, testErr)
 			} else {
@@ -64,7 +61,7 @@ func TestModuleInformationRetrieval(t *testing.T) {
 				assert.Equal(t, testDefinition.ExpectedModules, modules)
 			}
 
-			main, modules, testErr = GetDependenciesWithUpdates(log, testDir)
+			main, modules, testErr = GetDependenciesWithUpdates(log.Log(), testDir)
 			if testDefinition.ExpectedError {
 				assert.Error(t, testErr)
 			} else {
@@ -74,11 +71,11 @@ func TestModuleInformationRetrieval(t *testing.T) {
 			}
 
 			if !testDefinition.ExpectedError {
-				main, testErr = GetModule(log, testDir, testDefinition.ExpectedMain.Path)
+				main, testErr = GetModule(log.Log(), testDir, testDefinition.ExpectedMain.Path)
 				require.NoError(t, testErr)
 				assert.Equal(t, testDefinition.ExpectedMain, main)
 
-				main, testErr = GetModuleWithUpdate(log, testDir, testDefinition.ExpectedMain.Path)
+				main, testErr = GetModuleWithUpdate(log.Log(), testDir, testDefinition.ExpectedMain.Path)
 				require.NoError(t, testErr)
 				assert.Equal(t, testDefinition.ExpectedMain, main)
 			}

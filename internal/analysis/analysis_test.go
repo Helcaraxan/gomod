@@ -10,11 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/Helcaraxan/gomod/internal/depgraph"
-	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/testutil"
 )
 
@@ -102,11 +99,11 @@ func TestAnalysis(t *testing.T) {
 				defer func() { testCurrentTimeInjection = nil }()
 			}
 
-			log := zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zap.DebugLevel))
+			log := testutil.TestLogger(t)
 			graph, err := depgraph.GetGraph(log, testDir)
 			require.NoError(t, err)
 
-			analysis, err := Analyse(log, graph)
+			analysis, err := Analyse(log.Log(), graph)
 			require.NoError(t, err)
 			assert.Equal(t, testDefinition.ExpectedDepAnalysis, analysis)
 

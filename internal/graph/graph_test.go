@@ -1,10 +1,13 @@
 package graph
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Helcaraxan/gomod/internal/testutil"
 )
 
 func TestGraphNodes(t *testing.T) {
@@ -19,14 +22,14 @@ func TestGraphNodes(t *testing.T) {
 		assert.Equal(t, ErrNilGraph, g.DeleteNode(n.name))
 	})
 
-	g = NewHierarchicalDigraph()
+	g = NewHierarchicalDigraph(testutil.TestLogger(t).Log())
 
 	t.Run("AddNode", func(t *testing.T) {
 		assert.Equal(t, ErrNilNode, g.AddNode(nil))
 
 		nf := newTestNode("non-member", nil)
 		nfc := newTestNode("non-member-child", nf)
-		assert.Equal(t, ErrNodeNotFound, g.AddNode(nfc))
+		assert.True(t, errors.Is(g.AddNode(nfc), ErrNodeNotFound))
 
 		assert.NoError(t, g.AddNode(n))
 		assert.Error(t, g.AddNode(n))
@@ -55,11 +58,11 @@ func TestGraphNodes(t *testing.T) {
 
 	t.Run("DeleteNode", func(t *testing.T) {
 		assert.NoError(t, g.DeleteNode(nc2.name))
-		assert.Equal(t, ErrNodeNotFound, g.DeleteNode(nc2.name))
+		assert.True(t, errors.Is(g.DeleteNode(nc2.name), ErrNodeNotFound))
 
 		assert.NoError(t, g.DeleteNode(n.name), g.members)
 		_, err := g.GetNode(nc1.name)
-		assert.Equal(t, ErrNodeNotFound, err)
+		assert.True(t, errors.Is(err, ErrNodeNotFound))
 	})
 }
 
@@ -71,7 +74,7 @@ func TestGraphEdges(t *testing.T) {
 		assert.Equal(t, ErrNilGraph, g.DeleteEdge(nil, nil))
 	})
 
-	g = NewHierarchicalDigraph()
+	g = NewHierarchicalDigraph(testutil.TestLogger(t).Log())
 
 	n1 := newTestNode("test-node-1", nil)
 	n2 := newTestNode("test-node-2", nil)
@@ -95,11 +98,10 @@ func TestGraphEdges(t *testing.T) {
 
 	t.Run("AddEdge", func(t *testing.T) {
 		nf := newTestNode("non-member", nil)
-		assert.Equal(t, ErrNodeNotFound, g.AddEdge(n1, nf))
-		assert.Equal(t, ErrNodeNotFound, g.AddEdge(nf, n1))
+		assert.True(t, errors.Is(g.AddEdge(n1, nf), ErrNodeNotFound))
+		assert.True(t, errors.Is(g.AddEdge(nf, n1), ErrNodeNotFound))
 
-		assert.Equal(t, ErrEdgeSelf, g.AddEdge(n1, n1))
-		assert.Equal(t, ErrEdgeCrossLevel, g.AddEdge(n1, nc1))
+		assert.True(t, errors.Is(g.AddEdge(n1, nc1), ErrEdgeCrossLevel))
 
 		assert.NoError(t, g.AddEdge(nc1, nc2))
 
@@ -127,8 +129,8 @@ func TestGraphEdges(t *testing.T) {
 
 	t.Run("DeleteEdge", func(t *testing.T) {
 		nf := newTestNode("non-member", nil)
-		assert.Equal(t, ErrNodeNotFound, g.DeleteEdge(n1, nf))
-		assert.Equal(t, ErrNodeNotFound, g.DeleteEdge(nf, n1))
+		assert.True(t, errors.Is(g.DeleteEdge(n1, nf), ErrNodeNotFound))
+		assert.True(t, errors.Is(g.DeleteEdge(nf, n1), ErrNodeNotFound))
 
 		assert.NoError(t, g.DeleteEdge(nc2, nc1))
 		m, w := nc1.Successors().Get(nc2.name)
@@ -180,6 +182,6 @@ func TestGraphEdges(t *testing.T) {
 		_, w = n2.Predecessors().Get(n1.name)
 		assert.Equal(t, 0, w)
 		_, err := g.GetNode(n1.name)
-		assert.Equal(t, ErrNodeNotFound, err)
+		assert.True(t, errors.Is(err, ErrNodeNotFound))
 	})
 }

@@ -3,17 +3,14 @@ package main
 import (
 	"flag"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/printer"
+	"github.com/Helcaraxan/gomod/internal/testutil"
 )
 
 var regenerate = flag.Bool("regenerate", false, "Instead of testing the output, use the generated output to refresh the golden images.")
@@ -61,12 +58,12 @@ func TestGraphGeneration(t *testing.T) {
 		},
 	}
 
-	cArgs := &commonArgs{log: zap.New(zapcore.NewCore(logger.NewGoModEncoder(), os.Stdout, zapcore.DebugLevel))}
-
 	for name := range testcases {
 		testcase := testcases[name]
 		t.Run(name, func(t *testing.T) {
 			tempDir := t.TempDir()
+
+			cArgs := &commonArgs{log: testutil.TestLogger(t)}
 
 			// Test the dot generation.
 			dotArgs := *testcase.dotArgs

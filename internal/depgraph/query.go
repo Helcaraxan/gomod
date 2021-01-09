@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/internal/graph"
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/query"
 )
 
@@ -27,16 +28,20 @@ func (e queryErr) Unwrap() error {
 	return ErrInvalidQuery
 }
 
-func (g *DepGraph) ApplyQuery(q query.Expr, level Level) error {
-	targetSet, err := g.computeSet(q, level)
+func (g *DepGraph) ApplyQuery(dl *logger.Builder, q query.Expr, level Level) error {
+	log := dl.Domain(logger.QueryDomain)
+
+	targetSet, err := g.computeSet(log, q, level)
 	if err != nil {
 		return err
 	}
 
+	log.Debug("Removing unselected nodes.")
 	for _, n := range g.Graph.GetLevel(int(level)).List() {
 		if targetSet[n.Name()] {
 			continue
 		}
+		log.Debug("Removing node.", zap.String("node", n.Name()))
 		if err = g.Graph.DeleteNode(n.Hash()); err != nil {
 			return err
 		}
@@ -52,13 +57,13 @@ func (ns nodeSet) String() string {
 	return strings.Join(s, ", ")
 }
 
-func (g *DepGraph) computeSet(expr query.Expr, level Level) (set nodeSet, err error) {
+func (g *DepGraph) computeSet(log *logger.Logger, expr query.Expr, level Level) (set nodeSet, err error) {
 	set = nodeSet{}
 	defer func() {
-		g.log.Debug("Found nodeset.", zap.Stringer("nodes", set))
+		log.Debug("Found nodeset.", zap.Stringer("query", expr), zap.Stringer("nodes", set))
 	}()
 
-	g.log.Debug("Computing matching nodes.", zap.Stringer("query", expr))
+	log.Debug("Computing matching nodes.", zap.Stringer("query", expr))
 	switch tq := expr.(type) {
 	case *query.ExprArgsList, *query.ExprBool, *query.ExprInteger:
 		return nil, &queryErr{
@@ -66,11 +71,11 @@ func (g *DepGraph) computeSet(expr query.Expr, level Level) (set nodeSet, err er
 			expr: tq,
 		}
 	case *query.ExprString:
-		return g.computeSetNameMatch(tq, level)
+		return g.computeSetNameMatch(log, tq, level)
 	case query.BinaryExpr:
-		return g.computeSetBinaryOp(tq, level)
+		return g.computeSetBinaryOp(log, tq, level)
 	case *query.ExprFunc:
-		return g.computeSetFunc(tq, level)
+		return g.computeSetFunc(log, tq, level)
 	default:
 		return nil, &queryErr{
 			err:  "unexpected query expression",
@@ -79,7 +84,7 @@ func (g *DepGraph) computeSet(expr query.Expr, level Level) (set nodeSet, err er
 	}
 }
 
-func (g *DepGraph) computeSetNameMatch(expr *query.ExprString, level Level) (nodeSet, error) {
+func (g *DepGraph) computeSetNameMatch(log *logger.Logger, expr *query.ExprString, level Level) (nodeSet, error) {
 	var withTestDeps bool
 
 	parts := strings.Split(expr.Value(), ":")
@@ -117,33 +122,33 @@ func (g *DepGraph) computeSetNameMatch(expr *query.ExprString, level Level) (nod
 		p, ok := node.(*Package)
 		switch {
 		case !withTestDeps && ((ok && strings.HasSuffix(p.Info.Name, "_test")) || node.(testAnnotated).isTestDependency()):
-			g.log.Debug("Discarded node as it is a test dependency.", zap.String("name", node.Name()))
+			log.Debug("Discarded node as it is a test dependency.", zap.String("name", node.Name()))
 		case !matcher(node.Name()):
-			g.log.Debug("Discarded node as its name did not match the filter.", zap.String("name", node.Name()))
+			log.Debug("Discarded node as its name did not match the filter.", zap.String("name", node.Name()))
 		default:
-			g.log.Debug("Match found.", zap.String("name", node.Name()))
+			log.Debug("Match found.", zap.String("name", node.Name()))
 			set[node.Name()] = true
 		}
 	}
 
 	if len(set) == 0 {
-		g.log.Warn("Empty query result.", zap.Stringer("query", expr))
+		log.Warn("Empty query result.", zap.Stringer("query", expr))
 	}
 	return set, nil
 }
 
-func (g *DepGraph) computeSetBinaryOp(expr query.BinaryExpr, level Level) (set nodeSet, err error) {
+func (g *DepGraph) computeSetBinaryOp(log *logger.Logger, expr query.BinaryExpr, level Level) (set nodeSet, err error) {
 	defer func() {
 		if err == nil && len(set) == 0 {
-			g.log.Warn("Empty query result.", zap.Stringer("query", expr))
+			log.Warn("Empty query result.", zap.Stringer("query", expr))
 		}
 	}()
 
-	lhs, err := g.computeSet(expr.Operands().LHS, level)
+	lhs, err := g.computeSet(log, expr.Operands().LHS, level)
 	if err != nil {
 		return nil, err
 	}
-	rhs, err := g.computeSet(expr.Operands().RHS, level)
+	rhs, err := g.computeSet(log, expr.Operands().RHS, level)
 	if err != nil {
 		return nil, err
 	}
@@ -164,14 +169,14 @@ func (g *DepGraph) computeSetBinaryOp(expr query.BinaryExpr, level Level) (set n
 	}
 }
 
-func (g *DepGraph) computeSetFunc(expr query.FuncExpr, level Level) (nodeSet, error) {
+func (g *DepGraph) computeSetFunc(log *logger.Logger, expr query.FuncExpr, level Level) (nodeSet, error) {
 	switch expr.Name() {
 	case "deps":
-		return g.computeSetGraphTraversal(expr, forwards, level)
+		return g.computeSetGraphTraversal(log, expr, forwards, level)
 	case "rdeps":
-		return g.computeSetGraphTraversal(expr, backwards, level)
+		return g.computeSetGraphTraversal(log, expr, backwards, level)
 	case "shared":
-		return g.sharedFunc(expr, level)
+		return g.sharedFunc(log, expr, level)
 	default:
 		return nil, &queryErr{
 			err:  fmt.Sprintf("unknown function %q", expr.Name()),
@@ -187,7 +192,7 @@ const (
 	backwards
 )
 
-func (g *DepGraph) computeSetGraphTraversal(expr query.FuncExpr, direction traversalDirection, level Level) (nodeSet, error) {
+func (g *DepGraph) computeSetGraphTraversal(log *logger.Logger, expr query.FuncExpr, direction traversalDirection, level Level) (nodeSet, error) {
 	args := expr.Args()
 	if len(args.Args()) == 0 {
 		return nil, &queryErr{
@@ -212,7 +217,7 @@ func (g *DepGraph) computeSetGraphTraversal(expr query.FuncExpr, direction trave
 		}
 		maxDepth = v.Value()
 	}
-	g.log.Debug("Maximum depths for traversals set.", zap.Int("maxDepth", maxDepth))
+	log.Debug("Maximum depths for traversals set.", zap.Int("maxDepth", maxDepth))
 
 	var iterateFunc func(graph.Node) []graph.Node
 	switch direction {
@@ -222,7 +227,7 @@ func (g *DepGraph) computeSetGraphTraversal(expr query.FuncExpr, direction trave
 		iterateFunc = func(n graph.Node) []graph.Node { return n.Predecessors().List() }
 	}
 
-	sources, err := g.computeSet(args.Args()[0], level)
+	sources, err := g.computeSet(log, args.Args()[0], level)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +254,7 @@ func (g *DepGraph) computeSetGraphTraversal(expr query.FuncExpr, direction trave
 
 			set[next.n.Name()] = true
 			if next.d >= maxDepth {
-				g.log.Debug("Maximum depth reached.", zap.String("node", next.n.Name()))
+				log.Debug("Maximum depth reached.", zap.String("node", next.n.Name()))
 				continue
 			}
 
@@ -258,7 +263,7 @@ func (g *DepGraph) computeSetGraphTraversal(expr query.FuncExpr, direction trave
 					continue
 				}
 
-				g.log.Debug("Enqueing new node.", zap.String("node", dep.Name()), zap.Int("depth", next.d+1))
+				log.Debug("Enqueing new node.", zap.String("node", dep.Name()), zap.Int("depth", next.d+1))
 				todo = append(todo, struct {
 					n graph.Node
 					d int
@@ -270,7 +275,7 @@ func (g *DepGraph) computeSetGraphTraversal(expr query.FuncExpr, direction trave
 	return set, nil
 }
 
-func (g *DepGraph) sharedFunc(expr query.FuncExpr, level Level) (nodeSet, error) {
+func (g *DepGraph) sharedFunc(log *logger.Logger, expr query.FuncExpr, level Level) (nodeSet, error) {
 	args := expr.Args()
 	if len(args.Args()) != 1 {
 		return nil, &queryErr{
@@ -279,7 +284,7 @@ func (g *DepGraph) sharedFunc(expr query.FuncExpr, level Level) (nodeSet, error)
 		}
 	}
 
-	set, err := g.computeSet(args.Args()[0], level)
+	set, err := g.computeSet(log, args.Args()[0], level)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +319,7 @@ func (g *DepGraph) sharedFunc(expr query.FuncExpr, level Level) (nodeSet, error)
 		next := todo[0]
 		todo = todo[1:]
 
-		g.log.Debug("Removing node from set.", zap.String("name", next.Name()))
+		log.Debug("Removing node from set.", zap.String("name", next.Name()))
 		delete(set, next.Name())
 
 		pred := next.Predecessors().List()[0]
@@ -324,7 +329,7 @@ func (g *DepGraph) sharedFunc(expr query.FuncExpr, level Level) (nodeSet, error)
 	}
 
 	if len(set) == 0 {
-		g.log.Warn("Empty query result.", zap.Stringer("query", expr))
+		log.Warn("Empty query result.", zap.Stringer("query", expr))
 	}
 	return set, nil
 }

@@ -1,9 +1,8 @@
 package depgraph
 
 import (
-	"go.uber.org/zap"
-
 	"github.com/Helcaraxan/gomod/internal/graph"
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/modules"
 )
 
@@ -13,7 +12,6 @@ type DepGraph struct {
 	Main  *Module
 	Graph *graph.HierarchicalDigraph
 
-	log      *zap.Logger
 	replaces map[string]string
 }
 
@@ -24,17 +22,11 @@ const (
 	LevelPackages
 )
 
-// NewGraph returns a new Graph instance which will use the specified logger for writing log output.
-// If a nil value is passed a null-logger will be used instead.
-func NewGraph(log *zap.Logger, path string, main *modules.ModuleInfo) *DepGraph {
-	if log == nil {
-		log = zap.NewNop()
-	}
+func NewGraph(log *logger.Logger, path string, main *modules.ModuleInfo) *DepGraph {
 	g := &DepGraph{
 		Path:     path,
-		Graph:    graph.NewHierarchicalDigraph(),
+		Graph:    graph.NewHierarchicalDigraph(log),
 		replaces: map[string]string{},
-		log:      log,
 	}
 	g.Main = g.AddModule(main)
 	return g

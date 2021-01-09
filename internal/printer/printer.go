@@ -10,6 +10,7 @@ import (
 
 	"github.com/Helcaraxan/gomod/internal/depgraph"
 	"github.com/Helcaraxan/gomod/internal/graph"
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/util"
 )
 
@@ -24,7 +25,7 @@ const (
 // function of a Graph.
 type PrintConfig struct {
 	// Logger that should be used to show progress while printing the Graph.
-	Log *zap.Logger
+	Log *logger.Logger
 
 	// Which level of granularity to print the graph at (modules, packages).
 	Granularity Level
@@ -220,7 +221,7 @@ func printEdgesToDot(config *PrintConfig, node graph.Node, clusters *graphCluste
 	for _, dep := range node.Successors().List() {
 		cluster, ok := clusters.clusterMap[dep.Hash()]
 		if !ok {
-			config.Log.Error("No cluster reference found for node.", zap.String("node", dep.Hash()))
+			config.Log.Error("No cluster reference found for dependency.", zap.String("node", node.Hash()), zap.String("dep", dep.Hash()))
 			continue
 		} else if _, ok = clustersReached[cluster.id]; ok {
 			continue

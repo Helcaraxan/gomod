@@ -1,6 +1,8 @@
 package depgraph
 
 import (
+	"fmt"
+
 	"github.com/Helcaraxan/gomod/internal/graph"
 	"github.com/Helcaraxan/gomod/internal/modules"
 )
@@ -27,12 +29,16 @@ func NewPackage(info *modules.PackageInfo, parent *Module) *Package {
 
 // Name returns the import path of the package and not the value declared inside the package with
 // the 'package' statement.
-func (p Package) Name() string {
+func (p *Package) Name() string {
 	return p.Info.ImportPath
 }
 
-func (p Package) Hash() string {
+func (p *Package) Hash() string {
 	return packageHash(p.Info.ImportPath)
+}
+
+func (p *Package) String() string {
+	return fmt.Sprintf("%s, module: %s, preds: [%s], succs: [%s]", p.Hash(), p.parent.Name(), p.predecessors, p.successors)
 }
 
 func packageHash(name string) string { return "package " + name }

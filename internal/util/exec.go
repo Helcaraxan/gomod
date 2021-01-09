@@ -10,9 +10,11 @@ import (
 	"strings"
 
 	"go.uber.org/zap"
+
+	"github.com/Helcaraxan/gomod/internal/logger"
 )
 
-func RunCommand(log *zap.Logger, path string, cmd string, args ...string) (stdout []byte, stderr []byte, err error) {
+func RunCommand(log *logger.Logger, path string, cmd string, args ...string) (stdout []byte, stderr []byte, err error) {
 	if !filepath.IsAbs(path) {
 		if path, err = filepath.Abs(path); err != nil {
 			return nil, nil, err
@@ -29,17 +31,19 @@ func RunCommand(log *zap.Logger, path string, cmd string, args ...string) (stdou
 
 	if log.Core().Enabled(zap.DebugLevel) {
 		execCmd.Stdout = io.MultiWriter(execCmd.Stdout, os.Stderr)
-	}
-	if log.Core().Enabled(zap.WarnLevel) {
 		execCmd.Stderr = io.MultiWriter(execCmd.Stderr, os.Stderr)
 	}
 
-	log = log.With(zap.Strings("args", append([]string{execCmd.Path}, execCmd.Args...)))
-	log.Debug("Running command.")
+	log.Debug("Running command.", zap.Strings("args", append([]string{execCmd.Path}, execCmd.Args...)))
 	err = execCmd.Run()
-	log.Debug("Finished running.", zap.ByteString("stdout", stdoutBuffer.Bytes()), zap.ByteString("stderr", stderrBuffer.Bytes()))
+	log.Debug(
+		"Finished running.",
+		zap.Strings("args", append([]string{execCmd.Path}, execCmd.Args...)),
+		zap.ByteString("stdout", stdoutBuffer.Bytes()),
+		zap.ByteString("stderr", stderrBuffer.Bytes()),
+	)
 	if err != nil {
-		log.Error("Command exited with an error.", zap.Error(err))
+		log.Error("Command exited with an error.", zap.Strings("args", append([]string{execCmd.Path}, execCmd.Args...)), zap.Error(err))
 		return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), fmt.Errorf("failed to run '%s %s: %s", cmd, strings.Join(args, " "), err)
 	}
 	return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), nil

@@ -1,26 +1,28 @@
 package depgraph
 
 import (
+	"os"
 	"regexp"
 
 	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/internal/graph"
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/modules"
 )
 
 var depRE = regexp.MustCompile(`^([^@\s]+)@?([^@\s]+)? ([^@\s]+)@([^@\s]+)$`)
 
 // GetGraph will return the dependency graph for the Go module that can be found at the specified
-// path. The 'logger' parameter can be 'nil' which will result in no output or logging information
-// being provided.
-func GetGraph(log *zap.Logger, path string) (*DepGraph, error) {
-	if log == nil {
-		log = zap.NewNop()
+// path.
+func GetGraph(dl *logger.Builder, path string) (*DepGraph, error) {
+	if dl == nil {
+		dl = logger.NewBuilder(os.Stderr)
 	}
+	log := dl.Domain(logger.GraphDomain)
 	log.Debug("Creating dependency graph.")
 
-	mainModule, moduleInfo, err := modules.GetDependencies(log, path)
+	mainModule, moduleInfo, err := modules.GetDependencies(dl.Domain(logger.ModuleInfoDomain), path)
 	if err != nil {
 		return nil, err
 	}
@@ -30,11 +32,11 @@ func GetGraph(log *zap.Logger, path string) (*DepGraph, error) {
 		g.AddModule(module)
 	}
 
-	if err = g.buildImportGraph(); err != nil {
+	if err = g.buildImportGraph(dl); err != nil {
 		return nil, err
 	}
 
-	if err = g.overlayModuleDependencies(); err != nil {
+	if err = g.overlayModuleDependencies(dl); err != nil {
 		return nil, err
 	}
 
@@ -55,7 +57,7 @@ func GetGraph(log *zap.Logger, path string) (*DepGraph, error) {
 			}
 		}
 
-		g.log.Debug("Removing module as it not connected to the final graph.", zap.String("dependency", next.Name()))
+		log.Debug("Removing module as it not connected to the final graph.", zap.String("dependency", next.Name()))
 		if err = g.Graph.DeleteNode(next.Hash()); err != nil {
 			return nil, err
 		}

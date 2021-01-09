@@ -9,6 +9,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/util"
 )
 
@@ -35,7 +36,7 @@ type ModuleError struct {
 }
 
 // Retrieve the Module information for all dependencies of the Go module found at the specified path.
-func GetDependencies(log *zap.Logger, moduleDir string) (*ModuleInfo, map[string]*ModuleInfo, error) {
+func GetDependencies(log *logger.Logger, moduleDir string) (*ModuleInfo, map[string]*ModuleInfo, error) {
 	return retrieveModuleInformation(log, moduleDir, "all")
 }
 
@@ -43,13 +44,13 @@ func GetDependencies(log *zap.Logger, moduleDir string) (*ModuleInfo, map[string
 // path, including any potentially available updates. This requires internet connectivity in order
 // to return the results. Lack of connectivity should result in an error being returned but this is
 // not a hard guarantee.
-func GetDependenciesWithUpdates(log *zap.Logger, moduleDir string) (*ModuleInfo, map[string]*ModuleInfo, error) {
+func GetDependenciesWithUpdates(log *logger.Logger, moduleDir string) (*ModuleInfo, map[string]*ModuleInfo, error) {
 	return retrieveModuleInformation(log, moduleDir, "all", "-versions", "-u")
 }
 
 // Retrieve the Module information for the specified target module which must be a dependency of the
 // Go module found at the specified path.
-func GetModule(log *zap.Logger, moduleDir string, targetModule string) (*ModuleInfo, error) {
+func GetModule(log *logger.Logger, moduleDir string, targetModule string) (*ModuleInfo, error) {
 	module, _, err := retrieveModuleInformation(log, moduleDir, targetModule)
 	return module, err
 }
@@ -58,13 +59,13 @@ func GetModule(log *zap.Logger, moduleDir string, targetModule string) (*ModuleI
 // Go module found at the specified path, including any potentially available updates. This requires
 // internet connectivity in order to return the results. Lack of connectivity should result in an
 // error being returned but this is not a hard guarantee.
-func GetModuleWithUpdate(log *zap.Logger, moduleDir string, targetModule string) (*ModuleInfo, error) {
+func GetModuleWithUpdate(log *logger.Logger, moduleDir string, targetModule string) (*ModuleInfo, error) {
 	module, _, err := retrieveModuleInformation(log, moduleDir, targetModule, "-versions", "-u")
 	return module, err
 }
 
 func retrieveModuleInformation(
-	log *zap.Logger,
+	log *logger.Logger,
 	moduleDir string,
 	targetModule string,
 	extraGoListArgs ...string,

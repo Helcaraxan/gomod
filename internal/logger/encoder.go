@@ -2,14 +2,15 @@ package logger
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
 
-func NewGoModEncoder() zapcore.Encoder {
-	return goModEncoder{
+func newEncoder() *goModEncoder {
+	return &goModEncoder{
 		Encoder:       zapcore.NewConsoleEncoder(fieldEncoderConfig),
 		EncoderConfig: externalEncoderConfig,
 	}
@@ -18,6 +19,8 @@ func NewGoModEncoder() zapcore.Encoder {
 type goModEncoder struct {
 	zapcore.Encoder
 	zapcore.EncoderConfig
+
+	indent int
 }
 
 func (c goModEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
@@ -26,6 +29,10 @@ func (c goModEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*b
 	arr := &sliceArrayEncoder{}
 	c.EncodeTime(ent.Time, arr)
 	c.EncodeLevel(ent.Level, arr)
+	c.EncodeName(ent.LoggerName, arr)
+	if c.indent > 0 {
+		arr.AppendString(strings.Repeat("-", c.indent))
+	}
 	if ent.Caller.Defined && c.EncodeCaller != nil {
 		c.EncodeCaller(ent.Caller, arr)
 	}
@@ -66,6 +73,7 @@ var (
 		EncodeTime:     func(t time.Time, enc zapcore.PrimitiveArrayEncoder) { enc.AppendString(t.Format("15:04:05")) },
 		EncodeDuration: zapcore.MillisDurationEncoder,
 		EncodeCaller:   zapcore.FullCallerEncoder,
+		EncodeName:     zapcore.FullNameEncoder,
 	}
 	fieldEncoderConfig = zapcore.EncoderConfig{
 		// We omit any of the keys so that we don't print any of the already previously printed fields.

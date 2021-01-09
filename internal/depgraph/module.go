@@ -46,6 +46,10 @@ func (m *Module) Hash() string {
 	return moduleHash(m.Info.Path)
 }
 
+func (m *Module) String() string {
+	return fmt.Sprintf("%s, preds: [%s], succs: [%s]", m.Hash(), m.predecessors, m.successors)
+}
+
 func moduleHash(name string) string {
 	return "module " + name
 }
@@ -114,6 +118,6 @@ func (m *Module) EdgeAttributes(target graph.Node, annotate bool) []string {
 
 var _ testAnnotated = &Module{}
 
-func (m Module) isTestDependency() bool {
+func (m *Module) isTestDependency() bool {
 	return !m.isNonTestDependency
 }

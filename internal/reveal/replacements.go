@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/internal/depgraph"
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/modules"
 )
 
@@ -30,7 +31,7 @@ type Replacements struct {
 	originToReplace map[string][]Replacement
 }
 
-func (r *Replacements) Print(log *zap.Logger, writer io.Writer, offenders []string, targets []string) error {
+func (r *Replacements) Print(log *logger.Logger, writer io.Writer, offenders []string, targets []string) error {
 	filtered := r.FilterOnOffendingModule(offenders).FilterOnReplacedModule(targets)
 
 	var (
@@ -173,7 +174,7 @@ var (
 	replaceRE       = regexp.MustCompile(`([^\s]+) => ([^\s]+)(?: (v[^\s]+))?`)
 )
 
-func FindReplacements(log *zap.Logger, g *depgraph.DepGraph) (*Replacements, error) {
+func FindReplacements(log *logger.Logger, g *depgraph.DepGraph) (*Replacements, error) {
 	replacements := &Replacements{
 		main:            g.Main.Name(),
 		topLevel:        map[string]string{},
@@ -211,7 +212,7 @@ func FindReplacements(log *zap.Logger, g *depgraph.DepGraph) (*Replacements, err
 }
 
 func parseGoMod(
-	log *zap.Logger,
+	log *logger.Logger,
 	topLevelModule *modules.ModuleInfo,
 	topLevelReplaces map[string]string,
 	module *modules.ModuleInfo,
@@ -246,7 +247,7 @@ func parseGoMod(
 	return replaces, nil
 }
 
-func findGoModFile(log *zap.Logger, module *modules.ModuleInfo) (*modules.ModuleInfo, string) {
+func findGoModFile(log *logger.Logger, module *modules.ModuleInfo) (*modules.ModuleInfo, string) {
 	if module == nil {
 		return nil, ""
 	} else if module.Replace != nil {
@@ -265,7 +266,7 @@ func findGoModFile(log *zap.Logger, module *modules.ModuleInfo) (*modules.Module
 	return module, ""
 }
 
-func parseGoModForReplacements(log *zap.Logger, module *modules.ModuleInfo, goModContent string) []Replacement {
+func parseGoModForReplacements(log *logger.Logger, module *modules.ModuleInfo, goModContent string) []Replacement {
 	var replacements []Replacement
 	for _, singleReplaceMatch := range singleReplaceRE.FindAllStringSubmatch(goModContent, -1) {
 		replacements = append(replacements, parseReplacements(log, module, singleReplaceMatch[1])...)
@@ -276,7 +277,7 @@ func parseGoModForReplacements(log *zap.Logger, module *modules.ModuleInfo, goMo
 	return replacements
 }
 
-func parseReplacements(log *zap.Logger, module *modules.ModuleInfo, replaceString string) []Replacement {
+func parseReplacements(log *logger.Logger, module *modules.ModuleInfo, replaceString string) []Replacement {
 	var replacements []Replacement
 	for _, replaceMatch := range replaceRE.FindAllStringSubmatch(replaceString, -1) {
 		replace := Replacement{

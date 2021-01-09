@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/internal/depgraph"
+	"github.com/Helcaraxan/gomod/internal/logger"
 	"github.com/Helcaraxan/gomod/internal/modules"
 )
 
@@ -35,7 +36,7 @@ type DepAnalysis struct {
 
 var testCurrentTimeInjection *time.Time
 
-func Analyse(log *zap.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) {
+func Analyse(log *logger.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) {
 	_, moduleMap, err := modules.GetDependenciesWithUpdates(log, g.Path)
 	if err != nil {
 		return nil, err
@@ -73,7 +74,7 @@ func Analyse(log *zap.Logger, g *depgraph.DepGraph) (*DepAnalysis, error) {
 }
 
 type analysis struct {
-	log       *zap.Logger
+	log       *logger.Logger
 	graph     *depgraph.DepGraph
 	moduleMap map[string]*modules.ModuleInfo
 

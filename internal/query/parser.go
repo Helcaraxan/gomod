@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"go.uber.org/zap"
+
+	"github.com/Helcaraxan/gomod/internal/logger"
 )
 
 var (
@@ -22,7 +24,8 @@ var (
 	ErrUnexpectedParenthesis = errors.New("unexpected parenthesis")
 )
 
-func Parse(log *zap.Logger, query string) (Expr, error) {
+func Parse(dl *logger.Builder, query string) (Expr, error) {
+	log := dl.Domain(logger.ParserDomain)
 	var stream []token
 
 	r := newTokenizer(query)
@@ -60,7 +63,7 @@ func (e *parserError) Unwrap() error {
 }
 
 type parser struct {
-	log       *zap.Logger
+	log       *logger.Logger
 	stream    []token
 	streamIdx int
 	exprStack []Expr
