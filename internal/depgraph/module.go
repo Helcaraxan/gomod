@@ -90,6 +90,10 @@ func (m *Module) Children() *graph.NodeRefs {
 
 func (m *Module) NodeAttributes(annotate bool) []string {
 	var annotations []string
+
+	text, background := hashToColourHSV(m.Hash(), m.isTestDependency())
+	annotations = append(annotations, fmt.Sprintf(`fontcolor="%s"`, text), fmt.Sprintf(`fillcolor="%s"`, background))
+
 	if annotate && m.SelectedVersion() != "" {
 		var replacement string
 		if m.Info.Replace != nil {
@@ -108,7 +112,10 @@ func (m *Module) EdgeAttributes(target graph.Node, annotate bool) []string {
 
 	var annotations []string
 	if m.Indirects[target.Name()] {
-		annotations = append(annotations, "style=dashed")
+		annotations = append(annotations, "style=dashed") //nolint:misspell
+	}
+	if target.(testAnnotated).isTestDependency() {
+		annotations = append(annotations, "color=lightblue") //nolint:misspell
 	}
 	if c, ok := m.VersionConstraints[targetModule.Hash()]; ok && annotate {
 		annotations = append(annotations, fmt.Sprintf("label=<<font point-size=\"10\">%s</font>>", c.Target))

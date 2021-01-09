@@ -105,7 +105,7 @@ func Print(g *graph.HierarchicalDigraph, config *PrintConfig) error {
 
 func determineGlobalOptions(g *graph.HierarchicalDigraph, config *PrintConfig) []string {
 	globalOptions := []string{
-		"  node [shape=box,style=rounded]",
+		"  node [shape=box,style=\"rounded,filled\"]",
 		"  start=0", // Needed for placement determinism.
 	}
 

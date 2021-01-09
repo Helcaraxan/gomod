@@ -85,6 +85,13 @@ Some examples:
 If you want to create an image based on the generated text-based DOT content you need to use the
 [`dot`] tool which you will need to install separately.
 
+The generated graph is colour and shape-coded:
+
+- Each module, or group of packages belonging to the same module, has a distinct colour.
+- Test-only dependencies are recognisable by the use of a lighter colour-palette.
+- Test-only edges are recognisable by a light blue colour.
+- Edges reflecting indirect module dependencies are marked with dashed instead of continuos lines.
+
 [DOT format]: https://graphviz.org/doc/info/lang.html
 [`dot`]: https://www.graphviz.org/download/
 
