@@ -190,7 +190,7 @@ type annotated interface {
 
 var (
 	_ annotated = &depgraph.Module{}
-	//_ annotated = &depgraph.Package{}
+	_ annotated = &depgraph.Package{}
 )
 
 func printNodeToDot(config *PrintConfig, node graph.Node) string {

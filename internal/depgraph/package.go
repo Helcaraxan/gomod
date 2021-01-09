@@ -58,3 +58,11 @@ func (p *Package) Children() *graph.NodeRefs {
 func (p *Package) Parent() graph.Node {
 	return p.parent
 }
+
+func (p *Package) NodeAttributes(annotate bool) []string {
+	return nil
+}
+
+func (p *Package) EdgeAttributes(target graph.Node, annotate bool) []string {
+	return nil
+}
