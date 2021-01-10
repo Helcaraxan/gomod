@@ -172,7 +172,7 @@ func TestQueryNameMatch(t *testing.T) {
 					{name: "test.com/foo", isTest: true},
 				},
 			},
-			query: "test.com/...",
+			query: "test.com/**",
 			expectedSet: nodeSet{
 				"test.com/module": true,
 			},
@@ -184,7 +184,7 @@ func TestQueryNameMatch(t *testing.T) {
 					{name: "test.com/foo", isTest: true},
 				},
 			},
-			query: "test.com/...:test",
+			query: "test.com/**:test",
 			expectedSet: nodeSet{
 				"test.com/module": true,
 				"test.com/foo":    true,
@@ -239,7 +239,7 @@ func TestQueryBinaryOp(t *testing.T) {
 					{name: "test.com/foo"},
 				},
 			},
-			query: "test.com/... - test.com/foo",
+			query: "test.com/** - test.com/foo",
 			expectedSet: nodeSet{
 				"test.com/module": true,
 			},
@@ -248,27 +248,27 @@ func TestQueryBinaryOp(t *testing.T) {
 			graph: queryTestGraph{
 				nodes: []queryTestNode{
 					{name: "test.com/module"},
-					{name: "test.com/foo"},
-					{name: "test.com/foo/bar", isTest: true},
+					{name: "test.com/foo/bar"},
+					{name: "test.com/foo/bar/blob", isTest: true},
 				},
 			},
-			query: "test.com/... inter test.com/foo/...:test",
+			query: "test.com/** inter test.com/foo/**:test",
 			expectedSet: nodeSet{
-				"test.com/foo": true,
+				"test.com/foo/bar": true,
 			},
 		},
 		"Delta": {
 			graph: queryTestGraph{
 				nodes: []queryTestNode{
 					{name: "test.com/module"},
-					{name: "test.com/foo"},
-					{name: "test.com/foo/bar", isTest: true},
+					{name: "test.com/foo/bar"},
+					{name: "test.com/foo/bar/blob", isTest: true},
 				},
 			},
-			query: "test.com/... delta test.com/foo/...:test",
+			query: "test.com/** delta test.com/foo/**:test",
 			expectedSet: nodeSet{
-				"test.com/module":  true,
-				"test.com/foo/bar": true,
+				"test.com/module":       true,
+				"test.com/foo/bar/blob": true,
 			},
 		},
 	}
@@ -395,7 +395,7 @@ func TestQueryFuncs(t *testing.T) {
 					{s: "test.com/dead", e: "test.com/beef"},
 				},
 			},
-			query: "shared(test.com/...)",
+			query: "shared(test.com/**)",
 			expectedSet: nodeSet{
 				"test.com/module": true,
 				"test.com/foo":    true,

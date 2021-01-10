@@ -19,7 +19,6 @@ func TestGraphGeneration(t *testing.T) {
 	testcases := map[string]struct {
 		expectedFileBase string
 		dotArgs          *graphArgs
-		visualArgs       *graphArgs
 	}{
 		"Full": {
 			expectedFileBase: "full",

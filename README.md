@@ -44,29 +44,31 @@ the graph by tailoring your query to your needs. You can also add annotations to
 information on the generated graph. By default `gomod graph` will act on the module graph, however
 by using the `--packages` flag it will consider the package import graph instead.
 
-Querying the graph is done by means of a simple language that supports the following features:
+If no query is specified the full graph, including test-only dependencies will be produced.
 
-| Syntax                             | Feature                                                                                                                   |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| github.com/foo/bar[/...]           | Filter based on exact paths or path prefixes.                                                                             |
-| github.com/foo/bar[/...]:test      | Include test-only dependencies matched by the specified pattern                                                           |
-| deps\|rdeps(\<filter\>[, \<int\>]) | Consider all (reverse) dependencies of the elements matches by the nested filter, potentially limited to a certain depth. |
-| shared(\<filter\>)                 | Consider only nodes that have more than one predecessor (i.e are a dependency required by more than one source)           |
-| \<filter\> \<operator\> \<filter\> | Perform a set-based operation (`+`, `-`, `inter` or `delta`) on the outcomes of the two given filters                     |
+Querying is done by means of a simple language that supports the following features:
+
+| Filter Syntax                   | Feature                                                                                                                                      |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `github.com/**/lib/*`           | Filter based on paths, including the ability to use wildcards. `*` matches a single path elements, `**` matches any number of path elements. |
+| `github.com/foo/bar:test`       | Include test-only dependencies matched by the specified pattern.                                                                             |
+| `deps|rdeps(<filter>[, <int>])` | Consider all (reverse) dependencies of the elements matches by the nested filter, potentially limited to a certain depth.                    |
+| `shared(<filter>)`              | Consider only nodes that have more than one predecessor (i.e are a dependency required by more than one source).                             |
+| `<filter> <operator> <filter>`  | Perform a set-based operation (`+`, `-`, `inter` or `delta`) on the outcomes of the two given filters.                                       |
 
 Some examples:
 
 - Print the full dependency graph of this module (not including test-only dependencies):
 
   ```shell
-  gomod graph 'deps(github.com/Helcaraxan/gomod)'
+  gomod graph '**'
   ```
 
-- Print the graph of all dependencies, including test-only ones, that are required by more than one
+- Print the graph of all shared dependencies, including test-only ones, of a given package.
   source.
 
   ```shell
-  gomod graph 'shared(deps(github.com/Helcaraxan/gomod:test))'
+  gomod graph --packages 'shared(deps(github.com/my/module/library/pkg:test))'
   ```
 
 - Show only the dependency graph leading to the `gopkg.in/yaml.v2` and `gopkg.in/yaml.v3` modules:

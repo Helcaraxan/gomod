@@ -5,7 +5,7 @@ strict digraph {
   graph [style=rounded]
   compound=true
   ranksep=1.21
-  "github.com/Helcaraxan/gomod" [width=2.00,height=0.40,fontcolor="0.000 0.000 0.000",fillcolor="0.824 0.753 1.000"]
+  "github.com/Helcaraxan/gomod" [width=2.32,height=0.46,fontcolor="0.000 0.000 0.000",fillcolor="0.824 0.753 1.000"]
   subgraph cluster_cloud_google_com_go{
     "github.com/google/martian" [width=0.50,height=0.10,fontcolor="0.000 0.000 0.000",fillcolor="0.357 0.329 1.000"]
     "github.com/google/pprof" [width=0.50,height=0.10,fontcolor="0.000 0.000 0.000",fillcolor="0.839 0.232 1.000"]
@@ -43,7 +43,16 @@ strict digraph {
   "github.com/golang/mock" [width=1.58,height=0.32,fontcolor="0.000 0.000 0.000",fillcolor="0.161 0.368 1.000"]
   "golang.org/x/time" [width=0.50,height=0.10,fontcolor="0.000 0.000 0.000",fillcolor="0.227 0.355 1.000"]
   "golang.org/x/sync" [width=3.46,height=0.69,fontcolor="0.000 0.000 0.000",fillcolor="0.278 0.344 1.000"]
-  "github.com/spf13/cobra" [width=2.81,height=0.56,fontcolor="0.000 0.000 0.000",fillcolor="0.988 0.704 1.000"]
+  subgraph cluster_github_com_Helcaraxan_gomod{
+    "github.com/bmatcuk/doublestar/v3" [width=0.50,height=0.10,fontcolor="0.000 0.000 0.000",fillcolor="0.925 0.722 1.000"]
+    "github.com/spf13/cobra" [width=2.81,height=0.56,fontcolor="0.000 0.000 0.000",fillcolor="0.988 0.704 1.000"]
+    // The nodes and edges part of this subgraph defined below are only used to
+    // improve node placement but do not reflect actual dependencies.
+    node [style=invis]
+    edge [style=invis,minlen=1]
+    graph [color=blue]
+   "github.com/bmatcuk/doublestar/v3" -> "github.com/spf13/cobra"
+  }
   "github.com/stretchr/testify" [width=3.91,height=0.78,fontcolor="0.000 0.000 0.000",fillcolor="0.569 0.829 1.000"]
   "go.uber.org/zap" [width=3.17,height=0.63,fontcolor="0.000 0.000 0.000",fillcolor="1.000 0.700 1.000"]
   "gopkg.in/yaml.v3" [width=1.58,height=0.32,fontcolor="0.000 0.000 1.000",fillcolor="0.647 0.806 1.000"]
@@ -438,10 +447,10 @@ strict digraph {
   "cloud.google.com/go/storage" -> "google.golang.org/api" [minlen=9,color=lightblue]
   "cloud.google.com/go/storage" -> "google.golang.org/genproto" [minlen=11,color=lightblue]
   "cloud.google.com/go/storage" -> "google.golang.org/grpc" [minlen=10,color=lightblue]
-  "github.com/Helcaraxan/gomod" -> "github.com/spf13/cobra"
-  "github.com/Helcaraxan/gomod" -> "github.com/stretchr/testify" [minlen=7]
-  "github.com/Helcaraxan/gomod" -> "go.uber.org/zap" [minlen=6]
-  "github.com/Helcaraxan/gomod" -> "gopkg.in/yaml.v3" [minlen=8]
+  "github.com/Helcaraxan/gomod" -> "github.com/bmatcuk/doublestar/v3" [minlen=3,lhead="cluster_github_com_Helcaraxan_gomod"]
+  "github.com/Helcaraxan/gomod" -> "github.com/stretchr/testify" [minlen=9]
+  "github.com/Helcaraxan/gomod" -> "go.uber.org/zap" [minlen=8]
+  "github.com/Helcaraxan/gomod" -> "gopkg.in/yaml.v3" [minlen=10]
   "github.com/bketelsen/crypt" -> "github.com/coreos/go-semver" [minlen=5,lhead="cluster_github_com_bketelsen_crypt",color=lightblue]
   "github.com/bketelsen/crypt" -> "github.com/google/btree" [minlen=13,style=dashed,color=lightblue]
   "github.com/bketelsen/crypt" -> "golang.org/x/crypto" [minlen=12,color=lightblue]
