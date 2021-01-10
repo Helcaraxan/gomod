@@ -6,6 +6,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/bmatcuk/doublestar/v3"
 	"go.uber.org/zap"
 
 	"github.com/Helcaraxan/gomod/internal/graph"
@@ -104,26 +105,23 @@ func (g *DepGraph) computeSetNameMatch(log *logger.Logger, expr *query.ExprStrin
 			}
 		}
 	}
-	q := parts[0]
 
-	var matcher func(hash string) bool
-	if target := strings.TrimSuffix(q, "/..."); target != q {
-		matcher = func(name string) bool {
-			return strings.HasPrefix(name, target)
-		}
-	} else {
-		matcher = func(name string) bool {
-			return name == target
+	q := parts[0]
+	if _, err := doublestar.Match(q, ""); err != nil {
+		return nil, &queryErr{
+			err:  fmt.Sprintf("invalid query: %v", err),
+			expr: expr,
 		}
 	}
 
 	set := nodeSet{}
 	for _, node := range g.Graph.GetLevel(int(level)).List() {
 		p, ok := node.(*Package)
+		matches, _ := doublestar.Match(q, node.Name())
 		switch {
 		case !withTestDeps && ((ok && strings.HasSuffix(p.Info.Name, "_test")) || node.(testAnnotated).isTestDependency()):
 			log.Debug("Discarded node as it is a test dependency.", zap.String("name", node.Name()))
-		case !matcher(node.Name()):
+		case !matches:
 			log.Debug("Discarded node as its name did not match the filter.", zap.String("name", node.Name()))
 		default:
 			log.Debug("Match found.", zap.String("name", node.Name()))

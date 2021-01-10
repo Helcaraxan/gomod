@@ -94,7 +94,7 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 		Use:   "graph <query>",
 		Short: graphShort,
 		Long:  graphLong,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Flags().Changed("style") {
 				styleOptions, err := parsers.ParseStyleConfiguration(cmdArgs.log.Domain(logger.InitDomain), style)
@@ -103,7 +103,9 @@ func initGraphCmd(cArgs *commonArgs) *cobra.Command {
 				}
 				cmdArgs.style = styleOptions
 			}
-			if len(args) == 1 {
+			if len(args) == 0 {
+				cmdArgs.query = "**:test"
+			} else {
 				cmdArgs.query = args[0]
 			}
 			return runGraphCmd(cmdArgs)
