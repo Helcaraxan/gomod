@@ -48,13 +48,13 @@ If no query is specified the full graph, including test-only dependencies will b
 
 Querying is done by means of a simple language that supports the following features:
 
-| Filter Syntax                   | Feature                                                                                                                                      |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `github.com/**/lib/*`           | Filter based on paths, including the ability to use wildcards. `*` matches a single path elements, `**` matches any number of path elements. |
-| `github.com/foo/bar:test`       | Include test-only dependencies matched by the specified pattern.                                                                             |
-| `deps|rdeps(<filter>[, <int>])` | Consider all (reverse) dependencies of the elements matches by the nested filter, potentially limited to a certain depth.                    |
-| `shared(<filter>)`              | Consider only nodes that have more than one predecessor (i.e are a dependency required by more than one source).                             |
-| `<filter> <operator> <filter>`  | Perform a set-based operation (`+`, `-`, `inter` or `delta`) on the outcomes of the two given filters.                                       |
+| Filter Syntax                  | Feature                                                                                                                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `github.com/**/lib/*`          | Filter based on paths, including the ability to use wildcards. `*` matches a single path elements, `**` matches any number of path elements.                               |
+| `github.com/foo/bar:test`      | Include test-only dependencies matched by the specified pattern.                                                                                                           |
+| `deps(<filter>[, <int>])`      | Consider all dependencies of the elements matches by the nested filter, potentially limited to a certain depth. For reverse dependencies use the similar `rdeps` function. |
+| `shared(<filter>)`             | Consider only nodes that have more than one predecessor (i.e are a dependency required by more than one source).                                                           |
+| `<filter> <operator> <filter>` | Perform a set-based operation (`+`, `-`, `inter` or `delta`) on the outcomes of the two given filters.                                                                     |
 
 Some examples:
 
