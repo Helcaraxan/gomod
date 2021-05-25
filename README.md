@@ -32,6 +32,9 @@ Typical questions that `gomod` will help you answer are:
     - [Dependency chains](#dependency-chains)
     - [Hidden `replace`'s](#hidden-replaces)
     - [Dependency statistics](#dependency-statistics)
+  - [Installation](#installation)
+    - [Install on your machine](#install-on-your-machine)
+    - [Docker images](#docker-images)
 
 ## Detailed features
 
@@ -214,4 +217,22 @@ Reverse dependency statistics:
           |  # # # _
    0.00 % |_________
            0       5
+```
+
+## Installation
+### Install on your machine
+**Go <1.16**
+```shell
+GO111MODULE=on go get github.com/Helcaraxan/gomod@v0.6.2
+```
+
+**Go 1.16+**
+```shell
+go install github.com/Helcaraxan/gomod@v0.6.2
+```
+
+### Docker images
+[List of docker images](https://hub.docker.com/repository/docker/amstaffix/gomod)
+```shell
+docker run --rm -it -w /app -v $(pwd):/app amstaffix/gomod:v0.6.2 graph '**'
 ```
