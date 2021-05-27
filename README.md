@@ -220,19 +220,25 @@ Reverse dependency statistics:
 ```
 
 ## Installation
+
 ### Install on your machine
+
 **Go <1.16**
+
 ```shell
 GO111MODULE=on go get github.com/Helcaraxan/gomod@v0.6.2
 ```
 
 **Go 1.16+**
+
 ```shell
 go install github.com/Helcaraxan/gomod@v0.6.2
 ```
 
 ### Docker images
+
 [List of docker images](https://hub.docker.com/repository/docker/amstaffix/gomod)
+
 ```shell
 docker run --rm -it -w /app -v $(pwd):/app amstaffix/gomod:v0.6.2 graph '**'
 ```
