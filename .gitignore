@@ -6,5 +6,6 @@
 bin/
 dist/
 c.out
+gomod-*
 graph.dot
 graph.pdf
