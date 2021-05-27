@@ -29,6 +29,14 @@ if git tag -l | grep --quiet "^${tag}$"; then
   exit 1
 fi
 
+# Ensure we have a release-notes file for the targeted version.
+release_notes_file="docs/release-notes/v${RELEASE_VERSION}.md"
+if [[ ! -f ${release_notes_file} ]]; then
+  echo "There is no release-notes files available for version '${RELEASE_VERSION}' in the 'docs/release-notes' folder."
+  exit 1
+fi
+release_description="$(cat "${release_notes_file}")"
+
 readonly build_time="$(date -u +'%Y-%m-%d %H:%M:%S')"
 
 printf "\nBuilding release binaries..."
@@ -39,22 +47,6 @@ GOARCH=amd64 GOOS=darwin go build -o "${darwin_binary}" -ldflags "-X 'main.toolV
 printf " DONE\n- Windows..."
 GOARCH=amd64 GOOS=windows go build -o "${windows_binary}" -ldflags "-X 'main.toolVersion=${tag}' -X 'main.toolDate=${build_time}'" .
 echo " DONE"
-
-# Retrieve the release description from the release-notes.
-readonly awk_progfile="$(mktemp)"
-echo "BEGIN { state=0 }
-{
-	if (state == 0 && /^## ${RELEASE_VERSION}$/) {
-		state=1
-	} else if (state == 1 && /^## [0-9]+\.[0-9]+\.[0-9]+$/) { 
-		state=2
-	}
-	if (state == 1) {
-		print \$0
-	}
-}" >"${awk_progfile}"
-readonly release_description="$(awk -f "${awk_progfile}" "RELEASE_NOTES.md")"
-rm -f "${awk_progfile}"
 
 echo "--- RELEASE DESCRIPTION ---"
 echo "${release_description}"
