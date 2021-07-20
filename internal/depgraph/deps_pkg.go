@@ -143,7 +143,7 @@ func (g *DepGraph) retrieveTransitiveImports(log *logger.Logger, pkgs []string) 
 }
 
 func (g *DepGraph) retrievePackageInfo(log *logger.Logger, pkgs []string) (imports []string, err error) {
-	stdout, _, err := util.RunCommand(log, g.Main.Info.Dir, "go", append([]string{"list", "-json"}, pkgs...)...)
+	stdout, _, err := util.RunCommand(log, g.Main.Info.Dir, "go", append([]string{"list", "-json", "-mod=mod"}, pkgs...)...)
 	if err != nil {
 		log.Error("Failed to list imports for packages.", zap.Strings("packages", pkgs), zap.Error(err))
 		return nil, err
