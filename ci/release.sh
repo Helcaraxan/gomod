@@ -104,20 +104,21 @@ readonly release_assets=(
 )
 for asset in "${release_assets[@]}"; do
   echo "- ${asset}..."
-  readonly upload_response="$(
+  upload_response="$(
     curl --progress-bar \
       --data-binary "@${asset}" \
       --header "Authorization: token ${GITHUB_API_TOKEN}" \
       --header "Content-Type: application/octet-stream" \
       "${upload_url%%\{*}?name=${asset}"
   )"
-  readonly upload_state="$(jq --raw-output '.state' <<<"${upload_response}")"
+  upload_state="$(jq --raw-output '.state' <<<"${upload_response}")"
   if [[ ${upload_state} != uploaded ]]; then
     echo ""
     printf "ERROR: It appears that the upload of asset ${asset} failed. The API's response was:\n%s\n\n" "${upload_response}"
     exit 1
   fi
   unset upload_response
+  unset upload_state
 done
 
 echo ""
