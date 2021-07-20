@@ -78,7 +78,7 @@ func retrieveModuleInformation(
 	}
 
 	log.Debug("Retrieving module information via 'go list'")
-	goListArgs := append([]string{"list", "-json", "-m"}, extraGoListArgs...)
+	goListArgs := append([]string{"list", "-json", "-m", "-mod=mod"}, extraGoListArgs...)
 	if targetModule == "" {
 		targetModule = "all"
 	}
